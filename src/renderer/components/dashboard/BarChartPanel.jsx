@@ -1,8 +1,23 @@
-import { Box, Chip, Stack, Typography } from "@mui/material";
+import { Chip } from "@mui/material";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  LabelList,
+} from "recharts";
 import SectionCard from "./SectionCard";
 
 function BarChartPanel({ title, periodLabel, bars, scaleLabels, hoverTable }) {
-  const maxValue = Math.max(...bars.map((item) => item.value));
+  const chartData = bars.map((item) => ({
+    name: item.label,
+    value: item.value,
+    color: item.color,
+  }));
 
   return (
     <SectionCard
@@ -16,132 +31,112 @@ function BarChartPanel({ title, periodLabel, bars, scaleLabels, hoverTable }) {
         />
       }
     >
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", lg: "1.4fr 0.9fr" },
-          gap: 2,
-          alignItems: "stretch",
-        }}
-      >
-        <Box sx={{ minHeight: { xs: 260, md: 280, xl: 290 } }}>
-          <Stack
-            direction="row"
-            spacing={1.25}
-            alignItems="flex-end"
-            sx={{ height: { xs: 210, md: 220, xl: 230 }, pt: 1 }}
-          >
-            {bars.map((item) => (
-              <Box
-                key={item.label}
-                sx={{
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 1,
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.9fr", gap: 16, alignItems: "stretch" }}>
+        <div style={{ minHeight: 240 }}>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart
+              data={chartData}
+              margin={{ top: 24, right: 8, bottom: 4, left: -8 }}
+              barCategoryGap="22%"
+            >
+              <defs>
+                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#2f6df6" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#5b93ea" stopOpacity={0.85} />
+                </linearGradient>
+                <linearGradient id="barGradientHighlight" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#2f6df6" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#1d4ed8" stopOpacity={1} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="rgba(15, 23, 42, 0.06)"
+              />
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fontWeight: 600, fill: "#94a3b8" }}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "#94a3b8" }}
+                tickFormatter={(v) =>
+                  v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v
+                }
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#fff",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 12,
+                  boxShadow: "0 12px 32px rgba(15, 23, 42, 0.12)",
+                  padding: "10px 14px",
                 }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{ fontWeight: 700, color: "text.secondary" }}
-                >
-                  {item.value.toLocaleString("vi-VN")}
-                </Typography>
-                <Box
-                  sx={{
-                    width: "68%",
-                    minWidth: 26,
-                    height: `${(item.value / maxValue) * 160 + 22}px`,
-                    borderRadius: 2,
-                    background: `linear-gradient(180deg, ${item.color} 0%, ${item.color}CC 100%)`,
-                    boxShadow: `0 10px 20px ${item.color}22`,
-                  }}
+                labelStyle={{ fontWeight: 700, fontSize: 13, color: "#0f172a", marginBottom: 4 }}
+                itemStyle={{ fontWeight: 600, fontSize: 12 }}
+                formatter={(val) => [val.toLocaleString("vi-VN"), "Sản lượng"]}
+                cursor={{ fill: "rgba(37, 99, 235, 0.06)" }}
+              />
+              <Bar dataKey="value" radius={[8, 8, 0, 0]} animationDuration={1000} animationEasing="ease-out">
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={index >= chartData.length - 2 ? "url(#barGradientHighlight)" : "url(#barGradient)"}
+                  />
+                ))}
+                <LabelList
+                  dataKey="value"
+                  position="top"
+                  formatter={(val) => val.toLocaleString("vi-VN")}
+                  style={{ fontSize: 11, fontWeight: 700, fill: "#64748b" }}
                 />
-                <Typography
-                  variant="caption"
-                  sx={{ color: "text.secondary", fontWeight: 600 }}
-                >
-                  {item.label}
-                </Typography>
-              </Box>
-            ))}
-          </Stack>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              mt: 1.5,
-              pr: 1,
-            }}
-          >
-            {scaleLabels.map((label) => (
-              <Typography
-                key={label}
-                variant="caption"
-                sx={{ color: "text.secondary" }}
-              >
-                {label}
-              </Typography>
-            ))}
-          </Box>
-        </Box>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
 
-        <Box
-          sx={{
-            borderRadius: 3,
-            bgcolor: "#f8fafc",
-            border: "1px solid rgba(15, 23, 42, 0.06)",
-            p: { xs: 1.5, md: 1.75, xl: 2 },
-            display: "flex",
-            flexDirection: "column",
-            gap: 1.25,
+        <div
+          style={{
+            borderRadius: 12, backgroundColor: "#f8fafc",
+            border: "1px solid var(--color-border)",
+            padding: 16, display: "flex", flexDirection: "column", gap: 10,
           }}
         >
-          <Typography
-            variant="subtitle2"
-            sx={{
-              fontWeight: 700,
-              color: "text.secondary",
-              fontSize: { xs: 13, md: 13.5, xl: 14 },
-            }}
-          >
+          <div style={{ fontWeight: 700, color: "#64748b", fontSize: 14 }}>
             Bảng dữ liệu điểm
-          </Typography>
+          </div>
           {hoverTable.map((row) => (
-            <Stack
+            <div
               key={row.label}
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
             >
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {row.label}
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
+              <span style={{ fontWeight: 600, fontSize: 14 }}>{row.label}</span>
+              <span
+                style={{
                   color: row.trend === "up" ? "#16a34a" : "#2563eb",
-                  fontWeight: 700,
+                  fontWeight: 700, fontSize: 14,
                 }}
               >
                 {row.value}
-              </Typography>
-            </Stack>
+              </span>
+            </div>
           ))}
-          <Box
-            sx={{
-              mt: "auto",
-              pt: 1.5,
+          <div
+            style={{
+              marginTop: "auto", paddingTop: 12,
               borderTop: "1px dashed rgba(15, 23, 42, 0.12)",
             }}
           >
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Mô phỏng bảng giá trị khi rê chuột lên cột dữ liệu.
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
+            <span style={{ fontSize: 12, color: "#64748b" }}>
+              Rê chuột lên cột để xem chi tiết dữ liệu.
+            </span>
+          </div>
+        </div>
+      </div>
     </SectionCard>
   );
 }

@@ -3,11 +3,8 @@ import AppLayout from "../layout/AppLayout";
 import LoginPage from "../pages/Login/LoginPage";
 import DashboardPage from "../pages/Dashboard/DashboardPage";
 import EmployeesPage from "../pages/Employees/EmployeesPage";
-import MappingPage from "../pages/Mapping/MappingPage";
-import ImportExcelPage from "../pages/ImportExcel/ImportExcelPage";
+import ImportExcelPage from "../pages/ImportExcel/ImportExcelPage"; // keeping just in case it's used elsewhere, but actually I'll just remove them all properly.
 import ReportsPage from "../pages/Reports/ReportsPage";
-import OvertimePage from "../pages/Overtime/OvertimePage";
-import LeavePage from "../pages/Leave/LeavePage";
 import SettingsPage from "../pages/Settings/SettingsPage";
 
 function AppRoutes() {
@@ -18,11 +15,7 @@ function AppRoutes() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="employees" element={<EmployeesPage />} />
-        <Route path="mapping" element={<MappingPage />} />
-        <Route path="import-excel" element={<ImportExcelPage />} />
         <Route path="reports" element={<ReportsPage />} />
-        <Route path="overtime" element={<OvertimePage />} />
-        <Route path="leave" element={<LeavePage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>

@@ -1,9 +1,6 @@
 export const navigationItems = [
   { label: "Dashboard", path: "/dashboard" },
-  { label: "Import Excel", path: "/import-excel" },
-  { label: "Danh sách File", path: "/reports" },
-  { label: "Mapping Nhân viên", path: "/mapping" },
-  { label: "Báo cáo", path: "/employees" },
-  { label: "Xuất Excel", path: "/overtime" },
+  { label: "Quản lý nhân viên", path: "/employees" },
+  { label: "Báo cáo", path: "/reports" },
   { label: "Cài đặt", path: "/settings" },
 ];

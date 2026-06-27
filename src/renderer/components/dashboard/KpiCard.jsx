@@ -1,5 +1,5 @@
-import { Box, Stack, Typography } from "@mui/material";
 import Sparkline from "./Sparkline";
+import styles from "./KpiCard.module.css";
 
 function KpiCard({
   title,
@@ -11,86 +11,98 @@ function KpiCard({
   icon,
   sparkline,
 }) {
+  const isPercentCard = !suffix && typeof value === "string" && value.includes("%");
+
   return (
-    <Box
-      sx={{
-        borderRadius: 4,
-        p: { xs: 2, md: 2.25, xl: 2.5 },
-        bgcolor: "background.paper",
-        border: "1px solid rgba(15, 23, 42, 0.06)",
-        boxShadow: "0 12px 30px rgba(15, 23, 42, 0.06)",
-        minHeight: { xs: 136, md: 142, xl: 146 },
-      }}
-    >
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="flex-start"
-        spacing={2}
-      >
-        <Box>
-          <Stack direction="row" alignItems="center" spacing={1.25} mb={1.25}>
-            <Box
-              sx={{
-                width: { xs: 42, md: 44, xl: 48 },
-                height: { xs: 42, md: 44, xl: 48 },
-                borderRadius: 3,
-                display: "grid",
-                placeItems: "center",
-                bgcolor: `${color}16`,
-                color,
-              }}
+    <div className={styles.card}>
+      <div className={styles.header}>
+        <div
+          className={styles.icon}
+          style={{ backgroundColor: `${color}16`, color }}
+        >
+          {icon}
+        </div>
+        <span className={styles.title}>{title}</span>
+      </div>
+
+      <div className={styles.body}>
+        <div>
+          <div className={styles.valueContainer}>
+            <span className={styles.value}>{value}</span>
+            {suffix && <span className={styles.suffix}>{suffix}</span>}
+          </div>
+          <div className={styles.footer}>
+            <span
+              className={`${styles.delta} ${
+                deltaTone === "up" ? styles.deltaUp : styles.deltaDown
+              }`}
             >
-              {icon}
-            </Box>
-            <Typography
-              variant="subtitle2"
-              sx={{ color: "text.secondary", fontWeight: 600 }}
-            >
-              {title}
-            </Typography>
-          </Stack>
-          <Stack direction="row" alignItems="baseline" spacing={1}>
-            <Typography
-              variant="h4"
-              sx={{
-                fontSize: { xs: 28, md: 31, xl: 34 },
-                fontWeight: 800,
-                lineHeight: 1,
-              }}
-            >
-              {value}
-            </Typography>
-            {suffix ? (
-              <Typography
-                variant="body1"
-                sx={{
-                  color: "text.secondary",
-                  fontWeight: 600,
-                  fontSize: { xs: 12.5, md: 13, xl: 14 },
-                }}
-              >
-                {suffix}
-              </Typography>
-            ) : null}
-          </Stack>
-          <Typography
-            variant="body2"
-            sx={{
-              mt: 0.75,
-              color: deltaTone === "down" ? "#dc2626" : "#16a34a",
-              fontWeight: 600,
-              fontSize: { xs: 11.5, md: 12.5, xl: 13.5 },
-            }}
-          >
-            {delta}
-          </Typography>
-        </Box>
-        <Box sx={{ width: { xs: 72, md: 80, xl: 88 }, mt: 1 }}>
-          <Sparkline values={sparkline} color={color} />
-        </Box>
-      </Stack>
-    </Box>
+              {deltaTone === "up" ? "↑ " : deltaTone === "down" ? "↓ " : ""}
+              {delta}
+            </span>
+          </div>
+        </div>
+
+        <div className={styles.chartContainer}>
+          {isPercentCard ? (
+            <CircularKpi value={parseFloat(value)} color={color} />
+          ) : (
+            <Sparkline values={sparkline} color={color} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CircularKpi({ value, color }) {
+  const radius = 32;
+  const stroke = 6;
+  const normalizedRadius = radius - stroke / 2;
+  const circumference = normalizedRadius * 2 * Math.PI;
+  const strokeDashoffset = circumference - (value / 100) * circumference;
+
+  return (
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+      <svg height={radius * 2} width={radius * 2}>
+        <circle
+          stroke="rgba(15, 23, 42, 0.06)"
+          fill="transparent"
+          strokeWidth={stroke}
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+        />
+        <circle
+          stroke={color}
+          fill="transparent"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={strokeDashoffset}
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+          style={{
+            transform: "rotate(-90deg)",
+            transformOrigin: "50% 50%",
+            transition: "stroke-dashoffset 1s ease",
+          }}
+        />
+        <text
+          x="50%"
+          y="50%"
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize="13"
+          fontWeight="800"
+          fill={color}
+          fontFamily="Inter, system-ui, sans-serif"
+        >
+          {value}%
+        </text>
+      </svg>
+    </div>
   );
 }
 

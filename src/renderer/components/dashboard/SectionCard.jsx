@@ -1,34 +1,16 @@
-import { Card, CardContent, Stack, Typography } from "@mui/material";
+import styles from "./SectionCard.module.css";
 
-function SectionCard({ title, action, children, sx }) {
+function SectionCard({ title, action, children }) {
   return (
-    <Card
-      sx={{
-        borderRadius: 4,
-        border: "1px solid rgba(15, 23, 42, 0.06)",
-        boxShadow: "0 14px 40px rgba(15, 23, 42, 0.08)",
-        ...sx,
-      }}
-    >
-      <CardContent sx={{ p: { xs: 2, md: 2.25, xl: 2.5 } }}>
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          mb={1.75}
-        >
-          <Typography
-            variant="h6"
-            sx={{ fontSize: { xs: 14.5, md: 15.5, xl: 16 }, fontWeight: 700 }}
-            noWrap
-          >
-            {title}
-          </Typography>
-          {action}
-        </Stack>
+    <section className={styles.card}>
+      <header className={styles.header}>
+        <h2 className={styles.title}>{title}</h2>
+        {action && <div>{action}</div>}
+      </header>
+      <div className={styles.content}>
         {children}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }
 

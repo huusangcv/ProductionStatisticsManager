@@ -11,10 +11,8 @@ function createWindow() {
     height: 900,
     minWidth: 1200,
     minHeight: 780,
-    backgroundColor: "#0f172a",
-    frame: false,
-    autoHideMenuBar: true,
-    titleBarStyle: "hidden",
+    backgroundColor: "#f5f7fb",
+    frame: true,
     webPreferences: {
       preload: path.join(__dirname, "..", "preload", "preload.js"),
       contextIsolation: true,
@@ -22,9 +20,6 @@ function createWindow() {
       sandbox: false,
     },
   });
-
-  mainWindow.setMenuBarVisibility(false);
-  mainWindow.removeMenu();
 
   if (isDev) {
     mainWindow.loadURL("http://localhost:5173");

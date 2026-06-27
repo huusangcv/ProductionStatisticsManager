@@ -1,35 +1,30 @@
-function Sparkline({ values, color = "#2563eb" }) {
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const width = 100;
-  const height = 32;
-  const range = max - min || 1;
+import { AreaChart, Area, ResponsiveContainer } from "recharts";
 
-  const points = values
-    .map((value, index) => {
-      const x = (index / (values.length - 1)) * width;
-      const normalized = (value - min) / range;
-      const y = height - normalized * height;
-      return `${x},${y}`;
-    })
-    .join(" ");
+function Sparkline({ values, color = "#2563eb" }) {
+  const data = values.map((v, i) => ({ v, i }));
 
   return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      width="100%"
-      height={32}
-      preserveAspectRatio="none"
-    >
-      <polyline
-        fill="none"
-        stroke={color}
-        strokeWidth="2.5"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        points={points}
-      />
-    </svg>
+    <ResponsiveContainer width="100%" height={36}>
+      <AreaChart data={data} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+        <defs>
+          <linearGradient id={`spark-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+            <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+          </linearGradient>
+        </defs>
+        <Area
+          type="monotone"
+          dataKey="v"
+          stroke={color}
+          strokeWidth={2.5}
+          fill={`url(#spark-${color.replace("#", "")})`}
+          dot={false}
+          activeDot={false}
+          isAnimationActive={true}
+          animationDuration={1200}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
 

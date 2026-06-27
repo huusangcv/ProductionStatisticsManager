@@ -1,74 +1,51 @@
-import { Avatar, Box, LinearProgress, Stack, Typography } from "@mui/material";
 import SectionCard from "./SectionCard";
+
+const st = {
+  list: { display: "flex", flexDirection: "column", gap: 12 },
+  row: { display: "flex", alignItems: "center", gap: 10 },
+  rank: { width: 18, fontSize: 13, fontWeight: 800, color: "#64748b", textAlign: "center", flexShrink: 0 },
+  avatar: {
+    width: 28, height: 28, borderRadius: "50%",
+    display: "grid", placeItems: "center",
+    fontSize: 11, fontWeight: 800, color: "#0f172a", flexShrink: 0,
+  },
+  info: { flex: 1, minWidth: 0 },
+  nameRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
+  name: { fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  val: { fontWeight: 800, fontSize: 13, color: "#64748b", flexShrink: 0 },
+  track: { height: 6, borderRadius: 999, backgroundColor: "rgba(37, 99, 235, 0.1)", overflow: "hidden" },
+};
 
 function LeaderboardPanel({ title, items }) {
   return (
     <SectionCard title={title}>
-      <Stack spacing={1.5}>
+      <div style={st.list}>
         {items.map((item, index) => (
-          <Stack
-            key={item.name}
-            direction="row"
-            alignItems="center"
-            spacing={1.25}
-          >
-            <Typography
-              sx={{
-                width: 18,
-                fontSize: 13,
-                fontWeight: 800,
-                color: "text.secondary",
-              }}
-            >
-              {index + 1}
-            </Typography>
-            <Avatar
-              sx={{
-                width: 28,
-                height: 28,
-                bgcolor: item.color,
-                fontSize: 12,
-                fontWeight: 800,
-              }}
-            >
+          <div key={item.name} style={st.row}>
+            <span style={st.rank}>{index + 1}</span>
+            <div style={{ ...st.avatar, backgroundColor: item.color }}>
               {item.shortName}
-            </Avatar>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                spacing={2}
-                mb={0.75}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>
-                  {item.name}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 800, color: "text.secondary" }}
-                >
-                  {item.value.toLocaleString("vi-VN")}
-                </Typography>
-              </Stack>
-              <LinearProgress
-                variant="determinate"
-                value={item.percent}
-                sx={{
-                  height: 7,
-                  borderRadius: 999,
-                  bgcolor: "rgba(37, 99, 235, 0.12)",
-                  "& .MuiLinearProgress-bar": {
+            </div>
+            <div style={st.info}>
+              <div style={st.nameRow}>
+                <span style={st.name}>{item.name}</span>
+                <span style={st.val}>{item.value.toLocaleString("vi-VN")}</span>
+              </div>
+              <div style={st.track}>
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${item.percent}%`,
                     borderRadius: 999,
-                    background:
-                      "linear-gradient(90deg, #2f6df6 0%, #6aa7ff 100%)",
-                  },
-                }}
-              />
-            </Box>
-          </Stack>
+                    background: "linear-gradient(90deg, #2f6df6 0%, #6aa7ff 100%)",
+                    transition: "width 0.5s ease",
+                  }}
+                />
+              </div>
+            </div>
+          </div>
         ))}
-      </Stack>
+      </div>
     </SectionCard>
   );
 }

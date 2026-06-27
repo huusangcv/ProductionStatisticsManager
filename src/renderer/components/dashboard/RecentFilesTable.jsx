@@ -1,82 +1,67 @@
 import {
-  Box,
   Chip,
   IconButton,
-  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Typography,
 } from "@mui/material";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import SectionCard from "./SectionCard";
 
+const cellBorder = "1px solid var(--color-border)";
+const headerStyle = {
+  fontWeight: 800,
+  color: "#64748b",
+  fontSize: 13,
+  borderBottom: cellBorder,
+  whiteSpace: "nowrap",
+};
+const bodyCellStyle = {
+  borderBottom: cellBorder,
+  fontSize: 14,
+  height: 56,
+};
+
 function RecentFilesTable({ rows }) {
   return (
     <SectionCard title="Danh sách file gần đây">
       <TableContainer sx={{ overflow: "auto" }}>
-        <Table size="small" sx={{ minWidth: { xs: 640, md: 700, xl: 720 } }}>
+        <Table size="small" sx={{ minWidth: 680 }}>
           <TableHead>
             <TableRow>
-              {[
-                "Tên file",
-                "Ngày",
-                "Trạng thái",
-                "Sản lượng",
-                "Người tạo",
-                "Thao tác",
-              ].map((column) => (
-                <TableCell
-                  key={column}
-                  sx={{
-                    fontWeight: 800,
-                    color: "text.secondary",
-                    borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
-                  }}
-                >
-                  {column}
-                </TableCell>
-              ))}
+              {["Tên file", "Ngày", "Trạng thái", "Sản lượng", "Người tạo", "Thao tác"].map(
+                (col) => (
+                  <TableCell key={col} sx={headerStyle}>
+                    {col}
+                  </TableCell>
+                )
+              )}
             </TableRow>
           </TableHead>
           <TableBody>
             {rows.map((row) => (
               <TableRow key={row.name} hover>
-                <TableCell
-                  sx={{ borderBottom: "1px solid rgba(15, 23, 42, 0.06)" }}
-                >
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Box
-                      sx={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 2,
-                        bgcolor: "#eaf2ff",
-                        display: "grid",
-                        placeItems: "center",
-                        color: "#2f6df6",
+                <TableCell sx={bodyCellStyle}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div
+                      style={{
+                        width: 32, height: 32, borderRadius: 8,
+                        backgroundColor: "#eaf2ff", display: "grid",
+                        placeItems: "center", color: "#2f6df6",
                       }}
                     >
-                      <VisibilityOutlinedIcon sx={{ fontSize: 18 }} />
-                    </Box>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      {row.name}
-                    </Typography>
-                  </Stack>
+                      <VisibilityOutlinedIcon style={{ fontSize: 18 }} />
+                    </div>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>{row.name}</span>
+                  </div>
                 </TableCell>
-                <TableCell
-                  sx={{ borderBottom: "1px solid rgba(15, 23, 42, 0.06)" }}
-                >
-                  {row.date}
-                </TableCell>
-                <TableCell
-                  sx={{ borderBottom: "1px solid rgba(15, 23, 42, 0.06)" }}
-                >
+                <TableCell sx={bodyCellStyle}>{row.date}</TableCell>
+                <TableCell sx={bodyCellStyle}>
                   <Chip
                     label={row.status}
                     size="small"
@@ -88,33 +73,22 @@ function RecentFilesTable({ rows }) {
                     }}
                   />
                 </TableCell>
-                <TableCell
-                  sx={{
-                    borderBottom: "1px solid rgba(15, 23, 42, 0.06)",
-                    fontWeight: 700,
-                  }}
-                >
+                <TableCell sx={{ ...bodyCellStyle, fontWeight: 700 }}>
                   {row.quantity.toLocaleString("vi-VN")}
                 </TableCell>
-                <TableCell
-                  sx={{ borderBottom: "1px solid rgba(15, 23, 42, 0.06)" }}
-                >
-                  {row.creator}
-                </TableCell>
-                <TableCell
-                  sx={{ borderBottom: "1px solid rgba(15, 23, 42, 0.06)" }}
-                >
-                  <Stack direction="row" spacing={0.5}>
+                <TableCell sx={bodyCellStyle}>{row.creator}</TableCell>
+                <TableCell sx={bodyCellStyle}>
+                  <div style={{ display: "flex", gap: 4 }}>
                     <ActionIcon tone="#2563eb">
-                      <VisibilityOutlinedIcon sx={{ fontSize: 17 }} />
+                      <VisibilityOutlinedIcon style={{ fontSize: 17 }} />
                     </ActionIcon>
                     <ActionIcon tone="#f59e0b">
-                      <EditOutlinedIcon sx={{ fontSize: 17 }} />
+                      <EditOutlinedIcon style={{ fontSize: 17 }} />
                     </ActionIcon>
                     <ActionIcon tone="#ef4444">
-                      <DeleteOutlineOutlinedIcon sx={{ fontSize: 17 }} />
+                      <DeleteOutlineOutlinedIcon style={{ fontSize: 17 }} />
                     </ActionIcon>
-                  </Stack>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -130,12 +104,12 @@ function ActionIcon({ tone, children }) {
     <IconButton
       size="small"
       sx={{
-        width: 32,
-        height: 32,
+        width: 36,
+        height: 36,
         borderRadius: 2,
         bgcolor: `${tone}12`,
         color: tone,
-        border: "1px solid rgba(15, 23, 42, 0.06)",
+        border: "1px solid var(--color-border)",
       }}
     >
       {children}

@@ -1,0 +1,97 @@
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+  width: 100%;
+}
+
+@media (min-width: 1920px) {
+  .dashboardGrid {
+    gap: 24px;
+  }
+}
+
+.importPanel {
+  grid-column: span 12;
+}
+.recentFiles {
+  grid-column: span 12;
+}
+.kpiCard {
+  grid-column: span 12;
+}
+.leaderboard {
+  grid-column: span 12;
+}
+.chartsArea {
+  grid-column: span 12;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: inherit;
+}
+.barChart {
+  grid-column: span 12;
+}
+.donutChart {
+  grid-column: span 12;
+}
+
+@media (min-width: 1024px) {
+  .kpiCard {
+    grid-column: span 6;
+  }
+  .importPanel {
+    grid-column: span 5;
+  }
+  .recentFiles {
+    grid-column: span 7;
+  }
+  .leaderboard {
+    grid-column: span 5;
+  }
+  .chartsArea {
+    grid-column: span 7;
+  }
+}
+
+@media (min-width: 1366px) {
+  .importPanel {
+    grid-column: span 4;
+  }
+  .recentFiles {
+    grid-column: span 8;
+  }
+  .kpiCard {
+    grid-column: span 3;
+  }
+  .leaderboard {
+    grid-column: span 4;
+  }
+  .chartsArea {
+    grid-column: span 8;
+  }
+  .barChart {
+    grid-column: span 7;
+  }
+  .donutChart {
+    grid-column: span 5;
+  }
+}
+
+@media (min-width: 1920px) {
+  .barChart {
+    grid-column: span 8;
+  }
+  .donutChart {
+    grid-column: span 4;
+  }
+}
+
+.footer {
+  text-align: center;
+  padding: 16px 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 16px;
+}
