@@ -226,6 +226,7 @@ function EmployeesPage() {
           onView={handleViewEmployee}
           onEdit={handleEditEmployee}
           onDelete={handleDeleteEmployee}
+          onAddEmployee={handleAddEmployee}
         />
       </Box>
 

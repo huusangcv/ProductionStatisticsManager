@@ -12,10 +12,7 @@ function AppLayout() {
   };
 
   return (
-    <div
-      className={styles.appContainer}
-      data-sidebar-collapsed={!desktopOpen}
-    >
+    <div className={styles.appContainer} data-sidebar-collapsed={!desktopOpen}>
       <Sidebar desktopOpen={desktopOpen} />
       <div className={styles.mainContent}>
         <Topbar onMenuClick={handleToggleSidebar} />

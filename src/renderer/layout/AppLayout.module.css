@@ -29,7 +29,6 @@
   display: flex;
   flex-direction: column;
 }
-
 @media (min-width: 1920px) {
   .pageContainer {
     padding: 24px;

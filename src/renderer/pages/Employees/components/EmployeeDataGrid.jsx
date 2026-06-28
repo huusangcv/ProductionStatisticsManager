@@ -7,7 +7,8 @@ import {
   GridToolbarColumnsButton,
   GridToolbarFilterButton,
 } from "@mui/x-data-grid";
-import { Box, Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
+import { Box, Button, Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
@@ -103,16 +104,31 @@ const viVNGridLocaleText = {
   checkboxSelectionUnselectRow: "Bỏ chọn dòng",
 };
 
-function CustomToolbar() {
+function CustomToolbar({ onAddEmployee }) {
   return (
     <GridToolbarContainer
-      sx={{ p: 1, borderBottom: "1px solid #e2e8f0", bgcolor: "#f8fafc" }}
+      sx={{
+        p: 1.5,
+        borderBottom: "1px solid #E2E8F0",
+        bgcolor: "#F8FAFC",
+      }}
     >
-      <GridToolbarColumnsButton />
-      <GridToolbarFilterButton />
-      <GridToolbarDensitySelector />
-      <Box sx={{ flexGrow: 1 }} />
-      <GridToolbarExport />
+      <Box sx={{ display: "flex", alignItems: "center", width: "100%", flexWrap: "nowrap" }}>
+        <GridToolbarColumnsButton />
+        <GridToolbarFilterButton />
+        <GridToolbarDensitySelector />
+        <Box sx={{ flexGrow: 1 }} />
+        <GridToolbarExport />
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={onAddEmployee}
+          sx={{ ml: 1.5 }}
+        >
+          Thêm nhân viên
+        </Button>
+      </Box>
     </GridToolbarContainer>
   );
 }
@@ -125,6 +141,7 @@ function EmployeeDataGrid({
   onEdit,
   onView,
   onDelete,
+  onAddEmployee,
 }) {
   const [contextMenu, setContextMenu] = useState(null);
 
@@ -212,10 +229,12 @@ function EmployeeDataGrid({
       sx={{
         height: "100%",
         width: "100%",
-        bgcolor: "white",
-        borderRadius: 1,
+        minWidth: 0,
+        bgcolor: "#FFFFFF",
+        borderRadius: "18px",
         overflow: "hidden",
-        border: "1px solid #e2e8f0",
+        border: "1px solid #E2E8F0",
+        boxShadow: "0 2px 12px rgba(15, 23, 42, 0.05)",
       }}
     >
       <DataGrid
@@ -232,6 +251,9 @@ function EmployeeDataGrid({
           row: {
             onContextMenu: handleContextMenu,
           },
+          toolbar: {
+            onAddEmployee,
+          },
         }}
         initialState={{
           pagination: {
@@ -241,18 +263,30 @@ function EmployeeDataGrid({
         pageSizeOptions={[10, 20, 50, 100]}
         sx={{
           border: "none",
+          width: "100%",
+          minWidth: 0,
+          color: "#0F172A",
           "& .MuiDataGrid-columnHeaders": {
-            bgcolor: "#f1f5f9",
-            color: "#475569",
+            bgcolor: "#F8FAFC",
+            color: "#64748B",
             fontWeight: 600,
-            textTransform: "uppercase",
-            fontSize: 12,
+            fontSize: 13,
+            borderBottom: "1px solid #E2E8F0",
+          },
+          "& .MuiDataGrid-columnHeaderTitle": {
+            fontWeight: 600,
+          },
+          "& .MuiDataGrid-cell": {
+            borderColor: "#E2E8F0",
           },
           "& .MuiDataGrid-cell:focus-within": {
             outline: "none",
           },
           "& .MuiDataGrid-row:hover": {
-            bgcolor: "#f8fafc",
+            bgcolor: "#F8FAFC",
+          },
+          "& .MuiDataGrid-footerContainer": {
+            borderTop: "1px solid #E2E8F0",
           },
         }}
       />
@@ -268,8 +302,9 @@ function EmployeeDataGrid({
         sx={{
           "& .MuiPaper-root": {
             width: 220,
-            borderRadius: 2,
-            boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+            borderRadius: "14px",
+            border: "1px solid #E2E8F0",
+            boxShadow: "0 8px 24px rgba(15, 23, 42, 0.1)",
           },
         }}
       >

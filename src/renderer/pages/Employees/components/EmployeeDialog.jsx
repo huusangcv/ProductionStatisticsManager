@@ -10,7 +10,7 @@ import {
   Grid2 as Grid,
   Box,
   Typography,
-  IconButton
+  IconButton,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useForm, Controller } from "react-hook-form";
@@ -78,13 +78,30 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
   const onSubmit = (data) => {
     onSave({
       ...data,
-      avatar: employee?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.fullName)}&background=random`,
+      avatar:
+        employee?.avatar ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(data.fullName)}&background=random`,
     });
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-      <DialogTitle sx={{ m: 0, p: 2.5, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0" }}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{ sx: { borderRadius: 1 } }}
+    >
+      <DialogTitle
+        sx={{
+          m: 0,
+          p: 2.5,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          borderBottom: "1px solid #e2e8f0",
+        }}
+      >
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
           {employee ? "Cập nhật nhân viên" : "Thêm nhân viên mới"}
         </Typography>
@@ -92,12 +109,22 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      
+
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogContent sx={{ p: 3, display: "flex", flexDirection: "column", gap: 4 }}>
+        <DialogContent
+          sx={{ p: 3, display: "flex", flexDirection: "column", gap: 4 }}
+        >
           {/* Basic Info */}
           <Box>
-            <Typography variant="subtitle2" sx={{ textTransform: "uppercase", color: "primary.main", fontWeight: 700, mb: 2 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{
+                textTransform: "uppercase",
+                color: "primary.main",
+                fontWeight: 700,
+                mb: 2,
+              }}
+            >
               Thông tin cơ bản
             </Typography>
             <Grid container spacing={2}>
@@ -106,7 +133,16 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
                   name="id"
                   control={control}
                   render={({ field }) => (
-                    <TextField {...field} fullWidth label="Mã NV" error={!!errors.id} helperText={errors.id?.message} slotProps={{ input: { readOnly: true, sx: { bgcolor: "#f8fafc" } } }} />
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Mã NV"
+                      error={!!errors.id}
+                      helperText={errors.id?.message}
+                      slotProps={{
+                        input: { readOnly: true, sx: { bgcolor: "#f8fafc" } },
+                      }}
+                    />
                   )}
                 />
               </Grid>
@@ -115,7 +151,13 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
                   name="fullName"
                   control={control}
                   render={({ field }) => (
-                    <TextField {...field} fullWidth label="Họ và tên" error={!!errors.fullName} helperText={errors.fullName?.message} />
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Họ và tên"
+                      error={!!errors.fullName}
+                      helperText={errors.fullName?.message}
+                    />
                   )}
                 />
               </Grid>
@@ -124,7 +166,13 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
                   name="phone"
                   control={control}
                   render={({ field }) => (
-                    <TextField {...field} fullWidth label="Số điện thoại" error={!!errors.phone} helperText={errors.phone?.message} />
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Số điện thoại"
+                      error={!!errors.phone}
+                      helperText={errors.phone?.message}
+                    />
                   )}
                 />
               </Grid>
@@ -133,7 +181,13 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
                   name="gender"
                   control={control}
                   render={({ field }) => (
-                    <TextField {...field} select fullWidth label="Giới tính" error={!!errors.gender}>
+                    <TextField
+                      {...field}
+                      select
+                      fullWidth
+                      label="Giới tính"
+                      error={!!errors.gender}
+                    >
                       <MenuItem value="Nam">Nam</MenuItem>
                       <MenuItem value="Nữ">Nữ</MenuItem>
                     </TextField>
@@ -145,7 +199,13 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
                   name="address"
                   control={control}
                   render={({ field }) => (
-                    <TextField {...field} fullWidth label="Địa chỉ" error={!!errors.address} helperText={errors.address?.message} />
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Địa chỉ"
+                      error={!!errors.address}
+                      helperText={errors.address?.message}
+                    />
                   )}
                 />
               </Grid>
@@ -154,7 +214,15 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
 
           {/* Work Info */}
           <Box>
-            <Typography variant="subtitle2" sx={{ textTransform: "uppercase", color: "primary.main", fontWeight: 700, mb: 2 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{
+                textTransform: "uppercase",
+                color: "primary.main",
+                fontWeight: 700,
+                mb: 2,
+              }}
+            >
               Thông tin công việc
             </Typography>
             <Grid container spacing={2}>
@@ -163,7 +231,13 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
                   name="department"
                   control={control}
                   render={({ field }) => (
-                    <TextField {...field} select fullWidth label="Phòng ban" error={!!errors.department}>
+                    <TextField
+                      {...field}
+                      select
+                      fullWidth
+                      label="Phòng ban"
+                      error={!!errors.department}
+                    >
                       <MenuItem value="Mài">Mài</MenuItem>
                       <MenuItem value="Cắt">Cắt</MenuItem>
                     </TextField>
@@ -175,7 +249,13 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
                   name="role"
                   control={control}
                   render={({ field }) => (
-                    <TextField {...field} select fullWidth label="Vai trò" error={!!errors.role}>
+                    <TextField
+                      {...field}
+                      select
+                      fullWidth
+                      label="Vai trò"
+                      error={!!errors.role}
+                    >
                       <MenuItem value="Thống kê">Thống kê</MenuItem>
                       <MenuItem value="Trưởng ca">Trưởng ca</MenuItem>
                       <MenuItem value="Tổ trưởng">Tổ trưởng</MenuItem>
@@ -189,7 +269,13 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
                   name="shift"
                   control={control}
                   render={({ field }) => (
-                    <TextField {...field} select fullWidth label="Ca làm việc" error={!!errors.shift}>
+                    <TextField
+                      {...field}
+                      select
+                      fullWidth
+                      label="Ca làm việc"
+                      error={!!errors.shift}
+                    >
                       <MenuItem value="Ca 1">Ca 1</MenuItem>
                       <MenuItem value="Ca 2">Ca 2</MenuItem>
                       <MenuItem value="Ca 3">Ca 3</MenuItem>
@@ -203,7 +289,15 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
                   name="joinDate"
                   control={control}
                   render={({ field }) => (
-                    <TextField {...field} type="date" fullWidth label="Ngày vào làm" slotProps={{ inputLabel: { shrink: true } }} error={!!errors.joinDate} helperText={errors.joinDate?.message} />
+                    <TextField
+                      {...field}
+                      type="date"
+                      fullWidth
+                      label="Ngày vào làm"
+                      slotProps={{ inputLabel: { shrink: true } }}
+                      error={!!errors.joinDate}
+                      helperText={errors.joinDate?.message}
+                    />
                   )}
                 />
               </Grid>
@@ -212,7 +306,13 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
                   name="status"
                   control={control}
                   render={({ field }) => (
-                    <TextField {...field} select fullWidth label="Trạng thái" error={!!errors.status}>
+                    <TextField
+                      {...field}
+                      select
+                      fullWidth
+                      label="Trạng thái"
+                      error={!!errors.status}
+                    >
                       <MenuItem value="Đang làm việc">Đang làm việc</MenuItem>
                       <MenuItem value="Nghỉ việc">Nghỉ việc</MenuItem>
                     </TextField>
@@ -222,7 +322,9 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
             </Grid>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 2.5, borderTop: "1px solid #e2e8f0", bgcolor: "#f8fafc" }}>
+        <DialogActions
+          sx={{ p: 2.5, borderTop: "1px solid #e2e8f0", bgcolor: "#f8fafc" }}
+        >
           <Button onClick={onClose} color="secondary" variant="text">
             Hủy bỏ
           </Button>
