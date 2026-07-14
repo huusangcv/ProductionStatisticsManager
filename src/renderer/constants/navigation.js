@@ -1,8 +1,14 @@
 export const navigationItems = [
-  { label: "Dashboard", path: "/dashboard" },
-  { label: "Sản lượng Mài", path: "/grinding" },
-  { label: "Sản lượng Cắt", path: "/cutting" },
-  { label: "Quản lý nhân viên", path: "/employees" },
-  { label: "Báo cáo", path: "/reports" },
-  { label: "Cài đặt", path: "/settings" },
+  { label: "Dashboard", path: "/dashboard", icon: "Dashboard" },
+  {
+    label: "Sản lượng",
+    icon: "Production",
+    children: [
+      { label: "Mài", path: "/grinding", icon: "Grinding" },
+      { label: "Cắt", path: "/cutting", icon: "Cutting" },
+    ],
+  },
+  { label: "Quản lý nhân viên", path: "/employees", icon: "Employees" },
+  { label: "Báo cáo", path: "/reports", icon: "Reports" },
+  { label: "Cài đặt", path: "/settings", icon: "Settings" },
 ];
