@@ -1,10 +1,5 @@
 /**
  * productionBase.js — Generic DAO factory for production modules.
- *
- * Usage:
- *   const grindingDAO = createProductionModule('grinding_production', columnSpec);
- *   grindingDAO.ensureTable();
- *   grindingDAO.importData(records, fileName);
  */
 
 const Database = require("better-sqlite3");
@@ -46,36 +41,17 @@ function createProductionModule(tableName, columnSpec) {
         CREATE TABLE IF NOT EXISTS ${tableName} (
           id                            INTEGER PRIMARY KEY AUTOINCREMENT,
 ${colDefs},
+          import_session_id             INTEGER,
           imported_at                   TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
           UNIQUE(report_date, work_order_number, item_name, completed_quantity)
         )
       `);
-    } finally {
-      db.close();
-    }
-  }
 
-  // ── ensureImportHistoryTable ─────────────────────────────────────────────
-  function ensureImportHistoryTable() {
-    const db = openDatabase();
-    try {
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS import_history (
-          id           INTEGER PRIMARY KEY AUTOINCREMENT,
-          file_name    TEXT NOT NULL,
-          module       TEXT NOT NULL,
-          imported_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
-          record_count INTEGER NOT NULL,
-          status       TEXT NOT NULL
-        )
-      `);
-      
-      // Migration: Add module column if it doesn't exist (from previous version)
-      const columns = db.prepare("PRAGMA table_info(import_history)").all();
-      const hasModuleColumn = columns.some((col) => col.name === "module");
-      
-      if (!hasModuleColumn) {
-        db.exec("ALTER TABLE import_history ADD COLUMN module TEXT NOT NULL DEFAULT 'grinding_production'");
+      // Migration: Add import_session_id to existing tables
+      const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
+      const hasSessionId = columns.some((col) => col.name === "import_session_id");
+      if (!hasSessionId) {
+        db.exec(`ALTER TABLE ${tableName} ADD COLUMN import_session_id INTEGER`);
       }
     } finally {
       db.close();
@@ -118,53 +94,44 @@ ${colDefs},
   }
 
   // ── importData ───────────────────────────────────────────────────────────
-  function importData(records, fileName) {
+  function importData(records, sessionId) {
     const db = openDatabase();
     try {
+      // Create placeholders like: @report_date, @work_order_number
       const placeholders = dbFields.map((f) => `@${f}`).join(", ");
+      
       const insertData = db.prepare(`
-        INSERT OR IGNORE INTO ${tableName} (${dbFields.join(", ")})
-        VALUES (${placeholders})
+        INSERT OR IGNORE INTO ${tableName} (${dbFields.join(", ")}, import_session_id)
+        VALUES (${placeholders}, @import_session_id)
       `);
 
-      const insertHistory = db.prepare(`
-        INSERT INTO import_history (file_name, module, record_count, status)
-        VALUES (?, ?, ?, ?)
-      `);
-
-      const insertMany = db.transaction((rows, name) => {
+      const insertMany = db.transaction((rows) => {
         let insertedCount = 0;
+        let duplicateCount = 0;
+        let failedCount = 0;
+
         for (const row of rows) {
-          const result = insertData.run(row);
-          insertedCount += result.changes;
+          try {
+            // Include import_session_id in the row object for the parameter binding
+            const rowWithSession = { ...row, import_session_id: sessionId };
+            const result = insertData.run(rowWithSession);
+            
+            if (result.changes > 0) {
+              insertedCount++;
+            } else {
+              duplicateCount++;
+            }
+          } catch (e) {
+            failedCount++;
+          }
         }
-        insertHistory.run(
-          name,
-          tableName,
-          rows.length,
-          insertedCount > 0 ? "SUCCESS" : "NO_NEW_DATA"
-        );
-        return insertedCount;
+        
+        return { insertedCount, duplicateCount, failedCount };
       });
 
-      const insertedCount = insertMany(records, fileName || "Unknown File");
-      return { ok: true, insertedCount };
+      const counts = insertMany(records);
+      return { ok: true, ...counts };
     } catch (error) {
-      // Log failure outside of the failed transaction
-      try {
-        const dbErr = openDatabase();
-        dbErr
-          .prepare(
-            `INSERT INTO import_history (file_name, module, record_count, status) VALUES (?, ?, ?, ?)`
-          )
-          .run(
-            fileName || "Unknown File",
-            tableName,
-            records ? records.length : 0,
-            "ERROR: " + error.message
-          );
-        dbErr.close();
-      } catch (_) {}
       return { ok: false, message: error.message };
     } finally {
       db.close();
@@ -173,7 +140,6 @@ ${colDefs},
 
   return {
     ensureTable,
-    ensureImportHistoryTable,
     getAll,
     checkExistsByDate,
     deleteByDate,

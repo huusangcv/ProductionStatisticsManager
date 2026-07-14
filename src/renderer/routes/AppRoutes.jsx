@@ -5,6 +5,7 @@ import DashboardPage from "../pages/Dashboard/DashboardPage";
 import EmployeesPage from "../pages/Employees/EmployeesPage";
 import GrindingPage from "../pages/Grinding/GrindingPage";
 import CuttingPage from "../pages/Cutting/CuttingPage";
+import ImportHistoryPage from "../pages/ImportHistory/ImportHistoryPage";
 import ReportsPage from "../pages/Reports/ReportsPage";
 import SettingsPage from "../pages/Settings/SettingsPage";
 import { useAuth } from "../context/AuthContext";
@@ -53,6 +54,7 @@ function AppRoutes() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="grinding" element={<GrindingPage />} />
         <Route path="cutting" element={<CuttingPage />} />
+        <Route path="import-history" element={<ImportHistoryPage />} />
         <Route path="employees" element={<EmployeesPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsPage />} />

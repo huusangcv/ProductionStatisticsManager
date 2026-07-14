@@ -28,6 +28,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     parseExcel: (filePath) => ipcRenderer.invoke("cutting:parseExcel", filePath),
     save: (payload) => ipcRenderer.invoke("cutting:save", payload),
   },
+  importSessions: {
+    getAll: () => ipcRenderer.invoke("import-session:getAll"),
+    getById: (id) => ipcRenderer.invoke("import-session:getById", id),
+    delete: (id) => ipcRenderer.invoke("import-session:delete", id),
+    rollback: (id) => ipcRenderer.invoke("import-session:rollback", id),
+  },
   db: {
     initialize: () => ipcRenderer.invoke("db:initialize"),
   },

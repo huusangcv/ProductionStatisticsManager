@@ -9,6 +9,7 @@ export const navigationItems = [
     ],
   },
   { label: "Quản lý nhân viên", path: "/employees", icon: "Employees" },
+  { label: "Lịch sử Import", path: "/import-history", icon: "History" },
   { label: "Báo cáo", path: "/reports", icon: "Reports" },
   { label: "Cài đặt", path: "/settings", icon: "Settings" },
 ];

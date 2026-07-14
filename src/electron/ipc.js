@@ -22,6 +22,14 @@ const {
   checkCuttingDataExistsByDate,
   deleteCuttingDataByDate,
 } = require("./sqlite/cutting");
+const {
+  createSession,
+  finishSession,
+  getAllSessions,
+  getSessionById,
+  deleteSession,
+  rollbackSession,
+} = require("./sqlite/importSessions");
 
 // ============================================================================
 // Shared Excel Parse Engine
@@ -104,7 +112,7 @@ function parseExcelFile(filePath, columnSpec) {
 // Builds a grinding:save / cutting:save handler with duplicate detection dialog
 // ============================================================================
 
-function makeSaveHandler(moduleName, checkExistsFn, deleteByDateFn, importFn) {
+function makeSaveHandler(moduleName, tableName, checkExistsFn, deleteByDateFn, importFn) {
   return async (event, { records, fileName, reportDate }) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     try {
@@ -123,7 +131,34 @@ function makeSaveHandler(moduleName, checkExistsFn, deleteByDateFn, importFn) {
           return { ok: false, message: "Đã hủy thao tác lưu để giữ nguyên dữ liệu cũ." };
         }
       }
-      return importFn(records, fileName);
+
+      // Create import session
+      const startTime = Date.now();
+      const sessionId = createSession(moduleName, tableName, fileName, records.length);
+      
+      // Execute import linked to session
+      const result = importFn(records, sessionId);
+      const durationMs = Date.now() - startTime;
+      
+      if (result.ok) {
+        // Update session on success
+        finishSession(sessionId, {
+          importedRows: result.insertedCount,
+          duplicateRows: result.duplicateCount,
+          failedRows: result.failedCount,
+          status: result.insertedCount > 0 ? "SUCCESS" : "NO_NEW_DATA",
+          durationMs,
+        });
+      } else {
+        // Update session on failure
+        finishSession(sessionId, {
+          status: "FAILED",
+          note: result.message,
+          durationMs,
+        });
+      }
+      
+      return result;
     } catch (error) {
       return { ok: false, message: "Lỗi khi lưu dữ liệu: " + error.message };
     }
@@ -223,7 +258,8 @@ function registerIpcHandlers() {
   ipcMain.handle(
     "grinding:save",
     makeSaveHandler(
-      "sản lượng mài",
+      "Sản lượng Mài",
+      "grinding_production",
       checkGrindingDataExistsByDate,
       deleteGrindingDataByDate,
       importGrindingData
@@ -244,12 +280,36 @@ function registerIpcHandlers() {
   ipcMain.handle(
     "cutting:save",
     makeSaveHandler(
-      "sản lượng cắt",
+      "Sản lượng Cắt",
+      "cutting_production",
       checkCuttingDataExistsByDate,
       deleteCuttingDataByDate,
       importCuttingData
     )
   );
+  
+  // --- Import Session handlers ---
+  ipcMain.handle("import-session:getAll", () => getAllSessions());
+  ipcMain.handle("import-session:getById", (_event, id) => getSessionById(id));
+  ipcMain.handle("import-session:delete", (_event, id) => deleteSession(id));
+  
+  ipcMain.handle("import-session:rollback", async (event, sessionId) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const { response } = await dialog.showMessageBox(win, {
+      type: "warning",
+      title: "Xác nhận Rollback",
+      message: `Bạn có chắc chắn muốn hoàn tác (xoá toàn bộ dữ liệu) của phiên Import này không? Thao tác này không thể phục hồi.`,
+      buttons: ["Đồng ý Rollback", "Hủy"],
+      defaultId: 1,
+      cancelId: 1,
+    });
+    
+    if (response === 0) {
+      return rollbackSession(sessionId);
+    } else {
+      return { ok: false, canceled: true, message: "Đã hủy rollback." };
+    }
+  });
 
   // --- Window handlers ---
   ipcMain.handle("window:minimize", (event) => {

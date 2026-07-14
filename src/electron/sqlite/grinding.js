@@ -25,7 +25,6 @@ const grindingDAO = createProductionModule("grinding_production", GRINDING_COLUM
 
 module.exports = {
   ensureGrindingTable:            grindingDAO.ensureTable,
-  ensureImportHistoryTable:       grindingDAO.ensureImportHistoryTable,
   getAllGrindingData:              grindingDAO.getAll,
   checkGrindingDataExistsByDate:  grindingDAO.checkExistsByDate,
   deleteGrindingDataByDate:       grindingDAO.deleteByDate,

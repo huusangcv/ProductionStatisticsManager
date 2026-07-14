@@ -1,7 +1,8 @@
 const { ensureAppAccount } = require("./account");
 const { ensureEmployeesTable, seedEmployeesIfEmpty } = require("./employees");
-const { ensureGrindingTable, ensureImportHistoryTable } = require("./grinding");
+const { ensureGrindingTable } = require("./grinding");
 const { ensureCuttingTable } = require("./cutting");
+const { ensureImportSessionsTable } = require("./importSessions");
 const { getDatabasePath, ensureDirectories } = require("./paths");
 const Database = require("better-sqlite3");
 
@@ -24,8 +25,8 @@ function initializeDatabase() {
   seedEmployeesIfEmpty();
   
   ensureGrindingTable();
-  ensureImportHistoryTable();
   ensureCuttingTable();
+  ensureImportSessionsTable();
 
   return databasePath;
 }

@@ -30,6 +30,10 @@ const PAGE_META = {
     title: "Sản lượng Cắt",
     subtitle: "Quản lý và thống kê sản lượng cắt từ file Excel",
   },
+  "/import-history": {
+    title: "Lịch sử Import",
+    subtitle: "Quản lý các phiên import dữ liệu",
+  },
   "/reports": {
     title: "Báo cáo",
     subtitle: "Thống kê và xuất dữ liệu sản xuất",

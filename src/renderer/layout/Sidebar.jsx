@@ -4,6 +4,7 @@ import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
+import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import PrecisionManufacturingOutlinedIcon from "@mui/icons-material/PrecisionManufacturingOutlined";
 import BuildCircleOutlinedIcon from "@mui/icons-material/BuildCircleOutlined";
 import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
@@ -18,6 +19,7 @@ const iconMap = {
   Production: <PrecisionManufacturingOutlinedIcon />,
   Grinding: <BuildCircleOutlinedIcon />,
   Cutting: <ConstructionOutlinedIcon />,
+  History: <HistoryOutlinedIcon />,
   Employees: <GroupOutlinedIcon />,
   Reports: <AssessmentOutlinedIcon />,
   Settings: <SettingsOutlinedIcon />,
