@@ -18,7 +18,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   grinding: {
     getAll: () => ipcRenderer.invoke("grinding:getAll"),
-    import: () => ipcRenderer.invoke("grinding:import"),
+    selectFile: () => ipcRenderer.invoke("grinding:selectFile"),
+    parseExcel: (filePath) => ipcRenderer.invoke("grinding:parseExcel", filePath),
+    save: (payload) => ipcRenderer.invoke("grinding:save", payload),
   },
   db: {
     initialize: () => ipcRenderer.invoke("db:initialize"),

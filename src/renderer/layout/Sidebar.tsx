@@ -2,9 +2,14 @@ import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import { Box, List, ListItemButton, ListItemIcon, ListItemText, Typography } from "@mui/material";
+import ContentCutIcon from "@mui/icons-material/ContentCut";
+import PrecisionManufacturingOutlinedIcon from "@mui/icons-material/PrecisionManufacturingOutlined";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Box, Collapse, List, ListItemButton, ListItemIcon, ListItemText, Typography } from "@mui/material";
 import type { ReactElement } from "react";
-import { NavLink } from "react-router-dom";
+import { useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import theme from "../theme/theme";
 
 export interface SidebarProps {
@@ -17,15 +22,60 @@ interface NavItem {
   icon: ReactElement;
 }
 
-const navItems: NavItem[] = [
+interface NavGroup {
+  label: string;
+  icon: ReactElement;
+  children: NavItem[];
+}
+
+type NavEntry = NavItem | NavGroup;
+
+function isGroup(entry: NavEntry): entry is NavGroup {
+  return "children" in entry;
+}
+
+const navItems: NavEntry[] = [
   { label: "Dashboard", path: "/dashboard", icon: <DashboardOutlinedIcon /> },
-  { label: "Sản lượng Mài", path: "/grinding", icon: <AssessmentOutlinedIcon /> },
+  {
+    label: "Sản lượng",
+    icon: <PrecisionManufacturingOutlinedIcon />,
+    children: [
+      { label: "Mài", path: "/grinding", icon: <AssessmentOutlinedIcon /> },
+      { label: "Cắt", path: "/cutting", icon: <ContentCutIcon /> },
+    ],
+  },
   { label: "Quản lý nhân viên", path: "/employees", icon: <GroupOutlinedIcon /> },
   { label: "Báo cáo", path: "/reports", icon: <AssessmentOutlinedIcon /> },
   { label: "Cài đặt", path: "/settings", icon: <SettingsOutlinedIcon /> },
 ];
 
 export default function Sidebar({ collapsed }: SidebarProps) {
+  const location = useLocation();
+
+  // Track open groups; auto-open if a child is active
+  const initialOpen = navItems
+    .filter(isGroup)
+    .reduce<Record<string, boolean>>((acc, group) => {
+      acc[group.label] = group.children.some((c) => location.pathname.startsWith(c.path));
+      return acc;
+    }, {});
+
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(initialOpen);
+
+  const toggleGroup = (label: string) => {
+    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const navItemSx = {
+    height: 48,
+    mb: 1,
+    borderRadius: `${theme.borderRadius.md}px`,
+    color: "rgba(255, 255, 255, 0.7)",
+    px: 1.5,
+    "&:hover": { bgcolor: "rgba(255, 255, 255, 0.05)", color: "#fff" },
+    "&.active": { bgcolor: theme.palette.primary[50], color: theme.palette.primary.main },
+  };
+
   return (
     <Box
       sx={{
@@ -95,48 +145,85 @@ export default function Sidebar({ collapsed }: SidebarProps) {
         }}
       >
         <List disablePadding sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-          {navItems.map((item) => (
-            <ListItemButton
-              key={item.path}
-              component={NavLink}
-              to={item.path}
-              sx={{
-                height: 48,
-                mb: 1,
-                borderRadius: `${theme.borderRadius.md}px`,
-                color: "rgba(255, 255, 255, 0.7)",
-                px: 1.5,
-                "&:hover": {
-                  bgcolor: "rgba(255, 255, 255, 0.05)",
-                  color: "#fff",
-                },
-                "&.active": {
-                  bgcolor: theme.palette.primary[50],
-                  color: theme.palette.primary.main,
-                },
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  minWidth: collapsed ? 0 : 36,
-                  color: "inherit",
-                  justifyContent: "center",
-                }}
+          {navItems.map((entry) => {
+            if (isGroup(entry)) {
+              const isOpen = !!openGroups[entry.label];
+              return (
+                <Box key={entry.label}>
+                  <ListItemButton
+                    onClick={() => !collapsed && toggleGroup(entry.label)}
+                    sx={navItemSx}
+                  >
+                    <ListItemIcon sx={{ minWidth: collapsed ? 0 : 36, color: "inherit", justifyContent: "center" }}>
+                      {entry.icon}
+                    </ListItemIcon>
+                    {!collapsed && (
+                      <>
+                        <ListItemText
+                          primary={entry.label}
+                          primaryTypographyProps={{
+                            fontSize: theme.typography.fontSize.base,
+                            fontWeight: theme.typography.fontWeight.semibold,
+                            noWrap: true,
+                          }}
+                        />
+                        {isOpen ? <ExpandLessIcon sx={{ fontSize: 18 }} /> : <ExpandMoreIcon sx={{ fontSize: 18 }} />}
+                      </>
+                    )}
+                  </ListItemButton>
+
+                  <Collapse in={isOpen && !collapsed} timeout="auto" unmountOnExit>
+                    <List disablePadding sx={{ pl: 2 }}>
+                      {entry.children.map((child) => (
+                        <ListItemButton
+                          key={child.path}
+                          component={NavLink}
+                          to={child.path}
+                          sx={{ ...navItemSx, height: 40, mb: 0.5 }}
+                        >
+                          <ListItemIcon sx={{ minWidth: 28, color: "inherit", justifyContent: "center" }}>
+                            {child.icon}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={child.label}
+                            primaryTypographyProps={{
+                              fontSize: theme.typography.fontSize.sm,
+                              fontWeight: theme.typography.fontWeight.semibold,
+                              noWrap: true,
+                            }}
+                          />
+                        </ListItemButton>
+                      ))}
+                    </List>
+                  </Collapse>
+                </Box>
+              );
+            }
+
+            // Flat nav item
+            return (
+              <ListItemButton
+                key={entry.path}
+                component={NavLink}
+                to={entry.path}
+                sx={navItemSx}
               >
-                {item.icon}
-              </ListItemIcon>
-              {!collapsed && (
-                <ListItemText
-                  primary={item.label}
-                  primaryTypographyProps={{
-                    fontSize: theme.typography.fontSize.base,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    noWrap: true,
-                  }}
-                />
-              )}
-            </ListItemButton>
-          ))}
+                <ListItemIcon sx={{ minWidth: collapsed ? 0 : 36, color: "inherit", justifyContent: "center" }}>
+                  {entry.icon}
+                </ListItemIcon>
+                {!collapsed && (
+                  <ListItemText
+                    primary={entry.label}
+                    primaryTypographyProps={{
+                      fontSize: theme.typography.fontSize.base,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      noWrap: true,
+                    }}
+                  />
+                )}
+              </ListItemButton>
+            );
+          })}
         </List>
 
         <Box

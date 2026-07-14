@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   DataGrid,
   GridToolbarContainer,
@@ -7,12 +7,14 @@ import {
   GridToolbarColumnsButton,
   GridToolbarFilterButton,
 } from "@mui/x-data-grid";
-import { Box, Button } from "@mui/material";
+import { Box, Button, Chip } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import SaveIcon from "@mui/icons-material/Save";
+import CancelIcon from "@mui/icons-material/Cancel";
+import PreviewIcon from "@mui/icons-material/Preview";
 import { getGrindingDataGridColumns } from "../../../../constants/grindingColumns";
 
-// Reuse the localized texts (abridged for brevity but typically we would extract this to a shared file)
 const viVNGridLocaleText = {
   toolbarColumns: "Cột",
   toolbarFilters: "Bộ lọc",
@@ -26,50 +28,61 @@ const viVNGridLocaleText = {
   },
 };
 
-function CustomToolbar({ onImport, onRefresh }) {
+function NormalToolbar({ onImport, onRefresh }) {
   return (
-    <GridToolbarContainer
-      sx={{
-        p: 1.5,
-        borderBottom: "1px solid #E2E8F0",
-        bgcolor: "#F8FAFC",
-      }}
-    >
+    <GridToolbarContainer sx={{ p: 1.5, borderBottom: "1px solid #E2E8F0", bgcolor: "#F8FAFC" }}>
       <Box sx={{ display: "flex", alignItems: "center", width: "100%", flexWrap: "wrap", gap: 1.5 }}>
         <GridToolbarColumnsButton />
         <GridToolbarFilterButton />
         <GridToolbarDensitySelector />
         <Box sx={{ flexGrow: 1 }} />
         <GridToolbarExport />
-        
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<UploadFileIcon />}
-          onClick={onImport}
-          disableElevation
-        >
-          Import Excel
-        </Button>
-        <Button
-          variant="outlined"
-          color="secondary"
-          startIcon={<RefreshIcon />}
-          onClick={onRefresh}
-        >
+        <Button variant="outlined" color="secondary" startIcon={<RefreshIcon />} onClick={onRefresh}>
           Làm mới
+        </Button>
+        <Button variant="contained" color="primary" startIcon={<UploadFileIcon />} onClick={onImport} disableElevation>
+          Import Excel
         </Button>
       </Box>
     </GridToolbarContainer>
   );
 }
 
-function GrindingDataGrid({
-  data,
-  onImport,
-  onRefresh,
-}) {
+function PreviewToolbar({ onSave, onCancel, reportDate, rowCount }) {
+  return (
+    <GridToolbarContainer sx={{ p: 1.5, borderBottom: "2px solid #F59E0B", bgcolor: "#FFFBEB" }}>
+      <Box sx={{ display: "flex", alignItems: "center", width: "100%", flexWrap: "wrap", gap: 1.5 }}>
+        <PreviewIcon sx={{ color: "#D97706" }} />
+        <Box sx={{ fontWeight: 600, color: "#92400E", fontSize: 14 }}>
+          Chế độ xem trước
+        </Box>
+        <Chip label={`${rowCount} dòng`} size="small" sx={{ bgcolor: "#FEF3C7", color: "#92400E" }} />
+        <Chip label={`Ngày: ${reportDate}`} size="small" sx={{ bgcolor: "#FEF3C7", color: "#92400E" }} />
+        <Box sx={{ flexGrow: 1 }} />
+        <Button variant="outlined" color="inherit" startIcon={<CancelIcon />} onClick={onCancel}>
+          Hủy
+        </Button>
+        <Button variant="contained" color="success" startIcon={<SaveIcon />} onClick={onSave} disableElevation>
+          Lưu dữ liệu
+        </Button>
+      </Box>
+    </GridToolbarContainer>
+  );
+}
+
+function GrindingDataGrid({ data, isPreview, previewMeta, onImport, onRefresh, onSave, onCancelPreview }) {
   const columns = getGrindingDataGridColumns();
+
+  const toolbar = isPreview
+    ? () => (
+        <PreviewToolbar
+          onSave={onSave}
+          onCancel={onCancelPreview}
+          reportDate={previewMeta?.reportDate || ""}
+          rowCount={data.length}
+        />
+      )
+    : () => <NormalToolbar onImport={onImport} onRefresh={onRefresh} />;
 
   return (
     <Box
@@ -80,8 +93,11 @@ function GrindingDataGrid({
         bgcolor: "#FFFFFF",
         borderRadius: "18px",
         overflow: "hidden",
-        border: "1px solid #E2E8F0",
-        boxShadow: "0 2px 12px rgba(15, 23, 42, 0.05)",
+        border: isPreview ? "2px solid #F59E0B" : "1px solid #E2E8F0",
+        boxShadow: isPreview
+          ? "0 0 0 4px rgba(245, 158, 11, 0.15)"
+          : "0 2px 12px rgba(15, 23, 42, 0.05)",
+        transition: "border 0.2s, box-shadow 0.2s",
       }}
     >
       <DataGrid
@@ -89,18 +105,8 @@ function GrindingDataGrid({
         rows={data}
         columns={columns}
         disableRowSelectionOnClick
-        slots={{ toolbar: CustomToolbar }}
-        slotProps={{
-          toolbar: {
-            onImport,
-            onRefresh,
-          },
-        }}
-        initialState={{
-          pagination: {
-            paginationModel: { pageSize: 50 },
-          },
-        }}
+        slots={{ toolbar }}
+        initialState={{ pagination: { paginationModel: { pageSize: 50 } } }}
         pageSizeOptions={[10, 20, 50, 100]}
         sx={{
           border: "none",
@@ -114,21 +120,11 @@ function GrindingDataGrid({
             fontSize: 13,
             borderBottom: "1px solid #E2E8F0",
           },
-          "& .MuiDataGrid-columnHeaderTitle": {
-            fontWeight: 600,
-          },
-          "& .MuiDataGrid-cell": {
-            borderColor: "#E2E8F0",
-          },
-          "& .MuiDataGrid-cell:focus-within": {
-            outline: "none",
-          },
-          "& .MuiDataGrid-row:hover": {
-            bgcolor: "#F8FAFC",
-          },
-          "& .MuiDataGrid-footerContainer": {
-            borderTop: "1px solid #E2E8F0",
-          },
+          "& .MuiDataGrid-columnHeaderTitle": { fontWeight: 600 },
+          "& .MuiDataGrid-cell": { borderColor: "#E2E8F0" },
+          "& .MuiDataGrid-cell:focus-within": { outline: "none" },
+          "& .MuiDataGrid-row:hover": { bgcolor: "#F8FAFC" },
+          "& .MuiDataGrid-footerContainer": { borderTop: "1px solid #E2E8F0" },
         }}
       />
     </Box>

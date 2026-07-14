@@ -65,7 +65,8 @@ function registerIpcHandlers() {
     return getAllGrindingData();
   });
 
-  ipcMain.handle("grinding:import", async (event) => {
+  // Responsibility: Open native file dialog and return the selected file path.
+  ipcMain.handle("grinding:selectFile", async (event) => {
     const window = BrowserWindow.fromWebContents(event.sender);
     const { canceled, filePaths } = await dialog.showOpenDialog(window, {
       title: "Chọn file Excel sản lượng Mài",
@@ -74,104 +75,114 @@ function registerIpcHandlers() {
     });
 
     if (canceled || filePaths.length === 0) {
-      return { ok: false, message: "Đã hủy chọn file." };
+      return { ok: false, canceled: true };
     }
+    return { ok: true, filePath: filePaths[0] };
+  });
 
-    const filePath = filePaths[0];
+  // Responsibility: Parse the Excel file and return preview records using the column spec.
+  ipcMain.handle("grinding:parseExcel", (_event, filePath) => {
+    // Require GRINDING_COLUMNS at call time (CommonJS-compatible bridge to ESM constants)
+    // grindingColumns.js is an ES Module so we use a static copy of the spec here
+    const GRINDING_COLUMNS = [
+      { excelHeader: "Ngày báo sản lượng报产日期", databaseField: "report_date" },
+      { excelHeader: "Đơn đặt hàng của khách hàng客户订单号", databaseField: "customer_order_number" },
+      { excelHeader: "Mã công đơn工单号", databaseField: "work_order_number" },
+      { excelHeader: "Mã liệu料号", databaseField: "material_code" },
+      { excelHeader: "Tên hàng品名", databaseField: "item_name" },
+      { excelHeader: "Quy cách规格", databaseField: "specification" },
+      { excelHeader: "Số lượng hoàn thành完工数量", databaseField: "completed_quantity", type: "integer" },
+      { excelHeader: "Họ tên nhân viên员工名称", databaseField: "employee_name" },
+      { excelHeader: "Số lượng báo phế报废数量", databaseField: "scrap_quantity", type: "integer" },
+      { excelHeader: "Đơn vị trọng lượng单位重量", databaseField: "unit_weight", type: "float" },
+      { excelHeader: "Trọng lượng hoàn thành完成重量", databaseField: "completed_weight", type: "float" },
+    ];
+
     try {
-      const workbook = XLSX.readFile(filePath, { type: "buffer", cellText: true, raw: false });
-      const sheetName = workbook.SheetNames[0];
-      const ws = workbook.Sheets[sheetName];
+      const workbook = XLSX.readFile(filePath, { cellText: true, raw: false });
+      const ws = workbook.Sheets[workbook.SheetNames[0]];
       const range = XLSX.utils.decode_range(ws["!ref"]);
-      
-      // Find header row (usually row 0)
-      let headerRowIndex = 0;
-      let headers = {};
-      
+
+      // Build header -> column index map from row 0
+      const headerMap = {};
       for (let c = 0; c <= range.e.c; c++) {
-        const cell = ws[XLSX.utils.encode_cell({ r: headerRowIndex, c })];
+        const cell = ws[XLSX.utils.encode_cell({ r: 0, c })];
         const val = cell ? String(cell.v || "").trim() : "";
-        if (val) headers[val] = c;
+        if (val) headerMap[val] = c;
       }
 
-      // Check required columns up to "Trọng lượng hoàn thành"
-      const requiredColumns = [
-        "Ngày báo sản lượng报产日期",
-        "Đơn đặt hàng của khách hàng客户订单号",
-        "Mã công đơn工单号",
-        "Mã liệu料号",
-        "Tên hàng品名",
-        "Quy cách规格",
-        "Số lượng hoàn thành完工数量",
-        "Họ tên nhân viên员工名称",
-        "Số lượng báo phế报废数量",
-        "Đơn vị trọng lượng单位重量",
-        "Trọng lượng hoàn thành完成重量"
-      ];
-
-      const missing = requiredColumns.filter((col) => headers[col] === undefined);
+      // Validate all required headers are present
+      const missing = GRINDING_COLUMNS.filter(col => headerMap[col.excelHeader] === undefined);
       if (missing.length > 0) {
-        return { ok: false, message: "Thiếu cột bắt buộc:\n" + missing.join("\n") };
+        return { ok: false, message: "Thiếu cột bắt buộc:\n" + missing.map(c => c.excelHeader).join("\n") };
       }
 
-      // Use the current date for report_date instead of the raw Excel serial number
+      // Compute report_date once as today's date (DD/MM/YYYY)
       const today = new Date();
-      const currentDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+      const currentDate = `${today.getDate().toString().padStart(2, "0")}/${(today.getMonth() + 1).toString().padStart(2, "0")}/${today.getFullYear()}`;
 
-      // Parse data
+      // Map rows to records using databaseField names
+      const getVal = (ws, r, colIndex) => {
+        const cell = ws[XLSX.utils.encode_cell({ r, c: colIndex })];
+        return cell ? String(cell.v ?? "").trim() : "";
+      };
+
       const records = [];
-      for (let r = headerRowIndex + 1; r <= range.e.r; r++) {
-        const getVal = (colName) => {
-          const colIndex = headers[colName];
-          const cell = ws[XLSX.utils.encode_cell({ r, c: colIndex })];
-          return cell ? String(cell.v || "").trim() : "";
-        };
+      for (let r = 1; r <= range.e.r; r++) {
+        const workOrderCol = headerMap["Mã công đơn工单号"];
+        const workOrder = getVal(ws, r, workOrderCol);
+        if (!workOrder) continue; // Skip empty rows
 
-        const work_order = getVal("Mã công đơn工单号");
-        if (!work_order) continue; // Skip empty rows
-
-        records.push({
-          report_date: currentDate,
-          customer_order_number: getVal("Đơn đặt hàng của khách hàng客户订单号"),
-          work_order_number: work_order,
-          material_code: getVal("Mã liệu料号"),
-          item_name: getVal("Tên hàng品名"),
-          specification: getVal("Quy cách规格"),
-          completed_quantity: parseInt(getVal("Số lượng hoàn thành完工数量"), 10) || 0,
-          employee_name: getVal("Họ tên nhân viên员工名称"),
-          scrap_quantity: parseInt(getVal("Số lượng báo phế报废数量"), 10) || 0,
-          unit_weight: parseFloat(getVal("Đơn vị trọng lượng单位重量")) || 0,
-          completed_weight: parseFloat(getVal("Trọng lượng hoàn thành完成重量")) || 0,
-        });
+        const record = { report_date: currentDate };
+        for (const col of GRINDING_COLUMNS) {
+          if (col.databaseField === "report_date") continue;
+          const rawVal = getVal(ws, r, headerMap[col.excelHeader]);
+          if (col.type === "integer") {
+            record[col.databaseField] = parseInt(rawVal, 10) || 0;
+          } else if (col.type === "float") {
+            record[col.databaseField] = parseFloat(rawVal) || 0;
+          } else {
+            record[col.databaseField] = rawVal;
+          }
+        }
+        records.push(record);
       }
 
       if (records.length === 0) {
         return { ok: false, message: "Không tìm thấy dữ liệu hợp lệ trong file." };
       }
 
-      // Check if data for currentDate already exists
-      if (checkGrindingDataExistsByDate(currentDate)) {
+      const fileName = require("path").basename(filePath);
+      return { ok: true, records, fileName, reportDate: currentDate };
+    } catch (error) {
+      return { ok: false, message: "Lỗi đọc file Excel: " + error.message };
+    }
+  });
+
+  // Responsibility: Duplicate check (with native dialog if needed) then persist to SQLite.
+  ipcMain.handle("grinding:save", async (event, { records, fileName, reportDate }) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    try {
+      if (checkGrindingDataExistsByDate(reportDate)) {
         const result = await dialog.showMessageBox(window, {
           type: "warning",
           title: "Cảnh báo ghi đè",
-          message: `Dữ liệu sản lượng mài cho ngày ${currentDate} đã tồn tại. Bạn có muốn ghi đè toàn bộ (xoá dữ liệu cũ của ngày này) không?`,
+          message: `Dữ liệu sản lượng mài cho ngày ${reportDate} đã tồn tại. Bạn có muốn ghi đè toàn bộ (xoá dữ liệu cũ của ngày này) không?`,
           buttons: ["Ghi đè toàn bộ", "Hủy"],
           defaultId: 1,
           cancelId: 1,
         });
 
         if (result.response === 0) {
-          // Ghi đè toàn bộ
-          deleteGrindingDataByDate(currentDate);
+          deleteGrindingDataByDate(reportDate);
         } else {
-          // Hủy
-          return { ok: false, message: "Đã hủy thao tác import để giữ nguyên dữ liệu cũ." };
+          return { ok: false, message: "Đã hủy thao tác lưu để giữ nguyên dữ liệu cũ." };
         }
       }
 
-      return importGrindingData(records);
+      return importGrindingData(records, fileName);
     } catch (error) {
-      return { ok: false, message: "Lỗi đọc file Excel: " + error.message };
+      return { ok: false, message: "Lỗi khi lưu dữ liệu: " + error.message };
     }
   });
 

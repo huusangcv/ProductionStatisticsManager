@@ -28,10 +28,30 @@ function ensureGrindingTable() {
         scrap_quantity          INTEGER,
         unit_weight             REAL,
         completed_weight        REAL,
-        imported_at             TEXT NOT NULL DEFAULT (datetime('now')),
+        imported_at             TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
         
         -- Prevent duplicate imports for the same record
         UNIQUE(report_date, work_order_number, item_name, completed_quantity)
+      )
+    `);
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * Creates the import_history table to track all imports for auditing.
+ */
+function ensureImportHistoryTable() {
+  const db = openDatabase();
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS import_history (
+        id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+        file_name               TEXT NOT NULL,
+        imported_at             TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+        record_count            INTEGER NOT NULL,
+        status                  TEXT NOT NULL
       )
     `);
   } finally {
@@ -64,12 +84,13 @@ function getAllGrindingData() {
 /**
  * Inserts multiple grinding records using a transaction.
  * Ignores duplicate rows based on the UNIQUE constraint.
+ * Records the import history in the same transaction.
  * Returns the number of newly inserted rows.
  */
-function importGrindingData(records) {
+function importGrindingData(records, fileName) {
   const db = openDatabase();
   try {
-    const insert = db.prepare(`
+    const insertData = db.prepare(`
       INSERT OR IGNORE INTO grinding_production (
         report_date, customer_order_number, work_order_number, material_code,
         item_name, specification, completed_quantity, employee_name,
@@ -81,18 +102,36 @@ function importGrindingData(records) {
       )
     `);
 
-    const insertMany = db.transaction((rows) => {
+    const insertHistory = db.prepare(`
+      INSERT INTO import_history (file_name, record_count, status)
+      VALUES (?, ?, ?)
+    `);
+
+    const insertMany = db.transaction((rows, name) => {
       let insertedCount = 0;
       for (const row of rows) {
-        const result = insert.run(row);
+        const result = insertData.run(row);
         insertedCount += result.changes;
       }
+      
+      insertHistory.run(name, rows.length, insertedCount > 0 ? "SUCCESS" : "NO_NEW_DATA");
       return insertedCount;
     });
 
-    const insertedCount = insertMany(records);
+    const insertedCount = insertMany(records, fileName || "Unknown File");
     return { ok: true, insertedCount };
   } catch (error) {
+    // If it fails, attempt to log the failure (outside the failed transaction)
+    try {
+      const dbError = openDatabase();
+      dbError.prepare(`
+        INSERT INTO import_history (file_name, record_count, status)
+        VALUES (?, ?, ?)
+      `).run(fileName || "Unknown File", records ? records.length : 0, "ERROR: " + error.message);
+      dbError.close();
+    } catch (e) {
+      console.error("Failed to log import error", e);
+    }
     return { ok: false, message: error.message };
   } finally {
     db.close();
@@ -131,6 +170,7 @@ function deleteGrindingDataByDate(date) {
 
 module.exports = {
   ensureGrindingTable,
+  ensureImportHistoryTable,
   getAllGrindingData,
   importGrindingData,
   checkGrindingDataExistsByDate,

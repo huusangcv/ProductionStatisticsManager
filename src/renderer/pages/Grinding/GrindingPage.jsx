@@ -1,30 +1,23 @@
 import { useState, useEffect } from "react";
-import { Box, Snackbar, Alert, Typography } from "@mui/material";
+import { Box, Snackbar, Alert } from "@mui/material";
 import GrindingDataGrid from "./components/GrindingDataGrid";
 
 function GrindingPage() {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const [savedData, setSavedData] = useState([]);
+  const [previewData, setPreviewData] = useState(null); // null = not in preview
+  const [previewMeta, setPreviewMeta] = useState(null); // { fileName, reportDate }
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   const showSnackbar = (message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
   };
 
   const loadData = async () => {
-    setLoading(true);
     try {
       const records = await window.electronAPI.grinding.getAll();
-      setData(records);
+      setSavedData(records);
     } catch (error) {
-      console.error("Lỗi khi tải dữ liệu:", error);
       showSnackbar("Lỗi khi tải dữ liệu: " + error.message, "error");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -32,27 +25,60 @@ function GrindingPage() {
     loadData();
   }, []);
 
+  // --- Import Flow: Select → Parse → Show Preview ---
+  const handleImport = async () => {
+    // Step 1: Select file
+    const fileResult = await window.electronAPI.grinding.selectFile();
+    if (!fileResult.ok) return; // User cancelled
+
+    // Step 2: Parse Excel
+    const parseResult = await window.electronAPI.grinding.parseExcel(fileResult.filePath);
+    if (!parseResult.ok) {
+      showSnackbar(parseResult.message, "error");
+      return;
+    }
+
+    // Step 3: Enter preview mode — assign temporary IDs for DataGrid row identification
+    const rowsWithId = parseResult.records.map((row, index) => ({ ...row, id: index + 1 }));
+    setPreviewData(rowsWithId);
+    setPreviewMeta({ fileName: parseResult.fileName, reportDate: parseResult.reportDate });
+  };
+
+  // --- Save Flow: User confirms preview → Persist to SQLite ---
+  const handleSave = async () => {
+    if (!previewData || !previewMeta) return;
+
+    // Strip the temporary `id` field before sending to backend
+    const records = previewData.map(({ id, ...rest }) => rest);
+
+    const result = await window.electronAPI.grinding.save({
+      records,
+      fileName: previewMeta.fileName,
+      reportDate: previewMeta.reportDate,
+    });
+
+    if (result.ok) {
+      showSnackbar(`Đã lưu thành công ${result.insertedCount} dòng dữ liệu.`);
+      setPreviewData(null);
+      setPreviewMeta(null);
+      await loadData();
+    } else {
+      showSnackbar(result.message, "error");
+    }
+  };
+
+  const handleCancelPreview = () => {
+    setPreviewData(null);
+    setPreviewMeta(null);
+  };
+
   const handleRefresh = async () => {
     await loadData();
     showSnackbar("Dữ liệu đã được làm mới");
   };
 
-  const handleImport = async () => {
-    try {
-      setLoading(true);
-      const result = await window.electronAPI.grinding.import();
-      if (result.ok) {
-        showSnackbar(`Đã import thành công ${result.insertedCount} dòng dữ liệu.`);
-        loadData();
-      } else if (result.message !== "Đã hủy chọn file.") {
-        showSnackbar(result.message, "error");
-      }
-    } catch (error) {
-      showSnackbar("Lỗi khi import: " + error.message, "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const isPreview = previewData !== null;
+  const displayData = isPreview ? previewData : savedData;
 
   return (
     <Box
@@ -64,7 +90,6 @@ function GrindingPage() {
         overflow: "hidden",
       }}
     >
-
       <Box
         sx={{
           flex: 1,
@@ -76,9 +101,13 @@ function GrindingPage() {
         }}
       >
         <GrindingDataGrid
-          data={data}
+          data={displayData}
+          isPreview={isPreview}
+          previewMeta={previewMeta}
           onImport={handleImport}
           onRefresh={handleRefresh}
+          onSave={handleSave}
+          onCancelPreview={handleCancelPreview}
         />
       </Box>
 
