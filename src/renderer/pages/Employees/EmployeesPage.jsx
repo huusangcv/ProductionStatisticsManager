@@ -1,22 +1,13 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Box, Stack, Snackbar, Alert } from "@mui/material";
-import EmployeeToolbar from "./components/EmployeeToolbar";
-import EmployeeStatistics from "./components/EmployeeStatistics";
 import EmployeeDataGrid from "./components/EmployeeDataGrid";
 import EmployeeDrawer from "./components/EmployeeDrawer";
 import EmployeeDialog from "./components/EmployeeDialog";
 import DeleteDialog from "./components/DeleteDialog";
-import { MOCK_EMPLOYEES } from "./mockData";
 
 function EmployeesPage() {
-  const [employees, setEmployees] = useState(MOCK_EMPLOYEES);
-
-  // Filters state
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterDepartment, setFilterDepartment] = useState("all");
-  const [filterRole, setFilterRole] = useState("all");
-  const [filterShift, setFilterShift] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Selection state
   const [selectedRowIds, setSelectedRowIds] = useState([]);
@@ -42,57 +33,26 @@ function EmployeesPage() {
     setSnackbar({ open: true, message, severity });
   };
 
-  // Derived Statistics
-  const stats = useMemo(() => {
-    return {
-      total: employees.length,
-      grinding: employees.filter((e) => e.department === "Mài").length,
-      cutting: employees.filter((e) => e.department === "Cắt").length,
-      managers: employees.filter(
-        (e) =>
-          e.role === "Trưởng ca" ||
-          e.role === "Tổ trưởng" ||
-          e.role === "Thống kê",
-      ).length,
-      inactive: employees.filter((e) => e.status === "Nghỉ việc").length,
-      active: employees.filter((e) => e.status === "Đang làm việc").length,
-    };
-  }, [employees]);
-
-  // Derived Data (Filtering)
-  const filteredData = useMemo(() => {
-    return employees.filter((emp) => {
-      const matchSearch =
-        emp.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.phone.includes(searchTerm);
-      const matchDept =
-        filterDepartment === "all" || emp.department === filterDepartment;
-      const matchRole = filterRole === "all" || emp.role === filterRole;
-      const matchShift = filterShift === "all" || emp.shift === filterShift;
-      const matchStatus = filterStatus === "all" || emp.status === filterStatus;
-      return matchSearch && matchDept && matchRole && matchShift && matchStatus;
-    });
-  }, [
-    employees,
-    searchTerm,
-    filterDepartment,
-    filterRole,
-    filterShift,
-    filterStatus,
-  ]);
-
-  // Handlers
-  const handleResetFilters = () => {
-    setSearchTerm("");
-    setFilterDepartment("all");
-    setFilterRole("all");
-    setFilterShift("all");
-    setFilterStatus("all");
+  const loadEmployees = async () => {
+    setLoading(true);
+    try {
+      const data = await window.electronAPI.employees.getAll();
+      setEmployees(data);
+    } catch (error) {
+      console.error("Lỗi khi tải dữ liệu nhân viên:", error);
+      showSnackbar("Lỗi khi tải dữ liệu nhân viên: " + error.message, "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRefresh = () => {
-    // Simulate API refresh
+  useEffect(() => {
+    loadEmployees();
+  }, []);
+
+  // Handlers
+  const handleRefresh = async () => {
+    await loadEmployees();
     showSnackbar("Dữ liệu đã được làm mới");
   };
 
@@ -123,48 +83,74 @@ function EmployeesPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (employeeToDelete) {
-      setEmployees((prev) => prev.filter((e) => e.id !== employeeToDelete.id));
-      if (activeEmployee?.id === employeeToDelete.id) setIsDrawerOpen(false);
-      showSnackbar(`Đã xóa nhân viên ${employeeToDelete.fullName}`);
+      const result = await window.electronAPI.employees.delete(employeeToDelete.employee_code);
+      if (result.ok) {
+        if (activeEmployee?.employee_code === employeeToDelete.employee_code) setIsDrawerOpen(false);
+        showSnackbar(`Đã xóa nhân viên ${employeeToDelete.employee_name}`);
+        loadEmployees();
+      } else {
+        showSnackbar(result.message, "error");
+      }
     } else {
-      setEmployees((prev) =>
-        prev.filter((e) => !selectedRowIds.includes(e.id)),
-      );
+      let successCount = 0;
+      for (const id of selectedRowIds) {
+        const emp = employees.find(e => e.id === id);
+        if (emp) {
+          const result = await window.electronAPI.employees.delete(emp.employee_code);
+          if (result.ok) successCount++;
+        }
+      }
       setSelectedRowIds([]);
-      showSnackbar(`Đã xóa ${selectedRowIds.length} nhân viên`);
+      showSnackbar(`Đã xóa ${successCount} nhân viên`);
+      loadEmployees();
     }
     setIsDeleteDialogOpen(false);
   };
 
-  const handleSaveEmployee = (data) => {
+  const handleSaveEmployee = async (data) => {
     if (editingEmployee) {
-      setEmployees((prev) => prev.map((e) => (e.id === data.id ? data : e)));
-      if (activeEmployee?.id === data.id) setActiveEmployee(data);
-      showSnackbar("Cập nhật thông tin thành công");
+      const result = await window.electronAPI.employees.update(editingEmployee.employee_code, data);
+      if (result.ok) {
+        showSnackbar("Cập nhật thông tin thành công");
+        loadEmployees();
+        if (activeEmployee?.employee_code === editingEmployee.employee_code) {
+          const updatedEmployee = await window.electronAPI.employees.getByCode(editingEmployee.employee_code);
+          setActiveEmployee(updatedEmployee);
+        }
+        setIsDialogOpen(false);
+      } else {
+        showSnackbar(result.message, "error");
+      }
     } else {
-      setEmployees((prev) => [data, ...prev]);
-      showSnackbar("Thêm nhân viên mới thành công");
+      const result = await window.electronAPI.employees.create(data);
+      if (result.ok) {
+        showSnackbar("Thêm nhân viên mới thành công");
+        loadEmployees();
+        setIsDialogOpen(false);
+      } else {
+        showSnackbar(result.message, "error");
+      }
     }
-    setIsDialogOpen(false);
   };
 
-  const handleDeactivate = (employee) => {
-    const updated = { ...employee, status: "Nghỉ việc" };
-    setEmployees((prev) =>
-      prev.map((e) => (e.id === employee.id ? updated : e)),
-    );
-    setActiveEmployee(updated);
-    showSnackbar(
-      `Đã ngưng hoạt động nhân viên ${employee.fullName}`,
-      "warning",
-    );
+  const handleDeactivate = async (employee) => {
+    const updatedData = { ...employee, status: "Nghỉ việc" };
+    const result = await window.electronAPI.employees.update(employee.employee_code, updatedData);
+    if (result.ok) {
+      showSnackbar(`Đã ngưng hoạt động nhân viên ${employee.employee_name}`, "warning");
+      loadEmployees();
+      const updatedEmployee = await window.electronAPI.employees.getByCode(employee.employee_code);
+      setActiveEmployee(updatedEmployee);
+    } else {
+      showSnackbar(result.message, "error");
+    }
   };
 
   const handleResetPassword = (employee) => {
     showSnackbar(
-      `Đã gửi yêu cầu đặt lại mật khẩu cho ${employee.fullName}`,
+      `Tính năng đặt lại mật khẩu chưa được hỗ trợ trên SQLite cho nhân viên.`,
       "info",
     );
   };
@@ -179,34 +165,6 @@ function EmployeesPage() {
         overflow: "hidden",
       }}
     >
-      {/* Top Toolbar */}
-      {/* <Box sx={{ flexShrink: 0, mb: 3 }}>
-        <EmployeeToolbar
-          totalCount={stats.total}
-          filteredCount={filteredData.length}
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          filterDepartment={filterDepartment}
-          onDepartmentChange={setFilterDepartment}
-          filterRole={filterRole}
-          onRoleChange={setFilterRole}
-          filterShift={filterShift}
-          onShiftChange={setFilterShift}
-          filterStatus={filterStatus}
-          onStatusChange={setFilterStatus}
-          onResetFilters={handleResetFilters}
-          onAddEmployee={handleAddEmployee}
-          onRefresh={handleRefresh}
-          hasSelection={selectedRowIds.length > 0}
-          onDeleteSelected={handleDeleteSelected}
-        />
-      </Box> */}
-
-      {/* Statistics */}
-      {/* <Box sx={{ flexShrink: 0, mb: 3 }}>
-        <EmployeeStatistics stats={stats} />
-      </Box> */}
-
       {/* DataGrid */}
       <Box
         sx={{
@@ -219,7 +177,7 @@ function EmployeesPage() {
         }}
       >
         <EmployeeDataGrid
-          data={filteredData}
+          data={employees}
           selectedRowIds={selectedRowIds}
           onSelectionChange={setSelectedRowIds}
           onDoubleClick={handleViewEmployee}
@@ -227,6 +185,8 @@ function EmployeesPage() {
           onEdit={handleEditEmployee}
           onDelete={handleDeleteEmployee}
           onAddEmployee={handleAddEmployee}
+          onRefresh={handleRefresh}
+          onDeleteSelected={handleDeleteSelected}
         />
       </Box>
 
@@ -251,7 +211,7 @@ function EmployeesPage() {
       <DeleteDialog
         open={isDeleteDialogOpen}
         count={selectedRowIds.length}
-        employeeName={employeeToDelete?.fullName}
+        employeeName={employeeToDelete?.employee_name}
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={confirmDelete}
       />

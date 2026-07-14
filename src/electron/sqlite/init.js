@@ -1,17 +1,14 @@
-const fs = require("fs");
-const path = require("path");
-const { app } = require("electron");
-const Database = require("better-sqlite3");
 const { ensureAppAccount } = require("./account");
+const { ensureEmployeesTable, seedEmployeesIfEmpty } = require("./employees");
+const { getDatabasePath, ensureDirectories } = require("./paths");
+const Database = require("better-sqlite3");
 
 function initializeDatabase() {
-  const dataDirectory = path.join(app.getPath("userData"), "database");
-  const databasePath = path.join(dataDirectory, "production-statistics.sqlite");
+  // Create all required application subdirectories if they don't exist.
+  ensureDirectories();
 
-  if (!fs.existsSync(dataDirectory)) {
-    fs.mkdirSync(dataDirectory, { recursive: true });
-  }
-
+  // Open the SQLite database to apply pragmas, then close.
+  const databasePath = getDatabasePath();
   const database = new Database(databasePath);
   database.pragma("journal_mode = WAL");
   database.pragma("foreign_keys = ON");
@@ -19,6 +16,10 @@ function initializeDatabase() {
 
   // Seed single application account on first startup.
   ensureAppAccount();
+
+  // Create employees table and seed initial data if empty.
+  ensureEmployeesTable();
+  seedEmployeesIfEmpty();
 
   return databasePath;
 }

@@ -56,10 +56,10 @@ function EmployeeDrawer({
 
       <Box sx={{ flexGrow: 1, overflowY: "auto", p: 3, display: "flex", flexDirection: "column", gap: 3 }}>
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, textAlign: "center" }}>
-          <EmployeeAvatar src={employee.avatar} name={employee.fullName} size={80} status={employee.status} />
+          <EmployeeAvatar name={employee.employee_name} size={80} status={employee.status} />
           <Box>
-            <Typography variant="h6">{employee.fullName}</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{employee.id}</Typography>
+            <Typography variant="h6">{employee.employee_name}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{employee.employee_code}</Typography>
             <EmployeeStatusChip status={employee.status} />
           </Box>
         </Box>
@@ -70,22 +70,16 @@ function EmployeeDrawer({
           </Typography>
           <InfoRow label="Phòng ban" value={employee.department} />
           <Divider />
-          <InfoRow label="Vai trò" value={employee.role} />
+          <InfoRow label="Vai trò" value={employee.role_code} />
           <Divider />
-          <InfoRow label="Ca làm việc" value={employee.shift} />
-          <Divider />
-          <InfoRow label="Ngày vào làm" value={employee.joinDate} />
+          <InfoRow label="Ngày vào làm" value={employee.hire_date} />
         </Box>
 
         <Box>
           <Typography variant="subtitle2" sx={{ textTransform: "uppercase", color: "text.secondary", mb: 1, fontWeight: 700 }}>
             Cá nhân
           </Typography>
-          <InfoRow label="Giới tính" value={employee.gender} />
-          <Divider />
           <InfoRow label="Số điện thoại" value={employee.phone} />
-          <Divider />
-          <InfoRow label="Địa chỉ" value={employee.address} />
         </Box>
       </Box>
 

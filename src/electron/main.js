@@ -1,7 +1,27 @@
 const path = require("path");
+const fs = require("fs");
 const { app, BrowserWindow, Menu } = require("electron");
 const { registerIpcHandlers } = require("./ipc");
 const { initializeDatabase } = require("./sqlite/init");
+
+// ---------------------------------------------------------------------------
+// Step 1: Configure userData path BEFORE app is ready.
+// app.setPath must be called before app.whenReady() to take effect.
+// ---------------------------------------------------------------------------
+
+const PREFERRED_DATA_ROOT = "D:\\ProductionStatisticsManager";
+
+function configureUserDataPath() {
+  try {
+    fs.accessSync("D:\\", fs.constants.W_OK);
+    // Drive D is available — use dedicated folder
+    app.setPath("userData", PREFERRED_DATA_ROOT);
+  } catch {
+    // Drive D not available — keep Electron default userData
+  }
+}
+
+configureUserDataPath();
 
 const isDev = !app.isPackaged;
 

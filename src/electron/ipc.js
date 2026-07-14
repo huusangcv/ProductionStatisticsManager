@@ -1,6 +1,14 @@
 const { ipcMain, BrowserWindow } = require("electron");
 const { initializeDatabase } = require("./sqlite/init");
 const { validateLogin, getAccount, updateAccount } = require("./sqlite/account");
+const {
+  getAllEmployees,
+  getEmployeeByCode,
+  createEmployee,
+  updateEmployee,
+  deleteEmployee,
+} = require("./sqlite/employees");
+
 
 function registerIpcHandlers() {
   ipcMain.handle("app:ping", () => ({ ok: true }));
@@ -21,6 +29,27 @@ function registerIpcHandlers() {
 
   ipcMain.handle("auth:updateAccount", (_event, { username, password }) => {
     return updateAccount({ username, password });
+  });
+
+  // --- Employee handlers ---
+  ipcMain.handle("employee:getAll", () => {
+    return getAllEmployees();
+  });
+
+  ipcMain.handle("employee:getByCode", (_event, employeeCode) => {
+    return getEmployeeByCode(employeeCode);
+  });
+
+  ipcMain.handle("employee:create", (_event, data) => {
+    return createEmployee(data);
+  });
+
+  ipcMain.handle("employee:update", (_event, { employeeCode, data }) => {
+    return updateEmployee(employeeCode, data);
+  });
+
+  ipcMain.handle("employee:delete", (_event, employeeCode) => {
+    return deleteEmployee(employeeCode);
   });
 
   // --- Window handlers ---

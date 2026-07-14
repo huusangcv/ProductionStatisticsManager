@@ -104,7 +104,9 @@ const viVNGridLocaleText = {
   checkboxSelectionUnselectRow: "Bỏ chọn dòng",
 };
 
-function CustomToolbar({ onAddEmployee }) {
+import RefreshIcon from "@mui/icons-material/Refresh";
+
+function CustomToolbar({ onAddEmployee, onRefresh, onDeleteSelected, hasSelection }) {
   return (
     <GridToolbarContainer
       sx={{
@@ -113,20 +115,41 @@ function CustomToolbar({ onAddEmployee }) {
         bgcolor: "#F8FAFC",
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", width: "100%", flexWrap: "nowrap" }}>
+      <Box sx={{ display: "flex", alignItems: "center", width: "100%", flexWrap: "wrap", gap: 1.5 }}>
         <GridToolbarColumnsButton />
         <GridToolbarFilterButton />
         <GridToolbarDensitySelector />
         <Box sx={{ flexGrow: 1 }} />
         <GridToolbarExport />
+        
+        {hasSelection ? (
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<DeleteOutlineOutlinedIcon />}
+            onClick={onDeleteSelected}
+            disableElevation
+          >
+            Xóa đã chọn
+          </Button>
+        ) : (
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={onAddEmployee}
+            disableElevation
+          >
+            Thêm nhân viên
+          </Button>
+        )}
         <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={onAddEmployee}
-          sx={{ ml: 1.5 }}
+          variant="outlined"
+          color="secondary"
+          startIcon={<RefreshIcon />}
+          onClick={onRefresh}
         >
-          Thêm nhân viên
+          Làm mới
         </Button>
       </Box>
     </GridToolbarContainer>
@@ -142,13 +165,15 @@ function EmployeeDataGrid({
   onView,
   onDelete,
   onAddEmployee,
+  onRefresh,
+  onDeleteSelected,
 }) {
   const [contextMenu, setContextMenu] = useState(null);
 
   const columns = [
-    { field: "id", headerName: "Mã số", width: 100 },
+    { field: "employee_code", headerName: "Mã số", width: 110 },
     {
-      field: "fullName",
+      field: "employee_name",
       headerName: "Họ tên",
       flex: 1,
       minWidth: 220,
@@ -162,14 +187,14 @@ function EmployeeDataGrid({
             height: "100%",
           }}
         >
-          <EmployeeAvatar src={params.row.avatar} name={params.row.fullName} />
+          <EmployeeAvatar name={params.row.employee_name} />
 
           <Box
             sx={{
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",
-              minWidth: 0, // cho phép text truncate, tránh đẩy layout
+              minWidth: 0,
             }}
           >
             <Box
@@ -182,16 +207,14 @@ function EmployeeDataGrid({
                 textOverflow: "ellipsis",
               }}
             >
-              {params.row.fullName}
+              {params.row.employee_name}
             </Box>
-            {/* <Box sx={{ fontSize: 12, color: "#64748b" }}>{params.row.id}</Box> */}
           </Box>
         </Box>
       ),
     },
     { field: "department", headerName: "Bộ phận", width: 130 },
-    { field: "role", headerName: "Vai trò", width: 150 },
-    { field: "shift", headerName: "Ca làm việc", width: 120 },
+    { field: "role_code", headerName: "Vai trò", width: 150 },
     { field: "phone", headerName: "Số điện thoại", width: 140 },
     {
       field: "status",
@@ -199,8 +222,9 @@ function EmployeeDataGrid({
       width: 140,
       renderCell: (params) => <EmployeeStatusChip status={params.value} />,
     },
-    { field: "joinDate", headerName: "Ngày vào làm", width: 130 },
+    { field: "hire_date", headerName: "Ngày vào làm", width: 130 },
   ];
+
 
   const handleContextMenu = (event) => {
     event.preventDefault();
@@ -253,6 +277,9 @@ function EmployeeDataGrid({
           },
           toolbar: {
             onAddEmployee,
+            onRefresh,
+            onDeleteSelected,
+            hasSelection: selectedRowIds?.length > 0,
           },
         }}
         initialState={{
@@ -332,7 +359,7 @@ function EmployeeDataGrid({
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigator.clipboard.writeText(contextMenu.employee.id);
+            navigator.clipboard.writeText(contextMenu.employee.employee_code);
             handleCloseContextMenu();
           }}
         >

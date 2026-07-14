@@ -1,17 +1,8 @@
-const path = require("path");
-const { app } = require("electron");
+const { getDatabasePath } = require("./paths");
 const Database = require("better-sqlite3");
 
 const DEFAULT_USERNAME = "admin";
 const DEFAULT_PASSWORD = "123456";
-
-function getDatabasePath() {
-  return path.join(
-    app.getPath("userData"),
-    "database",
-    "production-statistics.sqlite",
-  );
-}
 
 function openDatabase() {
   return new Database(getDatabasePath());

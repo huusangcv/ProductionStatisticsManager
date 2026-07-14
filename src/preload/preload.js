@@ -9,6 +9,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getAccount: () => ipcRenderer.invoke("auth:getAccount"),
     updateAccount: (data) => ipcRenderer.invoke("auth:updateAccount", data),
   },
+  employees: {
+    getAll: () => ipcRenderer.invoke("employee:getAll"),
+    getByCode: (code) => ipcRenderer.invoke("employee:getByCode", code),
+    create: (data) => ipcRenderer.invoke("employee:create", data),
+    update: (code, data) => ipcRenderer.invoke("employee:update", { employeeCode: code, data }),
+    delete: (code) => ipcRenderer.invoke("employee:delete", code),
+  },
   db: {
     initialize: () => ipcRenderer.invoke("db:initialize"),
   },
@@ -18,4 +25,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
     close: () => ipcRenderer.invoke("window:close"),
   },
 });
+
 
