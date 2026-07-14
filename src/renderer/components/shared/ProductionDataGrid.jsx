@@ -1,4 +1,3 @@
-import { useState, useEffect, useCallback } from "react";
 import {
   DataGrid,
   GridToolbarContainer,
@@ -13,7 +12,6 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Cancel";
 import PreviewIcon from "@mui/icons-material/Preview";
-import { getGrindingDataGridColumns } from "../../../../constants/grindingColumns";
 
 const viVNGridLocaleText = {
   toolbarColumns: "Cột",
@@ -70,9 +68,7 @@ function PreviewToolbar({ onSave, onCancel, reportDate, rowCount }) {
   );
 }
 
-function GrindingDataGrid({ data, isPreview, previewMeta, onImport, onRefresh, onSave, onCancelPreview }) {
-  const columns = getGrindingDataGridColumns();
-
+function ProductionDataGrid({ columnSpec, data, isPreview, previewMeta, onImport, onRefresh, onSave, onCancelPreview }) {
   const toolbar = isPreview
     ? () => (
         <PreviewToolbar
@@ -103,7 +99,7 @@ function GrindingDataGrid({ data, isPreview, previewMeta, onImport, onRefresh, o
       <DataGrid
         localeText={viVNGridLocaleText}
         rows={data}
-        columns={columns}
+        columns={columnSpec}
         disableRowSelectionOnClick
         slots={{ toolbar }}
         initialState={{ pagination: { paginationModel: { pageSize: 50 } } }}
@@ -131,4 +127,4 @@ function GrindingDataGrid({ data, isPreview, previewMeta, onImport, onRefresh, o
   );
 }
 
-export default GrindingDataGrid;
+export default ProductionDataGrid;

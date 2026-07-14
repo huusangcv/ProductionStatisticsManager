@@ -26,6 +26,10 @@ const PAGE_META = {
     title: "Sản lượng Mài",
     subtitle: "Quản lý và thống kê sản lượng mài từ file Excel",
   },
+  "/cutting": {
+    title: "Sản lượng Cắt",
+    subtitle: "Quản lý và thống kê sản lượng cắt từ file Excel",
+  },
   "/reports": {
     title: "Báo cáo",
     subtitle: "Thống kê và xuất dữ liệu sản xuất",

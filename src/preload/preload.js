@@ -22,6 +22,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     parseExcel: (filePath) => ipcRenderer.invoke("grinding:parseExcel", filePath),
     save: (payload) => ipcRenderer.invoke("grinding:save", payload),
   },
+  cutting: {
+    getAll: () => ipcRenderer.invoke("cutting:getAll"),
+    selectFile: () => ipcRenderer.invoke("cutting:selectFile"),
+    parseExcel: (filePath) => ipcRenderer.invoke("cutting:parseExcel", filePath),
+    save: (payload) => ipcRenderer.invoke("cutting:save", payload),
+  },
   db: {
     initialize: () => ipcRenderer.invoke("db:initialize"),
   },
