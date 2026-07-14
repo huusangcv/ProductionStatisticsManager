@@ -1,5 +1,6 @@
 const { ensureAppAccount } = require("./account");
 const { ensureEmployeesTable, seedEmployeesIfEmpty } = require("./employees");
+const { ensureGrindingTable } = require("./grinding");
 const { getDatabasePath, ensureDirectories } = require("./paths");
 const Database = require("better-sqlite3");
 
@@ -20,6 +21,8 @@ function initializeDatabase() {
   // Create employees table and seed initial data if empty.
   ensureEmployeesTable();
   seedEmployeesIfEmpty();
+  
+  ensureGrindingTable();
 
   return databasePath;
 }

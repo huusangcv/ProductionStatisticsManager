@@ -8,6 +8,7 @@ import styles from "./Sidebar.module.css";
 
 const iconByLabel = {
   Dashboard: <DashboardOutlinedIcon />,
+  "Sản lượng Mài": <AssessmentOutlinedIcon />, // Reusing icon for now or use another
   "Quản lý nhân viên": <GroupOutlinedIcon />,
   "Báo cáo": <AssessmentOutlinedIcon />,
   "Cài đặt": <SettingsOutlinedIcon />,

@@ -21,7 +21,10 @@ const PAGE_META = {
   "/employees": {
     title: "Quản lý nhân viên",
     subtitle: "Quản lý nhân sự bộ phận Mài và Cắt",
-    // chipLabel: "95 nhân viên",
+  },
+  "/grinding": {
+    title: "Sản lượng Mài",
+    subtitle: "Quản lý và thống kê sản lượng mài từ file Excel",
   },
   "/reports": {
     title: "Báo cáo",

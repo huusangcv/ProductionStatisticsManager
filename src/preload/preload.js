@@ -16,6 +16,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     update: (code, data) => ipcRenderer.invoke("employee:update", { employeeCode: code, data }),
     delete: (code) => ipcRenderer.invoke("employee:delete", code),
   },
+  grinding: {
+    getAll: () => ipcRenderer.invoke("grinding:getAll"),
+    import: () => ipcRenderer.invoke("grinding:import"),
+  },
   db: {
     initialize: () => ipcRenderer.invoke("db:initialize"),
   },

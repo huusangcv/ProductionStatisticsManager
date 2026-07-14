@@ -3,6 +3,7 @@ import AppLayout from "../layout/AppLayout";
 import LoginPage from "../pages/Login/LoginPage";
 import DashboardPage from "../pages/Dashboard/DashboardPage";
 import EmployeesPage from "../pages/Employees/EmployeesPage";
+import GrindingPage from "../pages/Grinding/GrindingPage";
 import ImportExcelPage from "../pages/ImportExcel/ImportExcelPage"; // keeping just in case it's used elsewhere, but actually I'll just remove them all properly.
 import ReportsPage from "../pages/Reports/ReportsPage";
 import SettingsPage from "../pages/Settings/SettingsPage";
@@ -50,6 +51,7 @@ function AppRoutes() {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="grinding" element={<GrindingPage />} />
         <Route path="employees" element={<EmployeesPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsPage />} />

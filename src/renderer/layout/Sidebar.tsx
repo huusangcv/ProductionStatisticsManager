@@ -19,6 +19,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: "Dashboard", path: "/dashboard", icon: <DashboardOutlinedIcon /> },
+  { label: "Sản lượng Mài", path: "/grinding", icon: <AssessmentOutlinedIcon /> },
   { label: "Quản lý nhân viên", path: "/employees", icon: <GroupOutlinedIcon /> },
   { label: "Báo cáo", path: "/reports", icon: <AssessmentOutlinedIcon /> },
   { label: "Cài đặt", path: "/settings", icon: <SettingsOutlinedIcon /> },
