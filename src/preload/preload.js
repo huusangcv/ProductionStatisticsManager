@@ -4,6 +4,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   app: {
     ping: () => ipcRenderer.invoke("app:ping"),
   },
+  auth: {
+    login: (credentials) => ipcRenderer.invoke("auth:login", credentials),
+    getAccount: () => ipcRenderer.invoke("auth:getAccount"),
+    updateAccount: (data) => ipcRenderer.invoke("auth:updateAccount", data),
+  },
   db: {
     initialize: () => ipcRenderer.invoke("db:initialize"),
   },
@@ -13,3 +18,4 @@ contextBridge.exposeInMainWorld("electronAPI", {
     close: () => ipcRenderer.invoke("window:close"),
   },
 });
+

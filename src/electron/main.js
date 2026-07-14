@@ -21,14 +21,27 @@ function createWindow() {
     },
   });
 
+  // Thêm lắng nghe phím F11 để toggle maximize/restore
+  mainWindow.webContents.on("before-input-event", (event, input) => {
+    if (input.type === "keyDown" && input.key === "F11") {
+      event.preventDefault(); // Ngăn hành vi fullscreen mặc định của Electron/Chromium
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow.maximize();
+      }
+    }
+  });
+
   if (isDev) {
     mainWindow.loadURL("http://localhost:5173");
-    mainWindow.webContents.openDevTools({ mode: "detach" });
+    // mainWindow.webContents.openDevTools({ mode: "detach" });
     return;
   }
 
+
   mainWindow.loadFile(path.join(__dirname, "..", "..", "dist", "index.html"));
-  mainWindow.webContents.openDevTools({ mode: "detach" });
+  // mainWindow.webContents.openDevTools({ mode: "detach" });
 }
 
 app.whenReady().then(() => {
