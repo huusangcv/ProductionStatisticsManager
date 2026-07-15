@@ -8,6 +8,7 @@ import CuttingPage from "../pages/Cutting/CuttingPage";
 import ImportHistoryPage from "../pages/ImportHistory/ImportHistoryPage";
 import ReportsPage from "../pages/Reports/ReportsPage";
 import SettingsPage from "../pages/Settings/SettingsPage";
+import HeatTreatmentPage from "../pages/HeatTreatment/HeatTreatmentPage";
 import { useAuth } from "../context/AuthContext";
 
 function PrivateRoute({ children }) {
@@ -58,6 +59,7 @@ function AppRoutes() {
         <Route path="employees" element={<EmployeesPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="heat-treatment" element={<HeatTreatmentPage />} />
       </Route>
     </Routes>
   );

@@ -34,6 +34,19 @@ contextBridge.exposeInMainWorld("electronAPI", {
     delete: (id) => ipcRenderer.invoke("import-session:delete", id),
     rollback: (id) => ipcRenderer.invoke("import-session:rollback", id),
   },
+  template: {
+    get: (module) => ipcRenderer.invoke("template:get", module),
+    upload: (module) => ipcRenderer.invoke("template:upload", module),
+    preview: (module) => ipcRenderer.invoke("template:preview", module),
+    delete: (module) => ipcRenderer.invoke("template:delete", module),
+  },
+  heatTreatment: {
+    getGrindingByDate: (date) => ipcRenderer.invoke("heatTreatment:getGrindingByDate", date),
+    generate: (params) => ipcRenderer.invoke("heatTreatment:generate", params),
+    openFolder: (folderPath) => ipcRenderer.invoke("heatTreatment:openFolder", folderPath),
+    openFile: (filePath) => ipcRenderer.invoke("heatTreatment:openFile", filePath),
+    print: (filePath) => ipcRenderer.invoke("heatTreatment:print", filePath),
+  },
   db: {
     initialize: () => ipcRenderer.invoke("db:initialize"),
   },

@@ -3,6 +3,7 @@ const { ensureEmployeesTable, seedEmployeesIfEmpty } = require("./employees");
 const { ensureGrindingTable } = require("./grinding");
 const { ensureCuttingTable } = require("./cutting");
 const { ensureImportSessionsTable } = require("./importSessions");
+const { ensureExcelTemplatesTable } = require("./excelTemplates");
 const { getDatabasePath, ensureDirectories } = require("./paths");
 const Database = require("better-sqlite3");
 
@@ -27,6 +28,7 @@ function initializeDatabase() {
   ensureGrindingTable();
   ensureCuttingTable();
   ensureImportSessionsTable();
+  ensureExcelTemplatesTable();
 
   return databasePath;
 }

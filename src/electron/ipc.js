@@ -1,6 +1,8 @@
-const { ipcMain, BrowserWindow, dialog } = require("electron");
+const { ipcMain, BrowserWindow, dialog, shell } = require("electron");
 const XLSX = require("xlsx");
 const path = require("path");
+const fs   = require("fs");
+const Database = require("better-sqlite3");
 const { initializeDatabase } = require("./sqlite/init");
 const { validateLogin, getAccount, updateAccount } = require("./sqlite/account");
 const {
@@ -30,6 +32,14 @@ const {
   deleteSession,
   rollbackSession,
 } = require("./sqlite/importSessions");
+const {
+  getTemplate,
+  upsertTemplate,
+  deleteTemplate,
+} = require("./sqlite/excelTemplates");
+const { applyHeatTreatmentRules } = require("./heatTreatment/heatTreatmentRules");
+const { generateHeatTreatmentExcel, previewTemplate } = require("./heatTreatment/excelEngine");
+const { resolveExportPath } = require("./heatTreatment/exportPaths");
 
 // ============================================================================
 // Shared Excel Parse Engine
@@ -326,6 +336,159 @@ function registerIpcHandlers() {
 
   ipcMain.handle("window:close", (event) => {
     BrowserWindow.fromWebContents(event.sender)?.close();
+    return { ok: true };
+  });
+
+  // ── Template handlers ─────────────────────────────────────────────────────
+
+  ipcMain.handle("template:get", (_event, module) => {
+    return getTemplate(module);
+  });
+
+  ipcMain.handle("template:upload", async (event, module) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      title: "Chọn file Excel template",
+      filters: [{ name: "Excel Files", extensions: ["xlsx", "xls"] }],
+      properties: ["openFile"],
+    });
+    if (canceled || filePaths.length === 0) return { ok: false, canceled: true };
+
+    const srcPath = filePaths[0];
+    const { getAppDataRoot } = require("./sqlite/paths");
+    const templatesDir = path.join(getAppDataRoot(), "templates");
+    if (!fs.existsSync(templatesDir)) fs.mkdirSync(templatesDir, { recursive: true });
+
+    const destFileName = module.replace(/[^a-z0-9-]/gi, "-") + ".xlsx";
+    const destPath     = path.join(templatesDir, destFileName);
+
+    try {
+      fs.copyFileSync(srcPath, destPath);
+
+      const result = upsertTemplate({
+        module,
+        template_name: path.basename(srcPath),
+        template_path: destPath,
+        sheet_name:    "Sheet1",
+        start_row:     6,
+        status:        "active",
+      });
+
+      if (!result.ok) return result;
+      return { ok: true, template: getTemplate(module) };
+    } catch (err) {
+      return { ok: false, message: "Lỗi sao chép file: " + err.message };
+    }
+  });
+
+  ipcMain.handle("template:preview", async (_event, module) => {
+    const tmpl = getTemplate(module);
+    if (!tmpl) return { ok: false, message: "Chưa upload template." };
+    if (!fs.existsSync(tmpl.template_path)) {
+      return { ok: false, message: "File template không tồn tại trên ổ đĩa." };
+    }
+    return previewTemplate(tmpl.template_path);
+  });
+
+  ipcMain.handle("template:delete", (_event, module) => {
+    const tmpl = getTemplate(module);
+    if (tmpl && fs.existsSync(tmpl.template_path)) {
+      try { fs.unlinkSync(tmpl.template_path); } catch (_) { /* ignore */ }
+    }
+    return deleteTemplate(module);
+  });
+
+  // ── Heat Treatment handlers ───────────────────────────────────────────────
+
+  ipcMain.handle("heatTreatment:getGrindingByDate", (_event, reportDate) => {
+    const { getDatabasePath } = require("./sqlite/paths");
+    const db = new Database(getDatabasePath());
+    try {
+      return db
+        .prepare(`SELECT * FROM grinding_production WHERE report_date = ? ORDER BY id ASC`)
+        .all(reportDate);
+    } finally {
+      db.close();
+    }
+  });
+
+  ipcMain.handle("heatTreatment:generate", async (_event, { reportDate }) => {
+    const startTime = Date.now();
+    try {
+      // 1. Load template metadata
+      const tmpl = getTemplate("heat-treatment");
+      if (!tmpl) return { ok: false, message: "Chưa cấu hình template. Vui lòng upload template trong Cài đặt." };
+      if (!fs.existsSync(tmpl.template_path)) {
+        return { ok: false, message: "File template không tồn tại. Vui lòng upload lại." };
+      }
+
+      // 2. Load grinding data for date
+      const { getDatabasePath } = require("./sqlite/paths");
+      const db = new Database(getDatabasePath());
+      let grindingRows;
+      try {
+        grindingRows = db
+          .prepare(`SELECT * FROM grinding_production WHERE report_date = ? ORDER BY id ASC`)
+          .all(reportDate);
+      } finally {
+        db.close();
+      }
+
+      if (!grindingRows || grindingRows.length === 0) {
+        return { ok: false, message: `Không có dữ liệu Mài cho ngày ${reportDate}.` };
+      }
+
+      // 3. Apply business rules
+      const result = applyHeatTreatmentRules(grindingRows);
+
+      // 4. Resolve output path
+      const { filePath, folderPath, fileName } = resolveExportPath(reportDate);
+
+      // 5. Generate Excel
+      const genResult = await generateHeatTreatmentExcel({
+        templatePath: tmpl.template_path,
+        outputPath:   filePath,
+        rows:         result.rows,
+        sheetName:    tmpl.sheet_name,
+        startRow:     6,
+        reportDate,
+      });
+
+      if (!genResult.ok) return genResult;
+
+      const durationMs = Date.now() - startTime;
+      return {
+        ok: true,
+        filePath,
+        folderPath,
+        fileName,
+        totalRows:         result.totalRows,
+        xlnCount:          result.xlnCount,
+        noCount:           result.noCount,
+        totalCompletedQty: result.totalCompletedQty,
+        totalScrapQty:     result.totalScrapQty,
+        totalWeight:       result.totalWeight,
+        durationMs,
+      };
+    } catch (error) {
+      return { ok: false, message: "Lỗi xuất Excel: " + error.message };
+    }
+  });
+
+  ipcMain.handle("heatTreatment:openFolder", (_event, folderPath) => {
+    shell.openPath(folderPath);
+    return { ok: true };
+  });
+
+  ipcMain.handle("heatTreatment:openFile", (_event, filePath) => {
+    shell.openPath(filePath);
+    return { ok: true };
+  });
+
+  ipcMain.handle("heatTreatment:print", (_event, filePath) => {
+    // Opens the file in the default application (Excel) which handles printing.
+    // On Windows this triggers the associated app; user sends to printer from there.
+    shell.openPath(filePath);
     return { ok: true };
   });
 }

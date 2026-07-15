@@ -38,6 +38,10 @@ const PAGE_META = {
     title: "Báo cáo",
     subtitle: "Thống kê và xuất dữ liệu sản xuất",
   },
+  "/heat-treatment": {
+    title: "Nhiệt luyện",
+    subtitle: "Xuất báo cáo nhiệt luyện từ dữ liệu Mài",
+  },
   "/settings": {
     title: "Cài đặt",
     subtitle: "Thiết lập hệ thống",

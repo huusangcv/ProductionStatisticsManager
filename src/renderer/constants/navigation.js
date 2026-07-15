@@ -6,6 +6,7 @@ export const navigationItems = [
     children: [
       { label: "Mài", path: "/grinding", icon: "Grinding" },
       { label: "Cắt", path: "/cutting", icon: "Cutting" },
+      { label: "Nhiệt luyện", path: "/heat-treatment", icon: "HeatTreatment" },
     ],
   },
   { label: "Quản lý nhân viên", path: "/employees", icon: "Employees" },
