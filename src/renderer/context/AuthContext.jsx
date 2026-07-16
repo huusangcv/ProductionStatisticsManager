@@ -26,9 +26,8 @@ export function AuthProvider({ children }) {
       } else {
         return { success: false, message: result.message };
       }
-    } catch (error) {
-      console.error("Login failed:", error);
-      return { success: false, message: "Lỗi kết nối đến máy chủ." };
+    } catch {
+      return { success: false, message: "Lỗi kết nối đến hệ thống." };
     }
   };
 

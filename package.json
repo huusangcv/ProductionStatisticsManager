@@ -43,11 +43,20 @@
   "build": {
     "appId": "com.productionstatisticsmanager.app",
     "productName": "ProductionStatisticsManager",
+    "copyright": "KI Factory",
+    "icon": "resources/ki-logo.png",
     "files": [
       "dist/**",
       "src/electron/**",
       "src/preload/**",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/",
+        "to": ".",
+        "filter": ["**/*"]
+      }
     ],
     "directories": {
       "output": "release"
@@ -55,13 +64,19 @@
     "win": {
       "signAndEditExecutable": false,
       "target": [
-        "nsis"
+        { "target": "nsis",     "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
       ]
     },
     "nsis": {
       "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "ProductionStatisticsManager-${version}-Portable.exe"
     }
   }
 }

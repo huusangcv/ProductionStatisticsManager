@@ -1,29 +1,25 @@
 const path = require("path");
-const fs = require("fs");
 const { app, BrowserWindow, Menu } = require("electron");
 const { registerIpcHandlers } = require("./ipc");
 const { initializeDatabase } = require("./sqlite/init");
+const logger = require("./logger");
 
-// ---------------------------------------------------------------------------
-// Step 1: Configure userData path BEFORE app is ready.
-// app.setPath must be called before app.whenReady() to take effect.
-// ---------------------------------------------------------------------------
-
-const PREFERRED_DATA_ROOT = "D:\\ProductionStatisticsManager";
-
-function configureUserDataPath() {
-  try {
-    fs.accessSync("D:\\", fs.constants.W_OK);
-    // Drive D is available — use dedicated folder
-    app.setPath("userData", PREFERRED_DATA_ROOT);
-  } catch {
-    // Drive D not available — keep Electron default userData
-  }
-}
-
-configureUserDataPath();
+// ── isDev ─────────────────────────────────────────────────────────────────────
 
 const isDev = !app.isPackaged;
+
+// ── resolveIconPath ───────────────────────────────────────────────────────────
+// In development:  resources/ is at project root, two levels above __dirname
+// In production:   electron-builder places extraResources into process.resourcesPath
+
+function resolveIconPath() {
+  if (isDev) {
+    return path.join(__dirname, "..", "..", "resources", "ki-logo.png");
+  }
+  return path.join(process.resourcesPath, "ki-logo.png");
+}
+
+// ── createWindow ──────────────────────────────────────────────────────────────
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -33,7 +29,7 @@ function createWindow() {
     minHeight: 780,
     backgroundColor: "#f5f7fb",
     frame: true,
-    icon: path.join(__dirname, "..", "..", "public", "ki-logo.png"),
+    icon: resolveIconPath(),
     webPreferences: {
       preload: path.join(__dirname, "..", "preload", "preload.js"),
       contextIsolation: true,
@@ -42,10 +38,10 @@ function createWindow() {
     },
   });
 
-  // Thêm lắng nghe phím F11 để toggle maximize/restore
+  // F11 → toggle maximize / restore
   mainWindow.webContents.on("before-input-event", (event, input) => {
     if (input.type === "keyDown" && input.key === "F11") {
-      event.preventDefault(); // Ngăn hành vi fullscreen mặc định của Electron/Chromium
+      event.preventDefault();
       if (mainWindow.isMaximized()) {
         mainWindow.unmaximize();
       } else {
@@ -56,20 +52,25 @@ function createWindow() {
 
   if (isDev) {
     mainWindow.loadURL("http://localhost:5173");
-    // mainWindow.webContents.openDevTools({ mode: "detach" });
     return;
   }
 
-
   mainWindow.loadFile(path.join(__dirname, "..", "..", "dist", "index.html"));
-  // mainWindow.webContents.openDevTools({ mode: "detach" });
 }
 
+// ── App lifecycle ─────────────────────────────────────────────────────────────
+
 app.whenReady().then(() => {
-  Menu.setApplicationMenu(null);
-  registerIpcHandlers();
-  initializeDatabase();
-  createWindow();
+  try {
+    Menu.setApplicationMenu(null);
+    registerIpcHandlers();
+    initializeDatabase();
+    logger.info("Application started", { version: app.getVersion(), isDev });
+    createWindow();
+  } catch (err) {
+    logger.error("Fatal error during startup", err);
+    app.quit();
+  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -80,6 +81,7 @@ app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
+    logger.info("Application closed");
     app.quit();
   }
 });

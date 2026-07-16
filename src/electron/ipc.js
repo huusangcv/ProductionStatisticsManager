@@ -228,6 +228,7 @@ const CUTTING_SPEC = [
 
 function registerIpcHandlers() {
   ipcMain.handle("app:ping", () => ({ ok: true }));
+  ipcMain.handle("app:getVersion", () => ({ version: app.getVersion() }));
 
   ipcMain.handle("db:initialize", () => {
     initializeDatabase();

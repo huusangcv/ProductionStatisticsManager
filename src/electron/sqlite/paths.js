@@ -1,48 +1,44 @@
 /**
  * paths.js — Central data directory and database path resolution.
  *
- * All SQLite modules must import getDatabasePath() from this file.
- * Never call app.getPath("userData") directly in DAO files.
+ * Factory deployment: all data is stored on D:\ProductionStatisticsManager
  *
- * Resolution order:
- *   1. If drive D:\ exists  →  D:\ProductionStatisticsManager
- *   2. Otherwise            →  Electron default userData
+ * This is the ONLY supported data location.
+ * All production computers are required to have drive D:.
  */
 
-const fs = require("fs");
+const fs   = require("fs");
 const path = require("path");
-const { app } = require("electron");
 
-const DRIVE_D_ROOT = "D:\\ProductionStatisticsManager";
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-const SUBDIRECTORIES = ["database", "exports", "backups", "logs", "templates"];
+const DATA_ROOT = "D:\\ProductionStatisticsManager";
 
-/**
- * Returns true if the D:\ drive is accessible.
- */
-function isDriveAvailable() {
-  try {
-    fs.accessSync("D:\\", fs.constants.W_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
+const SUBDIRECTORIES = [
+  "database",
+  "exports",
+  "backups",
+  "logs",
+  "templates",
+  "config",
+  "temp",
+];
+
+// ── getAppDataRoot ────────────────────────────────────────────────────────────
 
 /**
  * Returns the application root data directory.
- * D:\ProductionStatisticsManager  or  %AppData%\<app-name>
+ * Always D:\ProductionStatisticsManager on factory machines.
  */
 function getAppDataRoot() {
-  if (isDriveAvailable()) {
-    return DRIVE_D_ROOT;
-  }
-  return app.getPath("userData");
+  return DATA_ROOT;
 }
+
+// ── ensureDirectories ─────────────────────────────────────────────────────────
 
 /**
  * Ensures all required subdirectories exist under the app data root.
- * Safe to call multiple times — uses recursive:true.
+ * Safe to call multiple times — uses recursive: true.
  */
 function ensureDirectories() {
   const root = getAppDataRoot();
@@ -54,6 +50,8 @@ function ensureDirectories() {
   }
 }
 
+// ── getDatabasePath ───────────────────────────────────────────────────────────
+
 /**
  * Returns the absolute path to the SQLite database file.
  */
@@ -61,8 +59,44 @@ function getDatabasePath() {
   return path.join(getAppDataRoot(), "database", "production.db");
 }
 
+// ── writeAppConfig ────────────────────────────────────────────────────────────
+
+/**
+ * Writes config/app.json on first launch.
+ * Never overwrites an existing config file.
+ *
+ * @param {string} version  Application version string (from package.json).
+ */
+function writeAppConfig(version) {
+  const configPath = path.join(getAppDataRoot(), "config", "app.json");
+
+  if (fs.existsSync(configPath)) {
+    return; // Never overwrite
+  }
+
+  const root    = getAppDataRoot();
+  const config  = {
+    version,
+    dataRoot:       root,
+    databasePath:   path.join(root, "database", "production.db"),
+    exportPath:     path.join(root, "exports"),
+    templatePath:   path.join(root, "templates"),
+    logPath:        path.join(root, "logs"),
+    generatedAt:    new Date().toISOString(),
+  };
+
+  try {
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+  } catch (err) {
+    // Log-only: do not crash the application if config write fails
+    const logger = require("./logger");
+    logger.error("Failed to write app.json", err);
+  }
+}
+
 module.exports = {
   getAppDataRoot,
   getDatabasePath,
   ensureDirectories,
+  writeAppConfig,
 };
