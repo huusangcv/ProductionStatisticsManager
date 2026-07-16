@@ -1,17 +1,12 @@
-import {
-  DataGrid,
-  GridToolbarContainer,
-  GridToolbarExport,
-  GridToolbarDensitySelector,
-  GridToolbarColumnsButton,
-  GridToolbarFilterButton,
-} from "@mui/x-data-grid";
-import { Box, Button, Chip } from "@mui/material";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
+import { DataGrid } from "@mui/x-data-grid";
+import { Box, Chip } from "@mui/material";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Cancel";
-import PreviewIcon from "@mui/icons-material/Preview";
+
+import DataGridToolbarActions, { StandardButton } from "./DataGridToolbarActions";
+import { useDragDropImport } from "../../hooks/useDragDropImport";
 
 const viVNGridLocaleText = {
   toolbarColumns: "Cột",
@@ -26,67 +21,74 @@ const viVNGridLocaleText = {
   },
 };
 
-function NormalToolbar({ onImport, onRefresh }) {
-  return (
-    <GridToolbarContainer sx={{ p: 1.5, borderBottom: "1px solid #E2E8F0", bgcolor: "#F8FAFC" }}>
-      <Box sx={{ display: "flex", alignItems: "center", width: "100%", flexWrap: "wrap", gap: 1.5 }}>
-        <GridToolbarColumnsButton />
-        <GridToolbarFilterButton />
-        <GridToolbarDensitySelector />
-        <Box sx={{ flexGrow: 1 }} />
-        <GridToolbarExport />
-        <Button variant="outlined" color="secondary" startIcon={<RefreshIcon />} onClick={onRefresh}>
-          Làm mới
-        </Button>
-        <Button variant="contained" color="primary" startIcon={<UploadFileIcon />} onClick={onImport} disableElevation>
-          Import Excel
-        </Button>
-      </Box>
-    </GridToolbarContainer>
-  );
-}
-
-function PreviewToolbar({ onSave, onCancel, reportDate, rowCount }) {
-  return (
-    <GridToolbarContainer sx={{ p: 1.5, borderBottom: "2px solid #F59E0B", bgcolor: "#FFFBEB" }}>
-      <Box sx={{ display: "flex", alignItems: "center", width: "100%", flexWrap: "wrap", gap: 1.5 }}>
-        <PreviewIcon sx={{ color: "#D97706" }} />
-        <Box sx={{ fontWeight: 600, color: "#92400E", fontSize: 14 }}>
-          Chế độ xem trước
-        </Box>
-        <Chip label={`${rowCount} dòng`} size="small" sx={{ bgcolor: "#FEF3C7", color: "#92400E" }} />
-        <Chip label={`Ngày: ${reportDate}`} size="small" sx={{ bgcolor: "#FEF3C7", color: "#92400E" }} />
-        <Box sx={{ flexGrow: 1 }} />
-        <Button variant="outlined" color="inherit" startIcon={<CancelIcon />} onClick={onCancel}>
-          Hủy
-        </Button>
-        <Button variant="contained" color="success" startIcon={<SaveIcon />} onClick={onSave} disableElevation>
-          Lưu dữ liệu
-        </Button>
-      </Box>
-    </GridToolbarContainer>
-  );
-}
-
-import { useDragDropImport } from "../../hooks/useDragDropImport";
-
-function ProductionDataGrid({ columnSpec, data, isPreview, previewMeta, onImport, onRefresh, onSave, onCancelPreview, onFileDrop, onInvalidFile, isProcessing }) {
+function ProductionDataGrid({
+  columnSpec,
+  data,
+  isPreview,
+  previewMeta,
+  onImport,
+  onRefresh,
+  onSave,
+  onCancelPreview,
+  onFileDrop,
+  onInvalidFile,
+  isProcessing,
+}) {
   const { isDragging, dragProps } = useDragDropImport({
     onDropFile: onFileDrop,
     onInvalidFile: onInvalidFile,
     acceptedExtensions: [".xls", ".xlsx"],
   });
 
-  const toolbar = isPreview
-    ? () => (
-        <PreviewToolbar
-          onSave={onSave}
-          onCancel={onCancelPreview}
-          reportDate={previewMeta?.reportDate || ""}
-          rowCount={data.length}
+  const toolbar = () => {
+    if (isPreview) {
+      return (
+        <DataGridToolbarActions
+          hasExport={false}
+          rightActions={
+            <>
+              <Chip label={`Ngày: ${previewMeta?.reportDate || ""}`} sx={{ height: 32, borderRadius: "8px" }} />
+              <Chip label={`${data.length} dòng`} sx={{ height: 32, borderRadius: "8px" }} />
+              <StandardButton
+                primary={true}
+                icon={<SaveIcon />}
+                label="Lưu dữ liệu"
+                onClick={onSave}
+              />
+              <StandardButton
+                primary={false}
+                icon={<CancelIcon />}
+                label="Hủy"
+                onClick={onCancelPreview}
+              />
+            </>
+          }
         />
-      )
-    : () => <NormalToolbar onImport={onImport} onRefresh={onRefresh} />;
+      );
+    }
+
+    return (
+      <DataGridToolbarActions
+        hasExport={true}
+        rightActions={
+          <>
+            <StandardButton
+              primary={true}
+              icon={<UploadFileRoundedIcon />}
+              label="Import Excel"
+              onClick={onImport}
+            />
+            <StandardButton
+              primary={false}
+              icon={<RefreshRoundedIcon />}
+              label="Làm mới"
+              onClick={onRefresh}
+            />
+          </>
+        }
+      />
+    );
+  };
 
   return (
     <Box
@@ -96,14 +98,9 @@ function ProductionDataGrid({ columnSpec, data, isPreview, previewMeta, onImport
         width: "100%",
         minWidth: 0,
         bgcolor: "#FFFFFF",
-        borderRadius: "18px",
-        overflow: "hidden",
-        border: isPreview ? "2px solid #F59E0B" : "1px solid #E2E8F0",
-        boxShadow: isPreview
-          ? "0 0 0 4px rgba(245, 158, 11, 0.15)"
-          : "0 2px 12px rgba(15, 23, 42, 0.05)",
-        transition: "border 0.2s, box-shadow 0.2s",
         position: "relative",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <DataGrid
@@ -126,12 +123,22 @@ function ProductionDataGrid({ columnSpec, data, isPreview, previewMeta, onImport
             fontWeight: 600,
             fontSize: 13,
             borderBottom: "1px solid #E2E8F0",
+            borderTop: "1px solid #E2E8F0", // Add top border so it's framed under the toolbar
           },
           "& .MuiDataGrid-columnHeaderTitle": { fontWeight: 600 },
           "& .MuiDataGrid-cell": { borderColor: "#E2E8F0" },
-          "& .MuiDataGrid-cell:focus-within": { outline: "none" },
           "& .MuiDataGrid-row:hover": { bgcolor: "#F8FAFC" },
-          "& .MuiDataGrid-footerContainer": { borderTop: "1px solid #E2E8F0" },
+          "& .MuiDataGrid-footerContainer": {
+            borderTop: "1px solid #E2E8F0",
+            minHeight: "48px",
+          },
+          "& .MuiTablePagination-root": {
+            padding: "4px 12px",
+          },
+          "& .MuiTablePagination-toolbar": {
+            minHeight: "40px",
+            padding: 0,
+          },
         }}
       />
       {isDragging && (

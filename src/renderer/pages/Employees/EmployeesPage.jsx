@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Box, Stack, Snackbar, Alert } from "@mui/material";
+import { Box, Stack, Snackbar, Alert, Card } from "@mui/material";
 import EmployeeDataGrid from "./components/EmployeeDataGrid";
 import EmployeeDrawer from "./components/EmployeeDrawer";
 import EmployeeDialog from "./components/EmployeeDialog";
@@ -165,30 +165,31 @@ function EmployeesPage() {
         overflow: "hidden",
       }}
     >
-      {/* DataGrid */}
-      <Box
-        sx={{
-          flex: 1,
-          minHeight: 0,
-          minWidth: 0,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        <EmployeeDataGrid
-          data={employees}
-          selectedRowIds={selectedRowIds}
-          onSelectionChange={setSelectedRowIds}
-          onDoubleClick={handleViewEmployee}
-          onView={handleViewEmployee}
-          onEdit={handleEditEmployee}
-          onDelete={handleDeleteEmployee}
-          onAddEmployee={handleAddEmployee}
-          onRefresh={handleRefresh}
-          onDeleteSelected={handleDeleteSelected}
-        />
-      </Box>
+        <Card
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            p: "16px 20px",
+            borderRadius: "16px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+          }}
+        >
+          <EmployeeDataGrid
+            data={employees}
+            selectedRowIds={selectedRowIds}
+            onSelectionChange={setSelectedRowIds}
+            onDoubleClick={handleViewEmployee}
+            onView={handleViewEmployee}
+            onEdit={handleEditEmployee}
+            onDelete={handleDeleteEmployee}
+            onAddEmployee={handleAddEmployee}
+            onRefresh={handleRefresh}
+            onDeleteSelected={handleDeleteSelected}
+          />
+        </Card>
 
       {/* Overlays */}
       <EmployeeDrawer

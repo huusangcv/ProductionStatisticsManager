@@ -3,17 +3,18 @@ import {
   Alert,
   Box,
   Card,
-  CardContent,
-  Divider,
   Snackbar,
-  Stack,
   TextField,
-  Typography,
-  Paper,
+  CircularProgress
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import DescriptionIcon from "@mui/icons-material/Description";
+import PrintIcon from "@mui/icons-material/Print";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import RefreshIcon from "@mui/icons-material/Refresh";
+
 import ExportDialogs from "./components/ExportDialogs";
-import HeatTreatmentToolbar from "./components/HeatTreatmentToolbar";
+import DataGridToolbarActions, { StandardButton } from "../../components/shared/DataGridToolbarActions";
 import { HEAT_TREATMENT_PREVIEW_COLUMNS } from "../../../constants/heatTreatmentColumns";
 
 // ── DataGrid locale text ───────────────────────────────────────────────────────
@@ -132,8 +133,8 @@ export default function HeatTreatmentPage() {
       { ms: 1400, text: "Đang tạo Excel..." },
       { ms: 2200, text: "Đang lưu tệp..." }
     ];
-    
-    const timeouts = steps.map(step => 
+
+    const timeouts = steps.map(step =>
       setTimeout(() => setGenerateStepText(step.text), step.ms)
     );
 
@@ -190,17 +191,17 @@ export default function HeatTreatmentPage() {
         onPrint={handlePrint}
       />
 
-      {/* ── Data preview grid ── */}
-      <Box sx={{ flex: 1, minHeight: 0 }}>
-        <Box
+      <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+        <Card
           sx={{
-            height: "100%",
-            width: "100%",
-            bgcolor: "#FFFFFF",
-            borderRadius: "18px",
-            overflow: "hidden",
-            border: "1px solid #E2E8F0",
-            boxShadow: "0 2px 12px rgba(15, 23, 42, 0.05)",
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            p: "16px 20px",
+            borderRadius: "16px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
           }}
         >
           <DataGrid
@@ -211,19 +212,50 @@ export default function HeatTreatmentPage() {
             density="compact"
             slots={{
               toolbar: () => (
-                <HeatTreatmentToolbar
-                  hasTemplate={!!template}
-                  hasResult={!!lastResult}
-                  lastFilePath={lastResult?.filePath}
-                  lastFolderPath={lastResult?.folderPath}
-                  generating={generating}
-                  onGenerate={handleGenerate}
-                  onPrint={handlePrint}
-                  onOpenFolder={handleOpenFolder}
-                  onRefreshTemplate={loadTemplate}
-                  selectedDate={selectedDate}
-                  onDateChange={setSelectedDate}
-                  today={today}
+                <DataGridToolbarActions
+                  hasExport={false}
+                  rightActions={
+                    <>
+                      <TextField
+                        type="date"
+                        size="small"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        inputProps={{ max: today }}
+                        sx={{
+                          width: 160,
+                          "& .MuiInputBase-root": { height: 38, borderRadius: "8px", fontSize: 14 }
+                        }}
+                      />
+                      <StandardButton
+                        primary={true}
+                        icon={generating ? <CircularProgress size={16} color="inherit" /> : <DescriptionIcon />}
+                        label={generating ? "Đang tạo..." : "Tạo Excel"}
+                        disabled={!template || generating}
+                        onClick={handleGenerate}
+                      />
+                      <StandardButton
+                        primary={false}
+                        icon={<PrintIcon />}
+                        label="In"
+                        disabled={!lastResult || generating}
+                        onClick={() => handlePrint(lastResult?.filePath)}
+                      />
+                      <StandardButton
+                        primary={false}
+                        icon={<FolderOpenIcon />}
+                        label="Mở thư mục"
+                        disabled={!lastResult || generating}
+                        onClick={() => handleOpenFolder(lastResult?.folderPath)}
+                      />
+                      <StandardButton
+                        primary={false}
+                        icon={<RefreshIcon />}
+                        label="Làm mới"
+                        onClick={loadTemplate}
+                      />
+                    </>
+                  }
                 />
               )
             }}
@@ -231,22 +263,35 @@ export default function HeatTreatmentPage() {
             pageSizeOptions={[25, 50, 100]}
             sx={{
               border: "none",
+              width: "100%",
+              minWidth: 0,
               color: "#0F172A",
               "& .MuiDataGrid-columnHeaders": {
                 bgcolor: "#F8FAFC",
                 color: "#64748B",
                 fontWeight: 600,
-                fontSize: 12,
+                fontSize: 13,
                 borderBottom: "1px solid #E2E8F0",
+                borderTop: "1px solid #E2E8F0",
               },
               "& .MuiDataGrid-columnHeaderTitle": { fontWeight: 600 },
-              "& .MuiDataGrid-cell": { borderColor: "#E2E8F0", fontSize: 12 },
+              "& .MuiDataGrid-cell": { borderColor: "#E2E8F0", fontSize: 13 },
               "& .MuiDataGrid-cell:focus-within": { outline: "none" },
               "& .MuiDataGrid-row:hover": { bgcolor: "#F8FAFC" },
-              "& .MuiDataGrid-footerContainer": { borderTop: "1px solid #E2E8F0" },
+              "& .MuiDataGrid-footerContainer": {
+                borderTop: "1px solid #E2E8F0",
+                minHeight: "48px",
+              },
+              "& .MuiTablePagination-root": {
+                padding: "4px 12px",
+              },
+              "& .MuiTablePagination-toolbar": {
+                minHeight: "40px",
+                padding: 0,
+              },
             }}
           />
-        </Box>
+        </Card>
       </Box>
 
       {/* ── Snackbar ── */}

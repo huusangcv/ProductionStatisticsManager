@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Box, Snackbar, Alert } from "@mui/material";
+import { Box, Snackbar, Alert, Card } from "@mui/material";
 import ProductionDataGrid from "./ProductionDataGrid";
 
 /**
@@ -104,23 +104,17 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
   const displayData = isPreview ? previewData : savedData;
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        flex: 1,
-        minHeight: 0,
-        overflow: "hidden",
-      }}
-    >
-      <Box
+    <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+      <Card
         sx={{
           flex: 1,
           minHeight: 0,
-          minWidth: 0,
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
+          gap: "8px",
+          p: "16px 20px",
+          borderRadius: "16px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
         }}
       >
         <ProductionDataGrid
@@ -136,7 +130,7 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
           onFileDrop={handleFileDrop}
           onInvalidFile={handleInvalidFile}
         />
-      </Box>
+      </Card>
 
       <Snackbar
         open={snackbar.open}

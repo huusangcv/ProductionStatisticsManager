@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
+import { Box } from "@mui/material";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import styles from "./AppLayout.module.css";
@@ -12,15 +13,34 @@ function AppLayout() {
   };
 
   return (
-    <div className={styles.appContainer} data-sidebar-collapsed={!desktopOpen}>
+    <Box
+      sx={{
+        display:    "flex",
+        height:     "100vh",
+        overflow:   "hidden",
+        bgcolor:    "var(--color-bg-body)",
+      }}
+    >
+      {/* Sidebar manages its own width via transition */}
       <Sidebar desktopOpen={desktopOpen} />
-      <div className={styles.mainContent}>
+
+      {/* Main content fills the remaining space */}
+      <Box
+        sx={{
+          flex:          1,
+          display:       "flex",
+          flexDirection: "column",
+          minWidth:      0,
+          height:        "100vh",
+          overflow:      "hidden",
+        }}
+      >
         <Topbar onMenuClick={handleToggleSidebar} />
-        <div className={styles.pageContainer}>
+        <Box className={styles.pageContainer}>
           <Outlet />
-        </div>
-      </div>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   );
 }
 

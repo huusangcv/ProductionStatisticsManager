@@ -1,141 +1,438 @@
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
-import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
-import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
-import PrecisionManufacturingOutlinedIcon from "@mui/icons-material/PrecisionManufacturingOutlined";
-import BuildCircleOutlinedIcon from "@mui/icons-material/BuildCircleOutlined";
-import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
-import WhatshotOutlinedIcon from "@mui/icons-material/WhatshotOutlined";
-import ExpandLess from "@mui/icons-material/ExpandLess";
-import ExpandMore from "@mui/icons-material/ExpandMore";
-import Collapse from "@mui/material/Collapse";
-import { navigationItems } from "../constants/navigation";
-import styles from "./Sidebar.module.css";
+import { Box, Collapse, Tooltip } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
-const iconMap = {
-  Dashboard: <DashboardOutlinedIcon />,
-  Production: <PrecisionManufacturingOutlinedIcon />,
-  Grinding: <BuildCircleOutlinedIcon />,
-  Cutting: <ConstructionOutlinedIcon />,
-  HeatTreatment: <WhatshotOutlinedIcon />,
-  History: <HistoryOutlinedIcon />,
-  Employees: <GroupOutlinedIcon />,
-  Reports: <AssessmentOutlinedIcon />,
-  Settings: <SettingsOutlinedIcon />,
+// ── Icons ─────────────────────────────────────────────────────────────────────
+import DashboardRoundedIcon          from "@mui/icons-material/DashboardRounded";
+import Inventory2RoundedIcon         from "@mui/icons-material/Inventory2Rounded";
+import PrecisionManufacturingRounded from "@mui/icons-material/PrecisionManufacturingRounded";
+import ContentCutRoundedIcon         from "@mui/icons-material/ContentCutRounded";
+import LocalFireDepartmentRounded    from "@mui/icons-material/LocalFireDepartmentRounded";
+import BadgeRoundedIcon              from "@mui/icons-material/BadgeRounded";
+import HistoryRoundedIcon            from "@mui/icons-material/HistoryRounded";
+import AssessmentRoundedIcon         from "@mui/icons-material/AssessmentRounded";
+import SettingsRoundedIcon           from "@mui/icons-material/SettingsRounded";
+import ExpandLessRoundedIcon         from "@mui/icons-material/ExpandLessRounded";
+import ExpandMoreRoundedIcon         from "@mui/icons-material/ExpandMoreRounded";
+
+import { navigationItems } from "../constants/navigation";
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+const SIDEBAR_EXPANDED  = 240;
+const SIDEBAR_COLLAPSED = 72;
+const ITEM_HEIGHT       = 48;
+const ICON_SIZE         = 22;
+const LOGO_SIZE         = 40;
+const NAV_PADDING       = 16;
+
+// Static icon map — no re-creation on each render
+const ICON_MAP = {
+  Dashboard:    <DashboardRoundedIcon          sx={{ fontSize: ICON_SIZE }} />,
+  Production:   <Inventory2RoundedIcon         sx={{ fontSize: ICON_SIZE }} />,
+  Grinding:     <PrecisionManufacturingRounded sx={{ fontSize: ICON_SIZE }} />,
+  Cutting:      <ContentCutRoundedIcon         sx={{ fontSize: ICON_SIZE }} />,
+  HeatTreatment:<LocalFireDepartmentRounded    sx={{ fontSize: ICON_SIZE }} />,
+  Employees:    <BadgeRoundedIcon              sx={{ fontSize: ICON_SIZE }} />,
+  History:      <HistoryRoundedIcon            sx={{ fontSize: ICON_SIZE }} />,
+  Reports:      <AssessmentRoundedIcon         sx={{ fontSize: ICON_SIZE }} />,
+  Settings:     <SettingsRoundedIcon           sx={{ fontSize: ICON_SIZE }} />,
 };
 
-function NavGroup({ item, desktopOpen }) {
-  const location = useLocation();
-  const isActive = item.children.some((child) => child.path === location.pathname);
+// ── CollapsedIconButton ───────────────────────────────────────────────────────
+/**
+ * Collapsed sidebar: 48×48 centered icon button.
+ *
+ * Colors sourced exclusively from theme.palette.sidebar.*
+ * Active = primary.main icon + selected bg + left indicator bar.
+ */
+function CollapsedIconButton({ icon, label, active, onClick }) {
+  const theme = useTheme();
+  const sb    = theme.palette.sidebar;
 
+  return (
+    <Tooltip title={label} placement="right" arrow>
+      <Box
+        onClick={onClick}
+        sx={{
+          position:       "relative",
+          width:          ITEM_HEIGHT,
+          height:         ITEM_HEIGHT,
+          borderRadius:   "12px",
+          display:        "flex",
+          alignItems:     "center",
+          justifyContent: "center",
+          mx:             "auto",
+          cursor:         "pointer",
+          bgcolor:        active ? sb.selected : "transparent",
+          // Icon color: active → primary.main, inactive → sidebar.icon
+          color:          active ? theme.palette.primary.main : sb.icon,
+          transition:     "background-color 150ms ease, color 150ms ease",
+          "&:hover": {
+            bgcolor: active ? sb.selected : sb.hover,
+          },
+          // Left active indicator bar
+          "&::before": active ? {
+            content:      '""',
+            position:     "absolute",
+            left:         -NAV_PADDING + 3,
+            top:          "50%",
+            transform:    "translateY(-50%)",
+            width:        3,
+            height:       20,
+            borderRadius: "0 3px 3px 0",
+            bgcolor:      sb.indicator,
+          } : {},
+        }}
+      >
+        {icon}
+      </Box>
+    </Tooltip>
+  );
+}
+
+// ── ExpandedNavItem ───────────────────────────────────────────────────────────
+/**
+ * Expanded sidebar: full-width row — icon slot (40px) + label + optional chevron.
+ *
+ * Colors sourced exclusively from theme.palette.sidebar.*
+ */
+function ExpandedNavItem({ icon, label, active, onClick, chevron }) {
+  const theme = useTheme();
+  const sb    = theme.palette.sidebar;
+
+  return (
+    <Box
+      onClick={onClick}
+      sx={{
+        position:       "relative",
+        height:         ITEM_HEIGHT,
+        borderRadius:   "12px",
+        display:        "flex",
+        alignItems:     "center",
+        px:             `${NAV_PADDING}px`,
+        gap:            "16px",
+        cursor:         "pointer",
+        textDecoration: "none",
+        userSelect:     "none",
+        bgcolor:        active ? sb.selected : "transparent",
+        // Row-level color drives both icon and text via CSS inheritance
+        color:          active ? theme.palette.primary.main : sb.icon,
+        transition:     "background-color 150ms ease, color 150ms ease",
+        "&:hover": {
+          bgcolor: active ? sb.selected : sb.hover,
+        },
+      }}
+    >
+      {/* Fixed-width icon slot */}
+      <Box
+        sx={{
+          width:          40,
+          height:         40,
+          flexShrink:     0,
+          display:        "flex",
+          alignItems:     "center",
+          justifyContent: "center",
+          // Icon inherits color from parent Box
+        }}
+      >
+        {icon}
+      </Box>
+
+      {/* Label — uses sidebar.text when inactive, primary.main when active */}
+      <Box
+        component="span"
+        sx={{
+          flex:       1,
+          minWidth:   0,
+          fontSize:   "13.5px",
+          fontWeight: 600,
+          lineHeight: 1,
+          whiteSpace: "nowrap",
+          overflow:   "hidden",
+          // Override color for text specifically: slightly brighter than icon
+          color:      active ? theme.palette.primary.main : sb.text,
+        }}
+      >
+        {label}
+      </Box>
+
+      {/* Chevron (group items only) */}
+      {chevron && (
+        <Box sx={{ display: "flex", alignItems: "center", opacity: 0.6 }}>
+          {chevron}
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+// ── ExpandedChildItem ─────────────────────────────────────────────────────────
+function ExpandedChildItem({ label, active }) {
+  const theme = useTheme();
+  const sb    = theme.palette.sidebar;
+
+  return (
+    <Box
+      sx={{
+        height:       ITEM_HEIGHT,
+        borderRadius: "12px",
+        display:      "flex",
+        alignItems:   "center",
+        // Indent: NAV_PADDING(16) + icon-slot(40) + gap(16) + extra(8) = 80px
+        pl:           "80px",
+        pr:           `${NAV_PADDING}px`,
+        bgcolor:      active ? sb.selected : "transparent",
+        color:        active ? theme.palette.primary.main : sb.text,
+        cursor:       "pointer",
+        transition:   "background-color 150ms ease, color 150ms ease",
+        "&:hover":    { bgcolor: active ? sb.selected : sb.hover },
+      }}
+    >
+      <Box
+        component="span"
+        sx={{
+          fontSize:   "13.5px",
+          fontWeight: active ? 600 : 500,
+          lineHeight: 1,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+      </Box>
+    </Box>
+  );
+}
+
+// ── NavGroup ──────────────────────────────────────────────────────────────────
+function NavGroup({ item, collapsed }) {
+  const location = useLocation();
+  const isActive = item.children.some((child) => location.pathname === child.path);
   const [open, setOpen] = useState(isActive);
 
-  // Auto-expand if a child becomes active
   useEffect(() => {
-    if (isActive) {
-      setOpen(true);
-    }
+    if (isActive) setOpen(true);
   }, [isActive]);
 
-  const toggleOpen = () => {
-    // Only allow toggle if expanded sidebar (or handle it gracefully)
-    if (desktopOpen) {
-      setOpen(!open);
-    }
+  const handleToggle = () => {
+    if (!collapsed) setOpen((prev) => !prev);
   };
+
+  if (collapsed) {
+    return (
+      <CollapsedIconButton
+        icon={ICON_MAP[item.icon]}
+        label={item.label}
+        active={isActive}
+        onClick={handleToggle}
+      />
+    );
+  }
 
   return (
     <>
-      <div
-        className={`${styles.navItem} ${isActive ? styles.activeParent : ""}`}
-        onClick={toggleOpen}
-      >
-        <div className={styles.navIcon}>{iconMap[item.icon]}</div>
-        <div className={styles.navText}>{item.label}</div>
-        <div style={{ flexGrow: 1 }} />
-        {desktopOpen && (
-          <div className={styles.navExpandIcon}>
-            {open ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
-          </div>
-        )}
-      </div>
+      <ExpandedNavItem
+        icon={ICON_MAP[item.icon]}
+        label={item.label}
+        active={isActive}
+        onClick={handleToggle}
+        chevron={
+          open
+            ? <ExpandLessRoundedIcon sx={{ fontSize: 16 }} />
+            : <ExpandMoreRoundedIcon sx={{ fontSize: 16 }} />
+        }
+      />
       <Collapse in={open} timeout="auto" unmountOnExit>
-        <div className={styles.navChildren}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "4px", mt: "4px", mb: "4px" }}>
           {item.children.map((child) => (
-            <NavLink
-              key={child.path}
-              to={child.path}
-              className={({ isActive: childActive }) =>
-                `${styles.navItem} ${styles.navChildItem} ${
-                  childActive ? styles.active : ""
-                }`
-              }
-            >
-              <div className={styles.navIcon}>{iconMap[child.icon]}</div>
-              <div className={styles.navText}>{child.label}</div>
+            <NavLink key={child.path} to={child.path} style={{ textDecoration: "none" }}>
+              {({ isActive: childActive }) => (
+                <ExpandedChildItem label={child.label} active={childActive} />
+              )}
             </NavLink>
           ))}
-        </div>
+        </Box>
       </Collapse>
     </>
   );
 }
 
+// ── Sidebar ───────────────────────────────────────────────────────────────────
 function Sidebar({ desktopOpen }) {
-  return (
-    <aside className={styles.sidebar}>
-      <div className={styles.logoArea}>
-        <div className={styles.logoIcon}>
-          <DashboardOutlinedIcon />
-        </div>
-        <div className={styles.logoText}>Production Stats</div>
-      </div>
+  const collapsed = !desktopOpen;
+  const theme     = useTheme();
+  const sb        = theme.palette.sidebar;
 
-      <nav className={styles.navContainer}>
+  return (
+    <Box
+      component="aside"
+      sx={{
+        position:      "sticky",
+        top:           0,
+        height:        "100vh",
+        width:         collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED,
+        flexShrink:    0,
+        bgcolor:       sb.background,
+        display:       "flex",
+        flexDirection: "column",
+        overflow:      "hidden",
+        borderRight:   `1px solid ${sb.border}`,
+        transition:    "width 0.2s ease",
+      }}
+    >
+      {/* ── Logo ──────────────────────────────────────────────────────────── */}
+      <Box
+        sx={{
+          height:         72,
+          flexShrink:     0,
+          display:        "flex",
+          alignItems:     "center",
+          justifyContent: collapsed ? "center" : "flex-start",
+          px:             collapsed ? 0 : `${NAV_PADDING}px`,
+          borderBottom:   `1px solid ${sb.border}`,
+          overflow:       "hidden",
+          transition:     "padding 0.2s ease",
+        }}
+      >
+        <Box
+          sx={{
+            width:          LOGO_SIZE,
+            height:         LOGO_SIZE,
+            borderRadius:   "10px",
+            bgcolor:        "primary.main",
+            display:        "flex",
+            alignItems:     "center",
+            justifyContent: "center",
+            flexShrink:     0,
+            boxShadow:      "0 2px 8px rgba(37,99,235,0.35)",
+          }}
+        >
+          <Inventory2RoundedIcon sx={{ fontSize: 22, color: "#fff" }} />
+        </Box>
+
+        <Box
+          sx={{
+            ml:         "12px",
+            maxWidth:   collapsed ? 0 : 160,
+            opacity:    collapsed ? 0 : 1,
+            overflow:   "hidden",
+            whiteSpace: "nowrap",
+            transition: "max-width 0.2s ease, opacity 0.15s ease",
+          }}
+        >
+          <Box component="span" sx={{ display: "block", fontSize: "14px", fontWeight: 800, color: "#fff", lineHeight: 1.2 }}>
+            Production
+          </Box>
+          <Box component="span" sx={{ display: "block", fontSize: "11px", fontWeight: 500, color: sb.icon, lineHeight: 1.2, mt: "2px" }}>
+            Statistics Manager
+          </Box>
+        </Box>
+      </Box>
+
+      {/* ── Navigation ────────────────────────────────────────────────────── */}
+      <Box
+        sx={{
+          flex:          1,
+          overflowY:     "auto",
+          overflowX:     "hidden",
+          pt:            `${NAV_PADDING}px`,
+          pb:            `${NAV_PADDING}px`,
+          px:            `${NAV_PADDING}px`,
+          display:       "flex",
+          flexDirection: "column",
+          gap:           "8px",
+          "&::-webkit-scrollbar":       { width: "4px" },
+          "&::-webkit-scrollbar-thumb": { bgcolor: sb.hover, borderRadius: "4px" },
+        }}
+      >
         {navigationItems.map((item) => {
           if (item.children) {
-            return (
-              <NavGroup
-                key={item.label}
-                item={item}
-                desktopOpen={desktopOpen}
-              />
-            );
+            return <NavGroup key={item.label} item={item} collapsed={collapsed} />;
           }
-
           return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `${styles.navItem} ${isActive ? styles.active : ""}`
+            <NavLink key={item.path} to={item.path} style={{ textDecoration: "none" }}>
+              {({ isActive }) =>
+                collapsed ? (
+                  <CollapsedIconButton
+                    icon={ICON_MAP[item.icon]}
+                    label={item.label}
+                    active={isActive}
+                  />
+                ) : (
+                  <ExpandedNavItem
+                    icon={ICON_MAP[item.icon]}
+                    label={item.label}
+                    active={isActive}
+                  />
+                )
               }
-            >
-              <div className={styles.navIcon}>{iconMap[item.icon]}</div>
-              <div className={styles.navText}>{item.label}</div>
             </NavLink>
           );
         })}
 
-        <div className={styles.systemInfo}>
-          {desktopOpen ? (
-            <>
-              <div className={styles.systemTitle}>Thông tin hệ thống</div>
-              <div className={styles.systemVersion}>Phiên bản: 1.0.0</div>
-              <div className={styles.statusIndicator}>
-                <div className={styles.statusDot} />
-                <div className={styles.statusText}>Đang hoạt động</div>
-              </div>
-            </>
+        {/* ── Status footer ─────────────────────────────────────────────── */}
+        <Box sx={{ mt: "auto", pt: "8px" }}>
+          {collapsed ? (
+            <Tooltip title="Hệ thống đang hoạt động" placement="right" arrow>
+              <Box
+                sx={{
+                  display:        "flex",
+                  justifyContent: "center",
+                  alignItems:     "center",
+                  height:         32,
+                  cursor:         "default",
+                }}
+              >
+                <Box
+                  sx={{
+                    width:        10,
+                    height:       10,
+                    borderRadius: "50%",
+                    bgcolor:      "#22c55e",
+                    boxShadow:    "0 0 0 3px rgba(34,197,94,0.2)",
+                  }}
+                />
+              </Box>
+            </Tooltip>
           ) : (
-            <div className={styles.statusDot} style={{ margin: "8px 0" }} />
+            <Box
+              sx={{
+                borderRadius: "12px",
+                bgcolor:      sb.hover,
+                border:       `1px solid ${sb.border}`,
+                px:           "14px",
+                py:           "12px",
+                display:      "flex",
+                alignItems:   "center",
+                gap:          "8px",
+              }}
+            >
+              <Box
+                sx={{
+                  width:        8,
+                  height:       8,
+                  borderRadius: "50%",
+                  bgcolor:      "#22c55e",
+                  flexShrink:   0,
+                  boxShadow:    "0 0 0 3px rgba(34,197,94,0.2)",
+                }}
+              />
+              <Box
+                component="span"
+                sx={{
+                  fontSize:   "11px",
+                  fontWeight: 600,
+                  color:      sb.statusText,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Đang hoạt động
+              </Box>
+            </Box>
           )}
-        </div>
-      </nav>
-    </aside>
+        </Box>
+      </Box>
+    </Box>
   );
 }
 

@@ -88,7 +88,7 @@ function Topbar({ onMenuClick }) {
             <MenuIcon />
           </IconButton>
 
-          <Stack spacing={0.5}>
+          <Stack spacing={0.25}>
             <Stack direction="row" alignItems="center" spacing={1}>
               <Typography
                 variant="h5"

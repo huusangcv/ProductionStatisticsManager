@@ -1,4 +1,5 @@
 import { createTheme, CssBaseline, ThemeProvider } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { useMemo } from "react";
 import { viVN } from "@mui/material/locale";
 function AppThemeProvider({ children }) {
@@ -17,6 +18,20 @@ function AppThemeProvider({ children }) {
             background: {
               default: "#f5f7fb",
               paper: "#ffffff",
+            },
+            // ── Sidebar palette ──────────────────────────────────────
+            // All tokens are derived from white and primary so they follow
+            // any future brand colour changes automatically.
+            // Consumed by Sidebar.jsx via theme.palette.sidebar.*
+            sidebar: {
+              background: "#0f172a",
+              border:     "rgba(255,255,255,0.07)",
+              text:       alpha("#ffffff", 0.72),  // inactive labels
+              icon:       alpha("#ffffff", 0.60),  // inactive icons
+              hover:      alpha("#ffffff", 0.07),  // hover on dark bg
+              selected:   alpha("#2563eb", 0.18),  // active bg (primary @ 18%)
+              indicator:  "#2563eb",               // left active bar = primary.main
+              statusText: alpha("#ffffff", 0.80),  // status footer text
             },
           },
           shape: {
