@@ -36,17 +36,6 @@ export default function HeatTreatmentToolbar({
         
         <Box sx={{ flexGrow: 1 }} />
 
-        {/* Stats Chips */}
-        {totalCount > 0 && (
-          <>
-            <Chip label={`${totalCount} dòng`} size="small" sx={{ bgcolor: "#F1F5F9", color: "#475569" }} />
-            <Chip label={`${xlnCount} XLN`} size="small" sx={{ bgcolor: "#FEF3C7", color: "#92400E", fontWeight: 600 }} />
-            <Chip label={`${noCount} NO`} size="small" sx={{ bgcolor: "#EFF6FF", color: "#1E40AF", fontWeight: 600 }} />
-          </>
-        )}
-
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-
         {/* Date Picker */}
         <TextField
           type="date"

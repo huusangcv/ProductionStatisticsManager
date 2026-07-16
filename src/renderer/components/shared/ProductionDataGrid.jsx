@@ -68,7 +68,15 @@ function PreviewToolbar({ onSave, onCancel, reportDate, rowCount }) {
   );
 }
 
-function ProductionDataGrid({ columnSpec, data, isPreview, previewMeta, onImport, onRefresh, onSave, onCancelPreview }) {
+import { useDragDropImport } from "../../hooks/useDragDropImport";
+
+function ProductionDataGrid({ columnSpec, data, isPreview, previewMeta, onImport, onRefresh, onSave, onCancelPreview, onFileDrop, onInvalidFile, isProcessing }) {
+  const { isDragging, dragProps } = useDragDropImport({
+    onDropFile: onFileDrop,
+    onInvalidFile: onInvalidFile,
+    acceptedExtensions: [".xls", ".xlsx"],
+  });
+
   const toolbar = isPreview
     ? () => (
         <PreviewToolbar
@@ -82,6 +90,7 @@ function ProductionDataGrid({ columnSpec, data, isPreview, previewMeta, onImport
 
   return (
     <Box
+      {...dragProps}
       sx={{
         height: "100%",
         width: "100%",
@@ -94,6 +103,7 @@ function ProductionDataGrid({ columnSpec, data, isPreview, previewMeta, onImport
           ? "0 0 0 4px rgba(245, 158, 11, 0.15)"
           : "0 2px 12px rgba(15, 23, 42, 0.05)",
         transition: "border 0.2s, box-shadow 0.2s",
+        position: "relative",
       }}
     >
       <DataGrid
@@ -101,6 +111,7 @@ function ProductionDataGrid({ columnSpec, data, isPreview, previewMeta, onImport
         rows={data}
         columns={columnSpec}
         disableRowSelectionOnClick
+        loading={isProcessing}
         slots={{ toolbar }}
         initialState={{ pagination: { paginationModel: { pageSize: 50 } } }}
         pageSizeOptions={[10, 20, 50, 100]}
@@ -123,6 +134,33 @@ function ProductionDataGrid({ columnSpec, data, isPreview, previewMeta, onImport
           "& .MuiDataGrid-footerContainer": { borderTop: "1px solid #E2E8F0" },
         }}
       />
+      {isDragging && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            bgcolor: "rgba(248, 250, 252, 0.85)",
+            zIndex: 10,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            border: "2px dashed #3B82F6",
+            borderRadius: "18px",
+          }}
+        >
+          <Box sx={{ fontSize: 48, mb: 2 }}>📄</Box>
+          <Box sx={{ fontSize: 20, fontWeight: 600, color: "#1E293B" }}>
+            Thả file Excel vào đây
+          </Box>
+          <Box sx={{ fontSize: 14, color: "#64748B", mt: 1 }}>
+            (.xls hoặc .xlsx)
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 }

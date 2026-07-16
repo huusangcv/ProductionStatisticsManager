@@ -33,6 +33,7 @@ function createWindow() {
     minHeight: 780,
     backgroundColor: "#f5f7fb",
     frame: true,
+    icon: path.join(__dirname, "..", "..", "public", "ki-logo.png"),
     webPreferences: {
       preload: path.join(__dirname, "..", "preload", "preload.js"),
       contextIsolation: true,

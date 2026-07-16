@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { 
-  Box, 
-  Button, 
-  Card, 
-  CardContent, 
-  Checkbox, 
-  FormControlLabel, 
-  Stack, 
-  TextField, 
-  Typography, 
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Checkbox,
+  FormControlLabel,
+  Stack,
+  TextField,
+  Typography,
   Alert,
   InputAdornment,
   IconButton
@@ -26,7 +26,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(!!savedUsername);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -41,9 +41,9 @@ function LoginPage() {
     setError("");
 
     const result = await login(username, password, rememberMe);
-    
+
     setLoading(false);
-    
+
     if (result.success) {
       navigate("/dashboard", { replace: true });
     } else {
@@ -54,9 +54,9 @@ function LoginPage() {
   return (
     <Box sx={{ display: "flex", width: "100vw", height: "100vh", bgcolor: "background.default" }}>
       {/* Left Side - Branding (45%) */}
-      <Box 
-        sx={{ 
-          width: "45%", 
+      <Box
+        sx={{
+          width: "45%",
           bgcolor: "primary.main",
           color: "primary.contrastText",
           display: "flex",
@@ -67,11 +67,11 @@ function LoginPage() {
         }}
       >
         <Stack spacing={4} alignItems="center" textAlign="center">
-          <Box 
-            component="img" 
-            src="/vite.svg" 
-            alt="Logo" 
-            sx={{ width: 120, height: 120, filter: "brightness(0) invert(1)" }} 
+          <Box
+            component="img"
+            src="/ki-logo.svg"
+            alt="Logo"
+            sx={{ width: 120, height: 120, filter: "brightness(0) invert(1)" }}
           />
           <Box>
             <Typography variant="h3" fontWeight={700} gutterBottom>
@@ -85,9 +85,9 @@ function LoginPage() {
       </Box>
 
       {/* Right Side - Login Form (55%) */}
-      <Box 
-        sx={{ 
-          width: "55%", 
+      <Box
+        sx={{
+          width: "55%",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -154,10 +154,10 @@ function LoginPage() {
                       ),
                     }}
                   />
-                  
+
                   <FormControlLabel
                     control={
-                      <Checkbox 
+                      <Checkbox
                         checked={rememberMe}
                         onChange={(e) => setRememberMe(e.target.checked)}
                         disabled={loading}

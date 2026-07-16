@@ -12,7 +12,7 @@ import {
   Paper,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import GenerationSummaryCard from "./components/GenerationSummaryCard";
+import ExportDialogs from "./components/ExportDialogs";
 import HeatTreatmentToolbar from "./components/HeatTreatmentToolbar";
 import { HEAT_TREATMENT_PREVIEW_COLUMNS } from "../../../constants/heatTreatmentColumns";
 
@@ -41,7 +41,9 @@ export default function HeatTreatmentPage() {
   const [grindingRows, setGrindingRows] = useState([]);
   const [previewRows, setPreviewRows] = useState([]);
   const [generating, setGenerating] = useState(false);
+  const [generateStepText, setGenerateStepText] = useState("");
   const [lastResult, setLastResult] = useState(null); // last generate result
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   const showSnackbar = (message, severity = "success") =>
@@ -118,22 +120,38 @@ export default function HeatTreatmentPage() {
     if (!template) return;
     setGenerating(true);
     setLastResult(null);
+    setGenerateStepText("Đang đọc dữ liệu...");
 
     // Convert YYYY-MM-DD to DD/MM/YYYY
     const [y, m, d] = selectedDate.split("-");
     const reportDate = `${d}/${m}/${y}`;
 
+    // Simulate steps since backend is a single async call
+    const steps = [
+      { ms: 600, text: "Đang lọc XLN..." },
+      { ms: 1400, text: "Đang tạo Excel..." },
+      { ms: 2200, text: "Đang lưu tệp..." }
+    ];
+    
+    const timeouts = steps.map(step => 
+      setTimeout(() => setGenerateStepText(step.text), step.ms)
+    );
+
     try {
       const result = await window.electronAPI.heatTreatment.generate({ reportDate });
+      timeouts.forEach(clearTimeout);
       if (result.ok) {
         setLastResult(result);
+        setShowSuccessDialog(true);
         showSnackbar(`Xuất thành công: ${result.fileName}`);
       } else {
         showSnackbar(result.message || "Tạo file thất bại.", "error");
       }
     } catch (err) {
+      timeouts.forEach(clearTimeout);
       showSnackbar("Lỗi hệ thống: " + err.message, "error");
     } finally {
+      timeouts.forEach(clearTimeout);
       setGenerating(false);
     }
   };
@@ -156,24 +174,21 @@ export default function HeatTreatmentPage() {
     showSnackbar("Đã gửi lệnh in.");
   };
 
-  // ── Summary counts ────────────────────────────────────────────────────────
-
-  const xlnCount = previewRows.filter((r) => r.classification === "XLN").length;
-  const noCount = previewRows.filter((r) => r.classification === "NO").length;
-
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, height: "100%", minHeight: 0 }}>
-      {/* ── Generation summary (shown after successful generate) ── */}
-      {lastResult && (
-        <GenerationSummaryCard
-          result={lastResult}
-          onOpenFolder={handleOpenFolder}
-          onOpenFile={handleOpenFile}
-          onPrint={handlePrint}
-        />
-      )}
+      {/* ── Dialogs ── */}
+      <ExportDialogs
+        generating={generating}
+        generateStepText={generateStepText}
+        lastResult={lastResult}
+        showSuccessDialog={showSuccessDialog}
+        onCloseSuccess={() => setShowSuccessDialog(false)}
+        onOpenFile={handleOpenFile}
+        onOpenFolder={handleOpenFolder}
+        onPrint={handlePrint}
+      />
 
       {/* ── Data preview grid ── */}
       <Box sx={{ flex: 1, minHeight: 0 }}>
@@ -209,9 +224,6 @@ export default function HeatTreatmentPage() {
                   selectedDate={selectedDate}
                   onDateChange={setSelectedDate}
                   today={today}
-                  totalCount={previewRows.length}
-                  xlnCount={xlnCount}
-                  noCount={noCount}
                 />
               )
             }}

@@ -13,6 +13,7 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
   const [previewData, setPreviewData] = useState(null); // null = not in preview
   const [previewMeta, setPreviewMeta] = useState(null); // { fileName, reportDate }
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const showSnackbar = (message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
@@ -32,23 +33,38 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ipcKey]);
 
-  // --- Import Flow: Select → Parse → Show Preview ---
-  const handleImport = async () => {
-    // Step 1: Select file
-    const fileResult = await window.electronAPI[ipcKey].selectFile();
-    if (!fileResult.ok) return; // User cancelled
+  // --- Shared File Processing ---
+  const processExcelFile = async (filePath) => {
+    setIsProcessing(true);
+    const parseResult = await window.electronAPI[ipcKey].parseExcel(filePath);
+    setIsProcessing(false);
 
-    // Step 2: Parse Excel
-    const parseResult = await window.electronAPI[ipcKey].parseExcel(fileResult.filePath);
     if (!parseResult.ok) {
       showSnackbar(parseResult.message, "error");
       return;
     }
 
-    // Step 3: Enter preview mode — assign temporary IDs for DataGrid row identification
     const rowsWithId = parseResult.records.map((row, index) => ({ ...row, id: index + 1 }));
     setPreviewData(rowsWithId);
     setPreviewMeta({ fileName: parseResult.fileName, reportDate: parseResult.reportDate });
+  };
+
+  // --- Import Flow: Select → Parse → Show Preview ---
+  const handleImport = async () => {
+    if (isProcessing) return;
+    const fileResult = await window.electronAPI[ipcKey].selectFile();
+    if (!fileResult.ok) return; // User cancelled
+    await processExcelFile(fileResult.filePath);
+  };
+
+  // --- Drag & Drop Flow ---
+  const handleFileDrop = async (file) => {
+    if (isProcessing) return;
+    await processExcelFile(file.path);
+  };
+
+  const handleInvalidFile = (message) => {
+    showSnackbar(message, "error");
   };
 
   // --- Save Flow: User confirms preview → Persist to SQLite ---
@@ -112,10 +128,13 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
           data={displayData}
           isPreview={isPreview}
           previewMeta={previewMeta}
+          isProcessing={isProcessing}
           onImport={handleImport}
           onRefresh={handleRefresh}
           onSave={handleSave}
           onCancelPreview={handleCancelPreview}
+          onFileDrop={handleFileDrop}
+          onInvalidFile={handleInvalidFile}
         />
       </Box>
 

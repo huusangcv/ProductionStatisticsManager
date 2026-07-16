@@ -39,8 +39,8 @@ const PAGE_META = {
     subtitle: "Thống kê và xuất dữ liệu sản xuất",
   },
   "/heat-treatment": {
-    title: "Nhiệt luyện",
-    subtitle: "Xuất báo cáo nhiệt luyện từ dữ liệu Mài",
+    title: "Xử lý nhiệt",
+    subtitle: "Xuất báo cáo xử lý nhiệt từ dữ liệu Mài",
   },
   "/settings": {
     title: "Cài đặt",

@@ -29,14 +29,26 @@ function ensureExportFolder(folderPath) {
 /**
  * Returns the next available export file path for a given date string.
  *
- * @param {string} dateStr  ISO date string "YYYY-MM-DD"
+ * @param {string} dateStr  Date string in "DD/MM/YYYY" format
  * @returns {{ filePath: string, folderPath: string, fileName: string }}
  */
 function resolveExportPath(dateStr) {
-  const dateObj = new Date(dateStr);
-  const yyyy    = String(dateObj.getFullYear());
-  const mm      = String(dateObj.getMonth() + 1).padStart(2, "0");
-  const dd      = String(dateObj.getDate()).padStart(2, "0");
+  if (!dateStr || typeof dateStr !== "string") {
+    throw new Error(`Ngày không hợp lệ: ${dateStr}`);
+  }
+
+  const parts = dateStr.split("/");
+  if (parts.length !== 3) {
+    throw new Error(`Định dạng ngày không hợp lệ (yêu cầu DD/MM/YYYY): ${dateStr}`);
+  }
+
+  const dd = parts[0];
+  const mm = parts[1];
+  const yyyy = parts[2];
+
+  if (isNaN(dd) || isNaN(mm) || isNaN(yyyy)) {
+    throw new Error(`Ngày chứa giá trị không hợp lệ: ${dateStr}`);
+  }
 
   const folderPath = path.join(
     getAppDataRoot(),
@@ -48,7 +60,7 @@ function resolveExportPath(dateStr) {
 
   ensureExportFolder(folderPath);
 
-  const baseName = `HT_${yyyy}${mm}${dd}`;
+  const baseName = `HangXuLyNhiet_${yyyy}${mm}${dd}`;
 
   // Try the base name first
   const primary = path.join(folderPath, `${baseName}.xlsx`);
