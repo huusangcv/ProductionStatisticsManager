@@ -5,52 +5,33 @@ import {
   Card,
   Snackbar,
   TextField,
-  CircularProgress
+  CircularProgress,
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
 import DescriptionIcon from "@mui/icons-material/Description";
 import PrintIcon from "@mui/icons-material/Print";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
 import ExportDialogs from "./components/ExportDialogs";
+import ProductionDataGrid from "../../components/shared/ProductionDataGrid";
 import DataGridToolbarActions, { StandardButton } from "../../components/shared/DataGridToolbarActions";
 import { HEAT_TREATMENT_PREVIEW_COLUMNS } from "../../../constants/heatTreatmentColumns";
 
-// ── DataGrid locale text ───────────────────────────────────────────────────────
-
-const viVNGridLocaleText = {
-  noRowsLabel: "Không có dữ liệu. Chọn ngày có dữ liệu Mài để xem trước.",
-  MuiTablePagination: {
-    labelRowsPerPage: "Số dòng mỗi trang:",
-    labelDisplayedRows: ({ from, to, count }) =>
-      `${from}–${to} trong ${count !== -1 ? count : `nhiều hơn ${to}`}`,
-  },
-};
-
-// ── HeatTreatmentPage ─────────────────────────────────────────────────────────
-
 export default function HeatTreatmentPage() {
-  // ── State ─────────────────────────────────────────────────────────────────
-
-  // Today in YYYY-MM-DD (native date input format)
   const today = new Date().toISOString().slice(0, 10);
 
   const [selectedDate, setSelectedDate] = useState(today);
   const [template, setTemplate] = useState(null);
   const [templateLoading, setTemplateLoading] = useState(true);
-  const [grindingRows, setGrindingRows] = useState([]);
   const [previewRows, setPreviewRows] = useState([]);
   const [generating, setGenerating] = useState(false);
   const [generateStepText, setGenerateStepText] = useState("");
-  const [lastResult, setLastResult] = useState(null); // last generate result
+  const [lastResult, setLastResult] = useState(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   const showSnackbar = (message, severity = "success") =>
     setSnackbar({ open: true, message, severity });
-
-  // ── Load template ─────────────────────────────────────────────────────────
 
   const loadTemplate = useCallback(async () => {
     setTemplateLoading(true);
@@ -68,22 +49,18 @@ export default function HeatTreatmentPage() {
     loadTemplate();
   }, [loadTemplate]);
 
-  // ── Load grinding data for selected date (preview) ────────────────────────
-
   const loadGrindingData = useCallback(async (date) => {
     if (!date) return;
     try {
-      // Convert YYYY-MM-DD to DD/MM/YYYY to match grinding_production.report_date
       const [y, m, d] = date.split("-");
       const reportDate = `${d}/${m}/${y}`;
       const rows = await window.electronAPI.heatTreatment.getGrindingByDate(reportDate);
-      setGrindingRows(rows || []);
 
-      // Build preview rows (simple mapping — same fields as the rules engine)
       const mapped = (rows || []).map((row, idx) => ({
         id: idx,
         stt: idx + 1,
         report_date: row.report_date,
+        customer_order_number: row.customer_order_number,
         work_order_number: row.work_order_number,
         material_code: row.material_code,
         item_name: row.item_name,
@@ -91,6 +68,7 @@ export default function HeatTreatmentPage() {
         employee_name: row.employee_name,
         completed_quantity: row.completed_quantity,
         scrap_quantity: row.scrap_quantity,
+        unit_weight: row.unit_weight,
         completed_weight: row.completed_weight,
         classification: classifyLocal(row),
       }));
@@ -101,12 +79,9 @@ export default function HeatTreatmentPage() {
   }, []);
 
   useEffect(() => {
-    setLastResult(null); // clear summary when date changes
+    setLastResult(null);
     loadGrindingData(selectedDate);
   }, [selectedDate, loadGrindingData]);
-
-  // ── Local classification (mirrors heatTreatmentRules.js) ─────────────────
-  // Used only for preview coloring — actual classification is done server-side.
 
   function classifyLocal(row) {
     const kws = ["XLN", "XỬ LÝ NHIỆT", "NHIỆT LUYỆN", "HT", "HARDENED"];
@@ -115,27 +90,23 @@ export default function HeatTreatmentPage() {
     return kws.some((k) => name.includes(k) || spec.includes(k)) ? "XLN" : "NO";
   }
 
-  // ── Generate ──────────────────────────────────────────────────────────────
-
   const handleGenerate = async () => {
     if (!template) return;
     setGenerating(true);
     setLastResult(null);
     setGenerateStepText("Đang đọc dữ liệu...");
 
-    // Convert YYYY-MM-DD to DD/MM/YYYY
     const [y, m, d] = selectedDate.split("-");
     const reportDate = `${d}/${m}/${y}`;
 
-    // Simulate steps since backend is a single async call
     const steps = [
       { ms: 600, text: "Đang lọc XLN..." },
       { ms: 1400, text: "Đang tạo Excel..." },
-      { ms: 2200, text: "Đang lưu tệp..." }
+      { ms: 2200, text: "Đang lưu tệp..." },
     ];
 
-    const timeouts = steps.map(step =>
-      setTimeout(() => setGenerateStepText(step.text), step.ms)
+    const timeouts = steps.map((step) =>
+      setTimeout(() => setGenerateStepText(step.text), step.ms),
     );
 
     try {
@@ -157,8 +128,6 @@ export default function HeatTreatmentPage() {
     }
   };
 
-  // ── Open folder / file / print ────────────────────────────────────────────
-
   const handleOpenFolder = async (folderPath) => {
     if (!folderPath) return;
     await window.electronAPI.heatTreatment.openFolder(folderPath);
@@ -175,11 +144,56 @@ export default function HeatTreatmentPage() {
     showSnackbar("Đã gửi lệnh in.");
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const heatTreatmentToolbar = () => (
+    <DataGridToolbarActions
+      hasExport={false}
+      rightActions={
+        <>
+          <TextField
+            type="date"
+            size="small"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            inputProps={{ max: today }}
+            sx={{
+              width: 160,
+              "& .MuiInputBase-root": { height: 38, borderRadius: "8px", fontSize: 14 },
+            }}
+          />
+          <StandardButton
+            primary
+            icon={generating ? <CircularProgress size={16} color="inherit" /> : <DescriptionIcon />}
+            label={generating ? "Đang tạo..." : "Tạo Excel"}
+            disabled={!template || generating}
+            onClick={handleGenerate}
+          />
+          <StandardButton
+            primary={false}
+            icon={<PrintIcon />}
+            label="In"
+            disabled={!lastResult || generating}
+            onClick={() => handlePrint(lastResult?.filePath)}
+          />
+          <StandardButton
+            primary={false}
+            icon={<FolderOpenIcon />}
+            label="Mở thư mục"
+            disabled={!lastResult || generating}
+            onClick={() => handleOpenFolder(lastResult?.folderPath)}
+          />
+          <StandardButton
+            primary={false}
+            icon={<RefreshIcon />}
+            label="Làm mới"
+            onClick={loadTemplate}
+          />
+        </>
+      }
+    />
+  );
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, height: "100%", minHeight: 0 }}>
-      {/* ── Dialogs ── */}
       <ExportDialogs
         generating={generating}
         generateStepText={generateStepText}
@@ -204,97 +218,18 @@ export default function HeatTreatmentPage() {
             boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
           }}
         >
-          <DataGrid
-            rows={previewRows}
-            columns={HEAT_TREATMENT_PREVIEW_COLUMNS}
-            localeText={viVNGridLocaleText}
-            disableRowSelectionOnClick
+          <ProductionDataGrid
+            columnSpec={HEAT_TREATMENT_PREVIEW_COLUMNS}
+            data={previewRows}
+            isProcessing={templateLoading}
+            enableDragDrop={false}
             density="compact"
-            slots={{
-              toolbar: () => (
-                <DataGridToolbarActions
-                  hasExport={false}
-                  rightActions={
-                    <>
-                      <TextField
-                        type="date"
-                        size="small"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        inputProps={{ max: today }}
-                        sx={{
-                          width: 160,
-                          "& .MuiInputBase-root": { height: 38, borderRadius: "8px", fontSize: 14 }
-                        }}
-                      />
-                      <StandardButton
-                        primary={true}
-                        icon={generating ? <CircularProgress size={16} color="inherit" /> : <DescriptionIcon />}
-                        label={generating ? "Đang tạo..." : "Tạo Excel"}
-                        disabled={!template || generating}
-                        onClick={handleGenerate}
-                      />
-                      <StandardButton
-                        primary={false}
-                        icon={<PrintIcon />}
-                        label="In"
-                        disabled={!lastResult || generating}
-                        onClick={() => handlePrint(lastResult?.filePath)}
-                      />
-                      <StandardButton
-                        primary={false}
-                        icon={<FolderOpenIcon />}
-                        label="Mở thư mục"
-                        disabled={!lastResult || generating}
-                        onClick={() => handleOpenFolder(lastResult?.folderPath)}
-                      />
-                      <StandardButton
-                        primary={false}
-                        icon={<RefreshIcon />}
-                        label="Làm mới"
-                        onClick={loadTemplate}
-                      />
-                    </>
-                  }
-                />
-              )
-            }}
-            initialState={{ pagination: { paginationModel: { pageSize: 50 } } }}
             pageSizeOptions={[25, 50, 100]}
-            sx={{
-              border: "none",
-              width: "100%",
-              minWidth: 0,
-              color: "#0F172A",
-              "& .MuiDataGrid-columnHeaders": {
-                bgcolor: "#F8FAFC",
-                color: "#64748B",
-                fontWeight: 600,
-                fontSize: 13,
-                borderBottom: "1px solid #E2E8F0",
-                borderTop: "1px solid #E2E8F0",
-              },
-              "& .MuiDataGrid-columnHeaderTitle": { fontWeight: 600 },
-              "& .MuiDataGrid-cell": { borderColor: "#E2E8F0", fontSize: 13 },
-              "& .MuiDataGrid-cell:focus-within": { outline: "none" },
-              "& .MuiDataGrid-row:hover": { bgcolor: "#F8FAFC" },
-              "& .MuiDataGrid-footerContainer": {
-                borderTop: "1px solid #E2E8F0",
-                minHeight: "48px",
-              },
-              "& .MuiTablePagination-root": {
-                padding: "4px 12px",
-              },
-              "& .MuiTablePagination-toolbar": {
-                minHeight: "40px",
-                padding: 0,
-              },
-            }}
+            renderToolbar={heatTreatmentToolbar}
           />
         </Card>
       </Box>
 
-      {/* ── Snackbar ── */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4500}

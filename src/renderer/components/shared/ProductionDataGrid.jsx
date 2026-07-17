@@ -6,25 +6,46 @@ import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Cancel";
 
 import DataGridToolbarActions, { StandardButton } from "./DataGridToolbarActions";
+import ProductionGridFooter from "./ProductionGridFooter";
 import { useDragDropImport } from "../../hooks/useDragDropImport";
+import { viVNGridLocaleText } from "../../constants/dataGridLocale";
 
-const viVNGridLocaleText = {
-  toolbarColumns: "Cột",
-  toolbarFilters: "Bộ lọc",
-  toolbarDensity: "Mật độ",
-  toolbarExport: "Xuất file",
-  noRowsLabel: "Không có dữ liệu",
-  MuiTablePagination: {
-    labelRowsPerPage: "Số dòng mỗi trang:",
-    labelDisplayedRows: ({ from, to, count }) =>
-      `${from}–${to} trong ${count !== -1 ? count : `nhiều hơn ${to}`}`,
+const productionDataGridSx = {
+  border: "none",
+  width: "100%",
+  minWidth: 0,
+  color: "#0F172A",
+  "& .MuiDataGrid-columnHeaders": {
+    bgcolor: "#F8FAFC",
+    color: "#64748B",
+    fontWeight: 600,
+    fontSize: 13,
+    borderBottom: "1px solid #E2E8F0",
+    borderTop: "1px solid #E2E8F0",
+  },
+  "& .MuiDataGrid-columnHeaderTitle": { fontWeight: 600 },
+  "& .MuiDataGrid-cell": { borderColor: "#E2E8F0" },
+  "& .MuiDataGrid-row:hover": { bgcolor: "#F8FAFC" },
+  "& .MuiDataGrid-footerContainer": {
+    minHeight: "auto",
+    flexDirection: "column",
+    alignItems: "stretch",
+    p: 0,
+    borderTop: "1px solid #E2E8F0",
+  },
+  "& .MuiTablePagination-root": {
+    padding: "4px 12px",
+  },
+  "& .MuiTablePagination-toolbar": {
+    minHeight: "40px",
+    padding: 0,
   },
 };
 
 function ProductionDataGrid({
   columnSpec,
   data,
-  isPreview,
+  isPreview = false,
   previewMeta,
   onImport,
   onRefresh,
@@ -32,15 +53,19 @@ function ProductionDataGrid({
   onCancelPreview,
   onFileDrop,
   onInvalidFile,
-  isProcessing,
+  isProcessing = false,
+  renderToolbar,
+  enableDragDrop = true,
+  density,
+  pageSizeOptions = [10, 20, 50, 100],
 }) {
   const { isDragging, dragProps } = useDragDropImport({
     onDropFile: onFileDrop,
-    onInvalidFile: onInvalidFile,
+    onInvalidFile,
     acceptedExtensions: [".xls", ".xlsx"],
   });
 
-  const toolbar = () => {
+  const defaultToolbar = () => {
     if (isPreview) {
       return (
         <DataGridToolbarActions
@@ -49,18 +74,8 @@ function ProductionDataGrid({
             <>
               <Chip label={`Ngày: ${previewMeta?.reportDate || ""}`} sx={{ height: 32, borderRadius: "8px" }} />
               <Chip label={`${data.length} dòng`} sx={{ height: 32, borderRadius: "8px" }} />
-              <StandardButton
-                primary={true}
-                icon={<SaveIcon />}
-                label="Lưu dữ liệu"
-                onClick={onSave}
-              />
-              <StandardButton
-                primary={false}
-                icon={<CancelIcon />}
-                label="Hủy"
-                onClick={onCancelPreview}
-              />
+              <StandardButton primary icon={<SaveIcon />} label="Lưu dữ liệu" onClick={onSave} />
+              <StandardButton primary={false} icon={<CancelIcon />} label="Hủy" onClick={onCancelPreview} />
             </>
           }
         />
@@ -73,7 +88,7 @@ function ProductionDataGrid({
         rightActions={
           <>
             <StandardButton
-              primary={true}
+              primary
               icon={<UploadFileRoundedIcon />}
               label="Import Excel"
               onClick={onImport}
@@ -90,9 +105,11 @@ function ProductionDataGrid({
     );
   };
 
+  const toolbar = renderToolbar ?? defaultToolbar;
+
   return (
     <Box
-      {...dragProps}
+      {...(enableDragDrop ? dragProps : {})}
       sx={{
         height: "100%",
         width: "100%",
@@ -109,39 +126,13 @@ function ProductionDataGrid({
         columns={columnSpec}
         disableRowSelectionOnClick
         loading={isProcessing}
-        slots={{ toolbar }}
+        density={density}
+        slots={{ toolbar, footer: ProductionGridFooter }}
         initialState={{ pagination: { paginationModel: { pageSize: 50 } } }}
-        pageSizeOptions={[10, 20, 50, 100]}
-        sx={{
-          border: "none",
-          width: "100%",
-          minWidth: 0,
-          color: "#0F172A",
-          "& .MuiDataGrid-columnHeaders": {
-            bgcolor: "#F8FAFC",
-            color: "#64748B",
-            fontWeight: 600,
-            fontSize: 13,
-            borderBottom: "1px solid #E2E8F0",
-            borderTop: "1px solid #E2E8F0", // Add top border so it's framed under the toolbar
-          },
-          "& .MuiDataGrid-columnHeaderTitle": { fontWeight: 600 },
-          "& .MuiDataGrid-cell": { borderColor: "#E2E8F0" },
-          "& .MuiDataGrid-row:hover": { bgcolor: "#F8FAFC" },
-          "& .MuiDataGrid-footerContainer": {
-            borderTop: "1px solid #E2E8F0",
-            minHeight: "48px",
-          },
-          "& .MuiTablePagination-root": {
-            padding: "4px 12px",
-          },
-          "& .MuiTablePagination-toolbar": {
-            minHeight: "40px",
-            padding: 0,
-          },
-        }}
+        pageSizeOptions={pageSizeOptions}
+        sx={productionDataGridSx}
       />
-      {isDragging && (
+      {enableDragDrop && isDragging && (
         <Box
           sx={{
             position: "absolute",
