@@ -55,6 +55,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     minimize: () => ipcRenderer.invoke("window:minimize"),
     maximizeToggle: () => ipcRenderer.invoke("window:maximize-toggle"),
     close: () => ipcRenderer.invoke("window:close"),
+    setLoginMode: () => ipcRenderer.invoke("window:setLoginMode"),
+    setApplicationMode: () => ipcRenderer.invoke("window:setApplicationMode"),
   },
 });
 

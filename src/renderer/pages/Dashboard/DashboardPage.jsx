@@ -3,6 +3,8 @@ import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import { useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
 import KpiCard from "../../components/dashboard/KpiCard";
 import BarChartPanel from "../../components/dashboard/BarChartPanel";
 import DonutChartPanel from "../../components/dashboard/DonutChartPanel";
@@ -92,6 +94,12 @@ const recentFiles = [
 ];
 
 function DashboardPage() {
+  const { onDashboardReady } = useOutletContext() ?? {};
+
+  useEffect(() => {
+    onDashboardReady?.();
+  }, [onDashboardReady]);
+
   return (
     <>
       <div className={styles.dashboardGrid}>

@@ -2,6 +2,7 @@ const path = require("path");
 const { app, BrowserWindow, Menu } = require("electron");
 const { registerIpcHandlers } = require("./ipc");
 const { initializeDatabase } = require("./sqlite/init");
+const { applyLoginMode, LOGIN_MODE } = require("./windowModes");
 const logger = require("./logger");
 
 // ── isDev ─────────────────────────────────────────────────────────────────────
@@ -23,12 +24,14 @@ function resolveIconPath() {
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 900,
-    minWidth: 1200,
-    minHeight: 780,
+    width: LOGIN_MODE.width,
+    height: LOGIN_MODE.height,
+    minWidth: LOGIN_MODE.minWidth,
+    minHeight: LOGIN_MODE.minHeight,
     backgroundColor: "#f5f7fb",
     frame: true,
+    resizable: false,
+    maximizable: false,
     icon: resolveIconPath(),
     webPreferences: {
       preload: path.join(__dirname, "..", "preload", "preload.js"),
@@ -38,10 +41,13 @@ function createWindow() {
     },
   });
 
-  // F11 → toggle maximize / restore
+  applyLoginMode(mainWindow);
+
+  // F11 → toggle maximize / restore (only when maximizable)
   mainWindow.webContents.on("before-input-event", (event, input) => {
     if (input.type === "keyDown" && input.key === "F11") {
       event.preventDefault();
+      if (!mainWindow.isMaximizable()) return;
       if (mainWindow.isMaximized()) {
         mainWindow.unmaximize();
       } else {

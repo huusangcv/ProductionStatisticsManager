@@ -1,4 +1,5 @@
-const { ipcMain, BrowserWindow, dialog, shell } = require("electron");
+const { app, ipcMain, BrowserWindow, dialog, shell } = require("electron");
+const { applyLoginMode, applyApplicationMode } = require("./windowModes");
 const XLSX = require("xlsx");
 const path = require("path");
 const fs   = require("fs");
@@ -330,7 +331,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle("window:maximize-toggle", (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
-    if (!win) return { ok: false };
+    if (!win || !win.isMaximizable()) return { ok: false };
     win.isMaximized() ? win.unmaximize() : win.maximize();
     return { ok: true, maximized: win.isMaximized() };
   });
@@ -338,6 +339,16 @@ function registerIpcHandlers() {
   ipcMain.handle("window:close", (event) => {
     BrowserWindow.fromWebContents(event.sender)?.close();
     return { ok: true };
+  });
+
+  ipcMain.handle("window:setLoginMode", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    return applyLoginMode(win);
+  });
+
+  ipcMain.handle("window:setApplicationMode", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    return applyApplicationMode(win);
   });
 
   // ── Template handlers ─────────────────────────────────────────────────────

@@ -31,8 +31,9 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setIsAuthenticated(false);
+    await window.electronAPI?.window?.setLoginMode?.();
   };
 
   return (
