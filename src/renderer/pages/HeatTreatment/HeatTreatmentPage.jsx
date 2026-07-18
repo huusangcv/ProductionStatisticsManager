@@ -14,8 +14,11 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 
 import ExportDialogs from "./components/ExportDialogs";
 import ProductionDataGrid from "../../components/shared/ProductionDataGrid";
-import DataGridToolbarActions, { StandardButton } from "../../components/shared/DataGridToolbarActions";
+import DataGridToolbarActions, {
+  StandardButton,
+} from "../../components/shared/DataGridToolbarActions";
 import { HEAT_TREATMENT_PREVIEW_COLUMNS } from "../../../constants/heatTreatmentColumns";
+import { usePrinters } from "../../hooks/usePrinters";
 
 export default function HeatTreatmentPage() {
   const today = new Date().toISOString().slice(0, 10);
@@ -28,7 +31,13 @@ export default function HeatTreatmentPage() {
   const [generateStepText, setGenerateStepText] = useState("");
   const [lastResult, setLastResult] = useState(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const { printExcel, printing } = usePrinters();
 
   const showSnackbar = (message, severity = "success") =>
     setSnackbar({ open: true, message, severity });
@@ -52,9 +61,9 @@ export default function HeatTreatmentPage() {
   const loadGrindingData = useCallback(async (date) => {
     if (!date) return;
     try {
-      const [y, m, d] = date.split("-");
-      const reportDate = `${d}/${m}/${y}`;
-      const rows = await window.electronAPI.heatTreatment.getGrindingByDate(reportDate);
+      // Send YYYY-MM-DD directly now!
+      const rows =
+        await window.electronAPI.heatTreatment.getGrindingByDate(date);
 
       const mapped = (rows || []).map((row, idx) => ({
         id: idx,
@@ -96,8 +105,8 @@ export default function HeatTreatmentPage() {
     setLastResult(null);
     setGenerateStepText("Đang đọc dữ liệu...");
 
-    const [y, m, d] = selectedDate.split("-");
-    const reportDate = `${d}/${m}/${y}`;
+    // Send YYYY-MM-DD directly now!
+    const reportDate = selectedDate;
 
     const steps = [
       { ms: 600, text: "Đang lọc XLN..." },
@@ -110,7 +119,9 @@ export default function HeatTreatmentPage() {
     );
 
     try {
-      const result = await window.electronAPI.heatTreatment.generate({ reportDate });
+      const result = await window.electronAPI.heatTreatment.generate({
+        reportDate,
+      });
       timeouts.forEach(clearTimeout);
       if (result.ok) {
         setLastResult(result);
@@ -128,9 +139,9 @@ export default function HeatTreatmentPage() {
     }
   };
 
-  const handleOpenFolder = async (folderPath) => {
-    if (!folderPath) return;
-    await window.electronAPI.heatTreatment.openFolder(folderPath);
+  const handleOpenFolder = async (filePath) => {
+    if (!filePath) return;
+    await window.electronAPI.heatTreatment.openFolder(filePath);
   };
 
   const handleOpenFile = async (filePath) => {
@@ -140,8 +151,16 @@ export default function HeatTreatmentPage() {
 
   const handlePrint = async (filePath) => {
     if (!filePath) return;
-    await window.electronAPI.heatTreatment.print(filePath);
-    showSnackbar("Đã gửi lệnh in.");
+    try {
+      const result = await printExcel(filePath);
+      if (result.ok) {
+        showSnackbar(result.message || "In thành công.");
+      } else {
+        showSnackbar(result.message, "error");
+      }
+    } catch (error) {
+      showSnackbar("Không thể in: " + error.message, "error");
+    }
   };
 
   const heatTreatmentToolbar = () => (
@@ -157,21 +176,37 @@ export default function HeatTreatmentPage() {
             inputProps={{ max: today }}
             sx={{
               width: 160,
-              "& .MuiInputBase-root": { height: 38, borderRadius: "8px", fontSize: 14 },
+              "& .MuiInputBase-root": {
+                height: 38,
+                borderRadius: "8px",
+                fontSize: 14,
+              },
             }}
           />
           <StandardButton
             primary
-            icon={generating ? <CircularProgress size={16} color="inherit" /> : <DescriptionIcon />}
+            icon={
+              generating ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : (
+                <DescriptionIcon />
+              )
+            }
             label={generating ? "Đang tạo..." : "Tạo Excel"}
             disabled={!template || generating}
             onClick={handleGenerate}
           />
           <StandardButton
             primary={false}
-            icon={<PrintIcon />}
-            label="In"
-            disabled={!lastResult || generating}
+            icon={
+              printing ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : (
+                <PrintIcon />
+              )
+            }
+            label={printing ? "Đang in..." : "In"}
+            disabled={!lastResult || generating || printing}
             onClick={() => handlePrint(lastResult?.filePath)}
           />
           <StandardButton
@@ -179,7 +214,7 @@ export default function HeatTreatmentPage() {
             icon={<FolderOpenIcon />}
             label="Mở thư mục"
             disabled={!lastResult || generating}
-            onClick={() => handleOpenFolder(lastResult?.folderPath)}
+            onClick={() => handleOpenFolder(lastResult?.filePath)}
           />
           <StandardButton
             primary={false}
@@ -193,7 +228,15 @@ export default function HeatTreatmentPage() {
   );
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, height: "100%", minHeight: 0 }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        height: "100%",
+        minHeight: 0,
+      }}
+    >
       <ExportDialogs
         generating={generating}
         generateStepText={generateStepText}
@@ -205,7 +248,9 @@ export default function HeatTreatmentPage() {
         onPrint={handlePrint}
       />
 
-      <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+      <Box
+        sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
+      >
         <Card
           sx={{
             flex: 1,

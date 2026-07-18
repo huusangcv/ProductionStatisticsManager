@@ -29,6 +29,7 @@ function ensureImportSessionsTable() {
         module_name TEXT NOT NULL,
         table_name TEXT NOT NULL,
         file_name TEXT NOT NULL,
+        report_date TEXT,
         imported_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
         total_rows INTEGER DEFAULT 0,
         imported_rows INTEGER DEFAULT 0,
@@ -39,6 +40,13 @@ function ensureImportSessionsTable() {
         note TEXT
       )
     `);
+    
+    // Add report_date column if it doesn't exist (for existing databases)
+    const tableInfo = db.prepare("PRAGMA table_info(import_sessions)").all();
+    const hasReportDate = tableInfo.some(col => col.name === "report_date");
+    if (!hasReportDate) {
+      db.prepare("ALTER TABLE import_sessions ADD COLUMN report_date TEXT").run();
+    }
   } finally {
     db.close();
   }
@@ -48,16 +56,16 @@ function ensureImportSessionsTable() {
  * Creates a new import session.
  * @returns {number} The ID of the newly created session
  */
-function createSession(moduleName, tableName, fileName, totalRows) {
+function createSession(moduleName, tableName, fileName, totalRows, reportDate) {
   const db = openDatabase();
   try {
     const sessionCode = generateSessionCode();
     const info = db
       .prepare(
-        `INSERT INTO import_sessions (session_code, module_name, table_name, file_name, total_rows, status)
-         VALUES (?, ?, ?, ?, ?, 'IMPORTING')`
+        `INSERT INTO import_sessions (session_code, module_name, table_name, file_name, report_date, total_rows, status)
+         VALUES (?, ?, ?, ?, ?, ?, 'IMPORTING')`
       )
-      .run(sessionCode, moduleName, tableName, fileName, totalRows);
+      .run(sessionCode, moduleName, tableName, fileName, reportDate, totalRows);
     return info.lastInsertRowid;
   } finally {
     db.close();

@@ -58,7 +58,9 @@ function migrateRemoveDedupConstraint(db, tableName, columnSpec) {
 
   db.exec(`DROP TABLE IF EXISTS ${tempTable}`);
   db.exec(buildCreateTableSql(tempTable, columnSpec));
-  db.exec(`INSERT INTO ${tempTable} (${columns}) SELECT ${columns} FROM ${tableName}`);
+  db.exec(
+    `INSERT INTO ${tempTable} (${columns}) SELECT ${columns} FROM ${tableName}`,
+  );
   db.exec(`DROP TABLE ${tableName}`);
   db.exec(`ALTER TABLE ${tempTable} RENAME TO ${tableName}`);
 }
@@ -87,9 +89,32 @@ function createProductionModule(tableName, columnSpec) {
 
       // Migration: Add import_session_id to existing tables
       const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
-      const hasSessionId = columns.some((col) => col.name === "import_session_id");
+      const hasSessionId = columns.some(
+        (col) => col.name === "import_session_id",
+      );
       if (!hasSessionId) {
-        db.exec(`ALTER TABLE ${tableName} ADD COLUMN import_session_id INTEGER`);
+        db.exec(
+          `ALTER TABLE ${tableName} ADD COLUMN import_session_id INTEGER`,
+        );
+      }
+
+      // Migration: Convert report_date from dd/MM/yyyy to YYYY-MM-DD if needed
+      const hasReportDate = columns.some((col) => col.name === "report_date");
+      if (hasReportDate) {
+        const rows = db
+          .prepare(
+            `SELECT id, report_date FROM ${tableName} WHERE report_date LIKE '%/%'`,
+          )
+          .all();
+        for (const row of rows) {
+          const [day, month, year] = row.report_date.split("/");
+          if (day && month && year) {
+            const newDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+            db.prepare(
+              `UPDATE ${tableName} SET report_date = ? WHERE id = ?`,
+            ).run(newDate, row.id);
+          }
+        }
       }
     } finally {
       db.close();

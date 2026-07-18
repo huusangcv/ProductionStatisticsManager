@@ -37,9 +37,34 @@ function ensureExcelTemplatesTable() {
         start_row     INTEGER NOT NULL DEFAULT 3,
         uploaded_at   TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
         updated_at    TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
-        status        TEXT    NOT NULL DEFAULT 'active'
+        status        TEXT    NOT NULL DEFAULT 'active',
+        checksum      TEXT,
+        file_size     INTEGER
       )
     `);
+
+    // Add missing columns if table already existed
+    const columns = db
+      .prepare("PRAGMA table_info(excel_templates)")
+      .all()
+      .map((col) => col.name);
+    if (!columns.includes("checksum")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN checksum TEXT");
+    }
+    if (!columns.includes("file_size")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN file_size INTEGER");
+    }
+  } finally {
+    db.close();
+  }
+}
+
+function getAllTemplates() {
+  const db = openDatabase();
+  try {
+    return db
+      .prepare("SELECT * FROM excel_templates ORDER BY module ASC")
+      .all();
   } finally {
     db.close();
   }
@@ -55,9 +80,11 @@ function ensureExcelTemplatesTable() {
 function getTemplate(module) {
   const db = openDatabase();
   try {
-    return db
-      .prepare(`SELECT * FROM excel_templates WHERE module = ?`)
-      .get(module) ?? null;
+    return (
+      db
+        .prepare(`SELECT * FROM excel_templates WHERE module = ?`)
+        .get(module) ?? null
+    );
   } finally {
     db.close();
   }
@@ -78,7 +105,14 @@ function getTemplate(module) {
  * @param {string} [data.status="active"]
  * @returns {{ ok: true }}
  */
-function upsertTemplate({ module, template_name, template_path, sheet_name = "Sheet1", start_row = 3, status = "active" }) {
+function upsertTemplate({
+  module,
+  template_name,
+  template_path,
+  sheet_name = "Sheet1",
+  start_row = 3,
+  status = "active",
+}) {
   const db = openDatabase();
   try {
     const now = new Date().toISOString().replace("T", " ").slice(0, 19);
@@ -88,7 +122,8 @@ function upsertTemplate({ module, template_name, template_path, sheet_name = "Sh
 
     const uploaded_at = existing ? existing.uploaded_at : now;
 
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO excel_templates (module, template_name, template_path, sheet_name, start_row, uploaded_at, updated_at, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(module) DO UPDATE SET
@@ -98,7 +133,17 @@ function upsertTemplate({ module, template_name, template_path, sheet_name = "Sh
         start_row     = excluded.start_row,
         updated_at    = excluded.updated_at,
         status        = excluded.status
-    `).run(module, template_name, template_path, sheet_name, start_row, uploaded_at, now, status);
+    `,
+    ).run(
+      module,
+      template_name,
+      template_path,
+      sheet_name,
+      start_row,
+      uploaded_at,
+      now,
+      status,
+    );
 
     return { ok: true };
   } catch (error) {
@@ -135,7 +180,10 @@ function deleteTemplate(module) {
 function updateTemplateStatus(module, status) {
   const db = openDatabase();
   try {
-    db.prepare(`UPDATE excel_templates SET status = ? WHERE module = ?`).run(status, module);
+    db.prepare(`UPDATE excel_templates SET status = ? WHERE module = ?`).run(
+      status,
+      module,
+    );
     return { ok: true };
   } catch (error) {
     return { ok: false, message: error.message };
@@ -146,6 +194,7 @@ function updateTemplateStatus(module, status) {
 
 module.exports = {
   ensureExcelTemplatesTable,
+  getAllTemplates,
   getTemplate,
   upsertTemplate,
   deleteTemplate,

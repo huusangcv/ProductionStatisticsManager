@@ -4,7 +4,16 @@ const { ensureGrindingTable } = require("./grinding");
 const { ensureCuttingTable } = require("./cutting");
 const { ensureImportSessionsTable } = require("./importSessions");
 const { ensureExcelTemplatesTable } = require("./excelTemplates");
-const { getDatabasePath, ensureDirectories, writeAppConfig } = require("./paths");
+const {
+  ensurePrintersTable,
+  ensureSettingsTable,
+  ensurePrintLogsTable,
+} = require("./printers");
+const {
+  getDatabasePath,
+  ensureDirectories,
+  writeAppConfig,
+} = require("./paths");
 const Database = require("better-sqlite3");
 
 // Read version from package.json at startup (safe — sync, small file)
@@ -40,6 +49,9 @@ function initializeDatabase() {
   ensureCuttingTable();
   ensureImportSessionsTable();
   ensureExcelTemplatesTable();
+  ensurePrintersTable();
+  ensureSettingsTable();
+  ensurePrintLogsTable();
 
   return databasePath;
 }

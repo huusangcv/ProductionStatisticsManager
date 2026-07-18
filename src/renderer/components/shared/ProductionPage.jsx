@@ -22,6 +22,7 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
   const loadData = async () => {
     try {
       const records = await window.electronAPI[ipcKey].getAll();
+      console.log("loadData got records:", records); // Debug log
       setSavedData(records);
     } catch (error) {
       showSnackbar(`Lỗi khi tải dữ liệu ${moduleName}: ` + error.message, "error");

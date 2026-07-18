@@ -37,14 +37,26 @@ function resolveExportPath(dateStr) {
     throw new Error(`Ngày không hợp lệ: ${dateStr}`);
   }
 
-  const parts = dateStr.split("/");
-  if (parts.length !== 3) {
-    throw new Error(`Định dạng ngày không hợp lệ (yêu cầu DD/MM/YYYY): ${dateStr}`);
+  let dd, mm, yyyy;
+  if (dateStr.includes("/")) {
+    const parts = dateStr.split("/");
+    if (parts.length !== 3) {
+      throw new Error(`Định dạng ngày không hợp lệ (yêu cầu DD/MM/YYYY hoặc YYYY-MM-DD): ${dateStr}`);
+    }
+    dd = parts[0];
+    mm = parts[1];
+    yyyy = parts[2];
+  } else if (dateStr.includes("-")) {
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) {
+      throw new Error(`Định dạng ngày không hợp lệ (yêu cầu DD/MM/YYYY hoặc YYYY-MM-DD): ${dateStr}`);
+    }
+    yyyy = parts[0];
+    mm = parts[1];
+    dd = parts[2];
+  } else {
+    throw new Error(`Định dạng ngày không hợp lệ (yêu cầu DD/MM/YYYY hoặc YYYY-MM-DD): ${dateStr}`);
   }
-
-  const dd = parts[0];
-  const mm = parts[1];
-  const yyyy = parts[2];
 
   if (isNaN(dd) || isNaN(mm) || isNaN(yyyy)) {
     throw new Error(`Ngày chứa giá trị không hợp lệ: ${dateStr}`);
@@ -61,27 +73,11 @@ function resolveExportPath(dateStr) {
   ensureExportFolder(folderPath);
 
   const baseName = `HangXuLyNhiet_${yyyy}${mm}${dd}`;
+  const fileName = `${baseName}.xlsx`;
+  const filePath = path.join(folderPath, fileName);
 
-  // Try the base name first
-  const primary = path.join(folderPath, `${baseName}.xlsx`);
-  if (!fs.existsSync(primary)) {
-    return { filePath: primary, folderPath, fileName: `${baseName}.xlsx` };
-  }
-
-  // Increment suffix until a free name is found
-  for (let i = 1; i <= 99; i++) {
-    const suffix   = String(i).padStart(2, "0");
-    const fileName = `${baseName}_${suffix}.xlsx`;
-    const filePath = path.join(folderPath, fileName);
-    if (!fs.existsSync(filePath)) {
-      return { filePath, folderPath, fileName };
-    }
-  }
-
-  // Fallback: timestamp suffix (should never happen in practice)
-  const ts       = Date.now();
-  const fileName = `${baseName}_${ts}.xlsx`;
-  return { filePath: path.join(folderPath, fileName), folderPath, fileName };
+  // Always use the base name, overwrite existing file
+  return { filePath, folderPath, fileName };
 }
 
 module.exports = { resolveExportPath, ensureExportFolder };
