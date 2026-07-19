@@ -3,6 +3,7 @@ import AppLayout from "../layout/AppLayout";
 import LoginPage from "../pages/Login/LoginPage";
 import DashboardPage from "../pages/Dashboard/DashboardPage";
 import EmployeesPage from "../pages/Employees/EmployeesPage";
+import DetailJointPage from "../pages/DetailJoint/DetailJointPage";
 import GrindingPage from "../pages/Grinding/GrindingPage";
 import CuttingPage from "../pages/Cutting/CuttingPage";
 import ImportHistoryPage from "../pages/ImportHistory/ImportHistoryPage";
@@ -24,7 +25,7 @@ function PrivateRoute({ children }) {
 
 function PublicRoute({ children }) {
   const { isAuthenticated } = useAuth();
-  
+
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -35,16 +36,16 @@ function PublicRoute({ children }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route 
-        path="/login" 
+      <Route
+        path="/login"
         element={
           <PublicRoute>
             <LoginPage />
           </PublicRoute>
-        } 
+        }
       />
-      <Route 
-        path="/" 
+      <Route
+        path="/"
         element={
           <PrivateRoute>
             <AppLayout />
@@ -57,6 +58,7 @@ function AppRoutes() {
         <Route path="cutting" element={<CuttingPage />} />
         <Route path="import-history" element={<ImportHistoryPage />} />
         <Route path="employees" element={<EmployeesPage />} />
+        <Route path="detail-joint" element={<DetailJointPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="heat-treatment" element={<HeatTreatmentPage />} />

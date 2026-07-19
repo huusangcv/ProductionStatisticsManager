@@ -9,7 +9,14 @@ export const navigationItems = [
       { label: "Xử lý nhiệt", path: "/heat-treatment", icon: "HeatTreatment" },
     ],
   },
-  { label: "Quản lý nhân viên", path: "/employees", icon: "Employees" },
+  {
+    label: "Danh mục",
+    icon: "Employees",
+    children: [
+      { label: "Nhân viên", path: "/employees" },
+      { label: "Chi tiết kết xâu", path: "/detail-joint" },
+    ],
+  },
   { label: "Lịch sử Import", path: "/import-history", icon: "History" },
   { label: "Báo cáo", path: "/reports", icon: "Reports" },
   { label: "Cài đặt", path: "/settings", icon: "Settings" },

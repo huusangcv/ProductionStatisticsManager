@@ -1,6 +1,7 @@
 const { app, ipcMain, BrowserWindow, dialog, shell } = require("electron");
 const { applyLoginMode, applyApplicationMode } = require("./windowModes");
 const XLSX = require("xlsx");
+const ExcelJS = require("exceljs");
 const path = require("path");
 const fs = require("fs");
 const Database = require("better-sqlite3");
@@ -55,6 +56,15 @@ const {
   addPrintLog,
   getPrintLogs,
 } = require("./sqlite/printers");
+const {
+  getAllDetailJoints,
+  getDetailJointById,
+  createDetailJoint,
+  updateDetailJoint,
+  deleteDetailJoint,
+  deleteAllDetailJoints,
+  bulkInsertDetailJoints,
+} = require("./sqlite/detail_joint");
 const {
   getAllTemplates,
   getTemplate,
@@ -774,6 +784,127 @@ function registerIpcHandlers() {
       return await printerService.printExcel(filePath, printerName);
     },
   );
+
+  // ── DetailJoint IPC handlers ────────────────────────────────────────────────────
+
+  ipcMain.handle("detailJoint:getAll", async () => {
+    return getAllDetailJoints();
+  });
+
+  ipcMain.handle("detailJoint:getById", async (_event, id) => {
+    return getDetailJointById(id);
+  });
+
+  ipcMain.handle("detailJoint:create", async (_event, data) => {
+    return createDetailJoint(data);
+  });
+
+  ipcMain.handle("detailJoint:update", async (_event, { id, data }) => {
+    return updateDetailJoint(id, data);
+  });
+
+  ipcMain.handle("detailJoint:delete", async (_event, id) => {
+    return deleteDetailJoint(id);
+  });
+
+  ipcMain.handle("detailJoint:importExcel", async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      title: "Chọn file Excel nhập dữ liệu",
+      filters: [{ name: "Excel Files", extensions: ["xlsx", "xls"] }],
+      properties: ["openFile"],
+    });
+
+    if (canceled || filePaths.length === 0) {
+      return { ok: false, canceled: true };
+    }
+
+    const filePath = filePaths[0];
+    try {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(filePath);
+      const sheet = workbook.getWorksheet("QUY UOC MOI");
+
+      if (!sheet) {
+        return {
+          ok: false,
+          message: "Không tìm thấy sheet 'QUY UOC MOI' trong file Excel.",
+        };
+      }
+
+      const items = [];
+      let rowCount = 0;
+
+      sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+        if (rowNumber === 1) return; // Skip header row
+        const materialCode = String(row.getCell(1).value || "").trim();
+        const productName = String(row.getCell(2).value || "").trim();
+        const specification = String(row.getCell(3).value || "").trim();
+        const detail = String(row.getCell(4).value || "").trim();
+
+        if (materialCode && productName) {
+          items.push({
+            material_code: materialCode,
+            product_name: productName,
+            specification: specification,
+            detail: detail,
+          });
+          rowCount++;
+        }
+      });
+
+      // Delete all existing data, then bulk insert new data
+      deleteAllDetailJoints();
+      const result = bulkInsertDetailJoints(items);
+
+      if (result.ok) {
+        return { ok: true, count: result.count };
+      } else {
+        return result;
+      }
+    } catch (error) {
+      console.error("Error importing detail joint Excel:", error);
+      return { ok: false, message: "Lỗi nhập file Excel: " + error.message };
+    }
+  });
+
+  ipcMain.handle("detailJoint:exportExcel", async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: "Lưu file Excel",
+      defaultPath: "ChiTietKetXau.xlsx",
+      filters: [{ name: "Excel Files", extensions: ["xlsx"] }],
+    });
+
+    if (canceled || !filePath) {
+      return { ok: false, canceled: true };
+    }
+
+    try {
+      const data = getAllDetailJoints();
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("QUY UOC MOI");
+
+      // Add header row
+      sheet.addRow(["Mã liệu料号", "Tên hàng品名", "Quy cách规格", "Chi tiết"]);
+
+      // Add data rows
+      data.forEach((item) => {
+        sheet.addRow([
+          item.material_code,
+          item.product_name,
+          item.specification,
+          item.detail,
+        ]);
+      });
+
+      await workbook.xlsx.writeFile(filePath);
+      return { ok: true, filePath };
+    } catch (error) {
+      console.error("Error exporting detail joint Excel:", error);
+      return { ok: false, message: "Lỗi xuất file Excel: " + error.message };
+    }
+  });
 
   // ── Backup/Restore IPC handlers ───────────────────────────────────────────────────
 

@@ -86,6 +86,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
     export: (exportPath) => ipcRenderer.invoke("backup:export", exportPath),
     import: (importPath) => ipcRenderer.invoke("backup:import", importPath),
   },
+  detailJoint: {
+    getAll: () => ipcRenderer.invoke("detailJoint:getAll"),
+    getById: (id) => ipcRenderer.invoke("detailJoint:getById", id),
+    create: (data) => ipcRenderer.invoke("detailJoint:create", data),
+    update: (id, data) => ipcRenderer.invoke("detailJoint:update", { id, data }),
+    delete: (id) => ipcRenderer.invoke("detailJoint:delete", id),
+    importExcel: () => ipcRenderer.invoke("detailJoint:importExcel"),
+    exportExcel: () => ipcRenderer.invoke("detailJoint:exportExcel"),
+  },
   db: {
     initialize: () => ipcRenderer.invoke("db:initialize"),
   },

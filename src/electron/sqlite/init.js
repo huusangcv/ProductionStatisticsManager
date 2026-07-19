@@ -4,6 +4,7 @@ const { ensureGrindingTable } = require("./grinding");
 const { ensureCuttingTable } = require("./cutting");
 const { ensureImportSessionsTable } = require("./importSessions");
 const { ensureExcelTemplatesTable } = require("./excelTemplates");
+const { ensureDetailJointTable } = require("./detail_joint");
 const {
   ensurePrintersTable,
   ensureSettingsTable,
@@ -49,6 +50,7 @@ function initializeDatabase() {
   ensureCuttingTable();
   ensureImportSessionsTable();
   ensureExcelTemplatesTable();
+  ensureDetailJointTable();
   ensurePrintersTable();
   ensureSettingsTable();
   ensurePrintLogsTable();
