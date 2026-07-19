@@ -30,6 +30,19 @@ export const CUTTING_COLUMNS = [
     width: 180,
   },
   {
+    excelHeader: "Chi tiết kết xâu",
+    databaseField: "joint_detail",
+    headerName: "Chi tiết kết xâu",
+    width: 180,
+  },
+  {
+    excelHeader: "Số xâu",
+    databaseField: "joint_count",
+    headerName: "Số xâu",
+    width: 150,
+    type: "number",
+  },
+  {
     excelHeader: "Tên hàng品名",
     databaseField: "item_name",
     headerName: "Tên hàng",

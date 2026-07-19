@@ -14,18 +14,42 @@ const {
 const {
   getAllEmployees,
   getEmployeeByCode,
+  getEmployeeByRepresentativeCode,
+  getEmployeeById,
   createEmployee,
   updateEmployee,
   deleteEmployee,
 } = require("./sqlite/employees");
 const {
+  getAllRoles,
+  getRoleById,
+  getRoleByCode,
+  createRole,
+  updateRole,
+  deleteRole,
+} = require("./sqlite/roles");
+const {
+  getAllPositions,
+  getPositionById,
+  getPositionByCode,
+  createPosition,
+  updatePosition,
+  deletePosition,
+} = require("./sqlite/positions");
+const {
   getAllGrindingData,
+  getGrindingDataById,
+  updateGrindingData,
+  deleteGrindingDataById,
   importGrindingData,
   checkGrindingDataExistsByDate,
   deleteGrindingDataByDate,
 } = require("./sqlite/grinding");
 const {
   getAllCuttingData,
+  getCuttingDataById,
+  updateCuttingData,
+  deleteCuttingDataById,
   importCuttingData,
   checkCuttingDataExistsByDate,
   deleteCuttingDataByDate,
@@ -470,20 +494,46 @@ function registerIpcHandlers() {
   });
 
   // --- Employee handlers ---
+  // ── Employee IPC handlers ──────────────────────────────────────────────────────────
   ipcMain.handle("employee:getAll", () => getAllEmployees());
   ipcMain.handle("employee:getByCode", (_event, employeeCode) =>
     getEmployeeByCode(employeeCode),
   );
+  ipcMain.handle("employee:getByRepresentativeCode", (_event, repCode) =>
+    getEmployeeByRepresentativeCode(repCode),
+  );
+  ipcMain.handle("employee:getById", (_event, id) => getEmployeeById(id));
   ipcMain.handle("employee:create", (_event, data) => createEmployee(data));
-  ipcMain.handle("employee:update", (_event, { employeeCode, data }) =>
-    updateEmployee(employeeCode, data),
+  ipcMain.handle("employee:update", (_event, { id, data }) =>
+    updateEmployee(id, data),
   );
-  ipcMain.handle("employee:delete", (_event, employeeCode) =>
-    deleteEmployee(employeeCode),
+  ipcMain.handle("employee:delete", (_event, id) => deleteEmployee(id));
+
+  // ── Role IPC handlers ─────────────────────────────────────────────────────────────
+  ipcMain.handle("role:getAll", () => getAllRoles());
+  ipcMain.handle("role:getById", (_event, id) => getRoleById(id));
+  ipcMain.handle("role:getByCode", (_event, code) => getRoleByCode(code));
+  ipcMain.handle("role:create", (_event, data) => createRole(data));
+  ipcMain.handle("role:update", (_event, { id, data }) => updateRole(id, data));
+  ipcMain.handle("role:delete", (_event, id) => deleteRole(id));
+
+  // ── Position IPC handlers ─────────────────────────────────────────────────────────
+  ipcMain.handle("position:getAll", () => getAllPositions());
+  ipcMain.handle("position:getById", (_event, id) => getPositionById(id));
+  ipcMain.handle("position:getByCode", (_event, code) => getPositionByCode(code));
+  ipcMain.handle("position:create", (_event, data) => createPosition(data));
+  ipcMain.handle("position:update", (_event, { id, data }) =>
+    updatePosition(id, data),
   );
+  ipcMain.handle("position:delete", (_event, id) => deletePosition(id));
 
   // --- Grinding handlers ---
   ipcMain.handle("grinding:getAll", () => getAllGrindingData());
+  ipcMain.handle("grinding:getById", (_event, id) => getGrindingDataById(id));
+  ipcMain.handle("grinding:update", (_event, id, data) =>
+    updateGrindingData(id, data),
+  );
+  ipcMain.handle("grinding:delete", (_event, id) => deleteGrindingDataById(id));
 
   ipcMain.handle("grinding:selectFile", (event) =>
     selectProductionFile(event, "Chọn file Excel sản lượng Mài"),
@@ -506,6 +556,11 @@ function registerIpcHandlers() {
 
   // --- Cutting handlers ---
   ipcMain.handle("cutting:getAll", () => getAllCuttingData());
+  ipcMain.handle("cutting:getById", (_event, id) => getCuttingDataById(id));
+  ipcMain.handle("cutting:update", (_event, id, data) =>
+    updateCuttingData(id, data),
+  );
+  ipcMain.handle("cutting:delete", (_event, id) => deleteCuttingDataById(id));
 
   ipcMain.handle("cutting:selectFile", (event) =>
     selectProductionFile(event, "Chọn file Excel sản lượng Cắt"),

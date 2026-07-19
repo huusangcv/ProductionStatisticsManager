@@ -20,6 +20,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   grinding: {
     getAll: () => ipcRenderer.invoke("grinding:getAll"),
+    getById: (id) => ipcRenderer.invoke("grinding:getById", id),
+    update: (id, data) => ipcRenderer.invoke("grinding:update", id, data),
+    delete: (id) => ipcRenderer.invoke("grinding:delete", id),
     selectFile: () => ipcRenderer.invoke("grinding:selectFile"),
     parseExcel: (filePath) =>
       ipcRenderer.invoke("grinding:parseExcel", filePath),
@@ -27,6 +30,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   cutting: {
     getAll: () => ipcRenderer.invoke("cutting:getAll"),
+    getById: (id) => ipcRenderer.invoke("cutting:getById", id),
+    update: (id, data) => ipcRenderer.invoke("cutting:update", id, data),
+    delete: (id) => ipcRenderer.invoke("cutting:delete", id),
     selectFile: () => ipcRenderer.invoke("cutting:selectFile"),
     parseExcel: (filePath) =>
       ipcRenderer.invoke("cutting:parseExcel", filePath),
@@ -41,7 +47,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   template: {
     get: (module) => ipcRenderer.invoke("template:get", module),
     getAll: () => ipcRenderer.invoke("template:getAll"),
-    selectFile: (defaultPath) => ipcRenderer.invoke("template:selectFile", defaultPath),
+    selectFile: (defaultPath) =>
+      ipcRenderer.invoke("template:selectFile", defaultPath),
     upload: (params) => ipcRenderer.invoke("template:upload", params),
     replace: (params) => ipcRenderer.invoke("template:replace", params),
     preview: (filePath) => ipcRenderer.invoke("template:preview", filePath),
@@ -90,7 +97,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getAll: () => ipcRenderer.invoke("detailJoint:getAll"),
     getById: (id) => ipcRenderer.invoke("detailJoint:getById", id),
     create: (data) => ipcRenderer.invoke("detailJoint:create", data),
-    update: (id, data) => ipcRenderer.invoke("detailJoint:update", { id, data }),
+    update: (id, data) =>
+      ipcRenderer.invoke("detailJoint:update", { id, data }),
     delete: (id) => ipcRenderer.invoke("detailJoint:delete", id),
     importExcel: () => ipcRenderer.invoke("detailJoint:importExcel"),
     exportExcel: () => ipcRenderer.invoke("detailJoint:exportExcel"),

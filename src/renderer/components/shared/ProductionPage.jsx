@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Box, Snackbar, Alert, Card } from "@mui/material";
 import ProductionDataGrid from "./ProductionDataGrid";
+import ProductionDetailDrawer from "./production/ProductionDetailDrawer";
 
 /**
  * Shared production page for Grinding and Cutting modules.
@@ -12,8 +13,17 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
   const [savedData, setSavedData] = useState([]);
   const [previewData, setPreviewData] = useState(null); // null = not in preview
   const [previewMeta, setPreviewMeta] = useState(null); // { fileName, reportDate }
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const isGrinding = ipcKey === "grinding";
 
   const showSnackbar = (message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
@@ -25,7 +35,50 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
       console.log("loadData got records:", records); // Debug log
       setSavedData(records);
     } catch (error) {
-      showSnackbar(`Lỗi khi tải dữ liệu ${moduleName}: ` + error.message, "error");
+      showSnackbar(
+        `Lỗi khi tải dữ liệu ${moduleName}: ` + error.message,
+        "error",
+      );
+    }
+  };
+
+  const handleRowDoubleClick = (params) => {
+    setSelectedRecord(params.row);
+    setDrawerOpen(true);
+  };
+
+  const handleSaveRecord = async (id, data) => {
+    setIsSaving(true);
+    try {
+      const result = await window.electronAPI[ipcKey].update(id, data);
+      if (!result.ok) {
+        showSnackbar(result.message || "Lỗi khi cập nhật", "error");
+        return;
+      }
+      showSnackbar("Cập nhật thành công");
+      await loadData();
+      setDrawerOpen(false);
+      setSelectedRecord(null);
+    } catch (error) {
+      showSnackbar(`Lỗi khi cập nhật: ${error.message}`, "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteRecord = async (id) => {
+    try {
+      const result = await window.electronAPI[ipcKey].delete(id);
+      if (!result.ok) {
+        showSnackbar(result.message || "Lỗi khi xóa", "error");
+        return;
+      }
+      showSnackbar("Xóa thành công");
+      await loadData();
+      setDrawerOpen(false);
+      setSelectedRecord(null);
+    } catch (error) {
+      showSnackbar(`Lỗi khi xóa: ${error.message}`, "error");
     }
   };
 
@@ -45,9 +98,15 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
       return;
     }
 
-    const rowsWithId = parseResult.records.map((row, index) => ({ ...row, id: index + 1 }));
+    const rowsWithId = parseResult.records.map((row, index) => ({
+      ...row,
+      id: index + 1,
+    }));
     setPreviewData(rowsWithId);
-    setPreviewMeta({ fileName: parseResult.fileName, reportDate: parseResult.reportDate });
+    setPreviewMeta({
+      fileName: parseResult.fileName,
+      reportDate: parseResult.reportDate,
+    });
   };
 
   // --- Import Flow: Select → Parse → Show Preview ---
@@ -105,7 +164,9 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
   const displayData = isPreview ? previewData : savedData;
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+    <Box
+      sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
+    >
       <Card
         sx={{
           flex: 1,
@@ -130,8 +191,22 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
           onCancelPreview={handleCancelPreview}
           onFileDrop={handleFileDrop}
           onInvalidFile={handleInvalidFile}
+          onRowDoubleClick={!isPreview ? handleRowDoubleClick : undefined}
         />
       </Card>
+
+      <ProductionDetailDrawer
+        open={drawerOpen}
+        record={selectedRecord}
+        isGrinding={isGrinding}
+        onClose={() => {
+          setDrawerOpen(false);
+          setSelectedRecord(null);
+        }}
+        onSave={handleSaveRecord}
+        onDelete={handleDeleteRecord}
+        isSaving={isSaving}
+      />
 
       <Snackbar
         open={snackbar.open}

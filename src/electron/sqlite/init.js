@@ -1,5 +1,7 @@
 const { ensureAppAccount } = require("./account");
 const { ensureEmployeesTable, seedEmployeesIfEmpty } = require("./employees");
+const { ensureRolesTable, seedRolesIfEmpty } = require("./roles");
+const { ensurePositionsTable, seedPositionsIfEmpty } = require("./positions");
 const { ensureGrindingTable } = require("./grinding");
 const { ensureCuttingTable } = require("./cutting");
 const { ensureImportSessionsTable } = require("./importSessions");
@@ -44,6 +46,10 @@ function initializeDatabase() {
   ensureAppAccount();
 
   // 5. Create all tables and seed initial data if empty.
+  ensureRolesTable();
+  seedRolesIfEmpty();
+  ensurePositionsTable();
+  seedPositionsIfEmpty();
   ensureEmployeesTable();
   seedEmployeesIfEmpty();
   ensureGrindingTable();

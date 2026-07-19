@@ -65,6 +65,25 @@ function migrateRemoveDedupConstraint(db, tableName, columnSpec) {
   db.exec(`ALTER TABLE ${tempTable} RENAME TO ${tableName}`);
 }
 
+// Helper to calculate joint count (only for cutting_production)
+function calculateJointCount(db, record) {
+  if (!record.material_code || !record.completed_quantity) return 0;
+
+  // Get detail from detail_joint table by material_code
+  const detailRow = db
+    .prepare("SELECT detail FROM detail_joint WHERE material_code = ? LIMIT 1")
+    .get(record.material_code);
+
+  const quantity = Number(record.completed_quantity || 0);
+  const detail = Number(detailRow?.detail || 0);
+
+  if (detail > 0) {
+    return Math.ceil(quantity / detail);
+  } else {
+    return 0;
+  }
+}
+
 /**
  * Creates a production DAO module for a given table and column specification.
  * @param {string} tableName - e.g. "grinding_production" or "cutting_production"
@@ -116,6 +135,16 @@ function createProductionModule(tableName, columnSpec) {
           }
         }
       }
+
+      // Migration: Add joint_count to cutting_production table
+      if (tableName === "cutting_production") {
+        const hasJointCount = columns.some((col) => col.name === "joint_count");
+        if (!hasJointCount) {
+          db.exec(
+            `ALTER TABLE ${tableName} ADD COLUMN joint_count INTEGER DEFAULT 0`,
+          );
+        }
+      }
     } finally {
       db.close();
     }
@@ -126,7 +155,18 @@ function createProductionModule(tableName, columnSpec) {
     const db = openDatabase();
     try {
       return db
-        .prepare(`SELECT * FROM ${tableName} ORDER BY imported_at DESC`)
+        .prepare(
+          `
+          SELECT 
+            p.*,
+            (SELECT dj.detail 
+             FROM detail_joint dj 
+             WHERE dj.material_code = p.material_code 
+             LIMIT 1) AS joint_detail
+          FROM ${tableName} p
+          ORDER BY p.imported_at DESC
+        `,
+        )
         .all();
     } finally {
       db.close();
@@ -156,15 +196,110 @@ function createProductionModule(tableName, columnSpec) {
     }
   }
 
+  // ── getById ─────────────────────────────────────────────────────────────
+  function getById(id) {
+    const db = openDatabase();
+    try {
+      return db.prepare(`SELECT * FROM ${tableName} WHERE id = ?`).get(id);
+    } finally {
+      db.close();
+    }
+  }
+
+  // ── update ─────────────────────────────────────────────────────────────
+  function update(id, data) {
+    const db = openDatabase();
+    try {
+      let updateFields = dbFields.map((field) => `${field} = @${field}`);
+
+      if (tableName === "cutting_production") {
+        updateFields = [...updateFields, "joint_count = @joint_count"];
+      }
+
+      const updateData = { ...data, id };
+
+      if (tableName === "cutting_production") {
+        // Get current material_code from DB if not provided in data
+        let recordToCalculate = { ...data };
+        if (!recordToCalculate.material_code) {
+          const currentRecord = db
+            .prepare(`SELECT * FROM ${tableName} WHERE id = ?`)
+            .get(id);
+          if (currentRecord) {
+            recordToCalculate.material_code = currentRecord.material_code;
+          }
+        }
+        // Ensure completed_quantity is present
+        if (!recordToCalculate.completed_quantity) {
+          const currentRecord = db
+            .prepare(`SELECT * FROM ${tableName} WHERE id = ?`)
+            .get(id);
+          if (currentRecord) {
+            recordToCalculate.completed_quantity =
+              currentRecord.completed_quantity;
+          }
+        }
+
+        updateData.joint_count = calculateJointCount(db, recordToCalculate);
+      }
+
+      const result = db
+        .prepare(
+          `
+        UPDATE ${tableName} 
+        SET ${updateFields.join(", ")}
+        WHERE id = @id
+      `,
+        )
+        .run(updateData);
+
+      if (result.changes === 0) {
+        return { ok: false, message: `Không tìm thấy bản ghi với id ${id}.` };
+      }
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: error.message };
+    } finally {
+      db.close();
+    }
+  }
+
+  // ── delete ─────────────────────────────────────────────────────────────
+  function deleteById(id) {
+    const db = openDatabase();
+    try {
+      const result = db
+        .prepare(`DELETE FROM ${tableName} WHERE id = ?`)
+        .run(id);
+      if (result.changes === 0) {
+        return { ok: false, message: `Không tìm thấy bản ghi với id ${id}.` };
+      }
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: error.message };
+    } finally {
+      db.close();
+    }
+  }
+
   // ── importData ───────────────────────────────────────────────────────────
   function importData(records, sessionId) {
     const db = openDatabase();
     try {
-      const placeholders = dbFields.map((f) => `@${f}`).join(", ");
+      // Prepare insert statement, add joint_count if cutting_production
+      let insertFields = [...dbFields, "import_session_id"];
+      let placeholders = dbFields
+        .map((f) => `@${f}`)
+        .concat(["@import_session_id"]);
+
+      if (tableName === "cutting_production") {
+        insertFields = [...insertFields, "joint_count"];
+        placeholders = [...placeholders, "@joint_count"];
+      }
 
       const insertData = db.prepare(`
-        INSERT INTO ${tableName} (${dbFields.join(", ")}, import_session_id)
-        VALUES (${placeholders}, @import_session_id)
+        INSERT INTO ${tableName} (${insertFields.join(", ")})
+        VALUES (${placeholders.join(", ")})
       `);
 
       const insertMany = db.transaction((rows) => {
@@ -174,6 +309,11 @@ function createProductionModule(tableName, columnSpec) {
         for (const row of rows) {
           try {
             const rowWithSession = { ...row, import_session_id: sessionId };
+
+            if (tableName === "cutting_production") {
+              rowWithSession.joint_count = calculateJointCount(db, row);
+            }
+
             const result = insertData.run(rowWithSession);
             insertedCount += result.changes;
           } catch {
@@ -196,6 +336,9 @@ function createProductionModule(tableName, columnSpec) {
   return {
     ensureTable,
     getAll,
+    getById,
+    update,
+    deleteById,
     checkExistsByDate,
     deleteByDate,
     importData,

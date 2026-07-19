@@ -31,7 +31,7 @@ function getAllDetailJoints() {
       .prepare(
         `SELECT id, material_code, product_name, specification, detail, created_at, updated_at
          FROM detail_joint
-         ORDER BY id ASC`
+         ORDER BY id ASC`,
       )
       .all();
   } finally {
@@ -47,7 +47,7 @@ function getDetailJointById(id) {
         .prepare(
           `SELECT id, material_code, product_name, specification, detail, created_at, updated_at
            FROM detail_joint
-           WHERE id = ?`
+           WHERE id = ?`,
         )
         .get(id) ?? null
     );
@@ -56,15 +56,43 @@ function getDetailJointById(id) {
   }
 }
 
-function createDetailJoint({ material_code, product_name, specification, detail }) {
+function createDetailJoint({
+  material_code,
+  product_name,
+  specification,
+  detail,
+}) {
   const db = openDatabase();
   try {
     const result = db
       .prepare(
         `INSERT INTO detail_joint (material_code, product_name, specification, detail)
-         VALUES (@material_code, @product_name, @specification, @detail)`
+         VALUES (@material_code, @product_name, @specification, @detail)`,
       )
       .run({ material_code, product_name, specification, detail });
+
+    // Recalculate joint_count for cutting_production with this material_code
+    if (material_code) {
+      const records = db
+        .prepare(`SELECT * FROM cutting_production WHERE material_code = ?`)
+        .all(material_code);
+      const updateJointCountStmt = db.prepare(`
+        UPDATE cutting_production 
+        SET joint_count = ?
+        WHERE id = ?
+      `);
+
+      for (const rec of records) {
+        const quantity = Number(rec.completed_quantity || 0);
+        const d = Number(detail || 0);
+        let jointCount = 0;
+        if (d > 0) {
+          jointCount = Math.ceil(quantity / d);
+        }
+        updateJointCountStmt.run(jointCount, rec.id);
+      }
+    }
+
     return { ok: true, id: result.lastInsertRowid };
   } catch (error) {
     return { ok: false, message: error.message };
@@ -73,9 +101,21 @@ function createDetailJoint({ material_code, product_name, specification, detail 
   }
 }
 
-function updateDetailJoint(id, { material_code, product_name, specification, detail }) {
+function updateDetailJoint(
+  id,
+  { material_code, product_name, specification, detail },
+) {
   const db = openDatabase();
   try {
+    // First get the old material_code (in case it's being changed)
+    const oldRecord = db
+      .prepare(`SELECT * FROM detail_joint WHERE id = ?`)
+      .get(id);
+    if (!oldRecord) {
+      return { ok: false, message: `Không tìm thấy dữ liệu với id ${id}.` };
+    }
+
+    // Update detail_joint
     const result = db
       .prepare(
         `UPDATE detail_joint
@@ -84,12 +124,58 @@ function updateDetailJoint(id, { material_code, product_name, specification, det
              specification = @specification,
              detail = @detail,
              updated_at = datetime('now')
-         WHERE id = @id`
+         WHERE id = @id`,
       )
       .run({ id, material_code, product_name, specification, detail });
     if (result.changes === 0) {
       return { ok: false, message: `Không tìm thấy dữ liệu với id ${id}.` };
     }
+
+    // Now recalculate joint_count for cutting_production records
+    // Need to check old material_code (if changed) and new material_code
+    const affectedMaterialCodes = new Set([
+      oldRecord.material_code,
+      material_code,
+    ]);
+
+    for (const mc of affectedMaterialCodes) {
+      if (!mc) continue;
+
+      // Get all cutting_production records with this material_code
+      const records = db
+        .prepare(`SELECT * FROM cutting_production WHERE material_code = ?`)
+        .all(mc);
+
+      // For each, calculate and update joint_count
+      const updateJointCountStmt = db.prepare(`
+        UPDATE cutting_production 
+        SET joint_count = ?
+        WHERE id = ?
+      `);
+
+      for (const rec of records) {
+        // Calculate joint count
+        let detailToUse = null;
+
+        // Get detail from detail_joint for this material code
+        const dj = db
+          .prepare(
+            `SELECT detail FROM detail_joint WHERE material_code = ? LIMIT 1`,
+          )
+          .get(mc);
+        detailToUse = dj?.detail;
+
+        const quantity = Number(rec.completed_quantity || 0);
+        const d = Number(detailToUse || 0);
+        let jointCount = 0;
+        if (d > 0) {
+          jointCount = Math.ceil(quantity / d);
+        }
+
+        updateJointCountStmt.run(jointCount, rec.id);
+      }
+    }
+
     return { ok: true };
   } catch (error) {
     return { ok: false, message: error.message };
@@ -101,10 +187,26 @@ function updateDetailJoint(id, { material_code, product_name, specification, det
 function deleteDetailJoint(id) {
   const db = openDatabase();
   try {
-    const result = db.prepare("DELETE FROM detail_joint WHERE id = ?").run(id);
-    if (result.changes === 0) {
+    const oldRecord = db
+      .prepare(`SELECT * FROM detail_joint WHERE id = ?`)
+      .get(id);
+    if (!oldRecord) {
       return { ok: false, message: `Không tìm thấy dữ liệu với id ${id}.` };
     }
+
+    const result = db.prepare("DELETE FROM detail_joint WHERE id = ?").run(id);
+
+    // Set joint_count to 0 for all cutting_production with this material_code
+    if (oldRecord.material_code) {
+      db.prepare(
+        `
+        UPDATE cutting_production 
+        SET joint_count = 0 
+        WHERE material_code = ?
+      `,
+      ).run(oldRecord.material_code);
+    }
+
     return { ok: true };
   } catch (error) {
     return { ok: false, message: error.message };
@@ -130,7 +232,7 @@ function bulkInsertDetailJoints(items) {
   try {
     const insert = db.prepare(
       `INSERT INTO detail_joint (material_code, product_name, specification, detail)
-       VALUES (@material_code, @product_name, @specification, @detail)`
+       VALUES (@material_code, @product_name, @specification, @detail)`,
     );
     const insertMany = db.transaction((items) => {
       for (const item of items) {

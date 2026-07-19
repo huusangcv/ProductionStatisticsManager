@@ -5,7 +5,9 @@ import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Cancel";
 
-import DataGridToolbarActions, { StandardButton } from "./DataGridToolbarActions";
+import DataGridToolbarActions, {
+  StandardButton,
+} from "./DataGridToolbarActions";
 import ProductionGridFooter from "./ProductionGridFooter";
 import { useDragDropImport } from "../../hooks/useDragDropImport";
 import { viVNGridLocaleText } from "../../constants/dataGridLocale";
@@ -58,6 +60,7 @@ function ProductionDataGrid({
   enableDragDrop = true,
   density,
   pageSizeOptions = [10, 20, 50, 100],
+  onRowDoubleClick,
 }) {
   const { isDragging, dragProps } = useDragDropImport({
     onDropFile: onFileDrop,
@@ -72,10 +75,26 @@ function ProductionDataGrid({
           hasExport={false}
           rightActions={
             <>
-              <Chip label={`Ngày: ${previewMeta?.reportDate || ""}`} sx={{ height: 32, borderRadius: "8px" }} />
-              <Chip label={`${data.length} dòng`} sx={{ height: 32, borderRadius: "8px" }} />
-              <StandardButton primary icon={<SaveIcon />} label="Lưu dữ liệu" onClick={onSave} />
-              <StandardButton primary={false} icon={<CancelIcon />} label="Hủy" onClick={onCancelPreview} />
+              <Chip
+                label={`Ngày: ${previewMeta?.reportDate || ""}`}
+                sx={{ height: 32, borderRadius: "8px" }}
+              />
+              <Chip
+                label={`${data.length} dòng`}
+                sx={{ height: 32, borderRadius: "8px" }}
+              />
+              <StandardButton
+                primary
+                icon={<SaveIcon />}
+                label="Lưu dữ liệu"
+                onClick={onSave}
+              />
+              <StandardButton
+                primary={false}
+                icon={<CancelIcon />}
+                label="Hủy"
+                onClick={onCancelPreview}
+              />
             </>
           }
         />
@@ -130,6 +149,7 @@ function ProductionDataGrid({
         slots={{ toolbar, footer: ProductionGridFooter }}
         initialState={{ pagination: { paginationModel: { pageSize: 50 } } }}
         pageSizeOptions={pageSizeOptions}
+        onRowDoubleClick={onRowDoubleClick}
         sx={productionDataGridSx}
       />
       {enableDragDrop && isDragging && (
