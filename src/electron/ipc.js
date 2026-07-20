@@ -55,6 +55,13 @@ const {
   deleteCuttingDataByDate,
 } = require("./sqlite/cutting");
 const {
+  getDashboardKPIs,
+  getTopEmployees,
+  getTopWorkOrders,
+  getProductionByDate,
+  getDashboardGridData,
+} = require("./sqlite/dashboard");
+const {
   createSession,
   finishSession,
   getAllSessions,
@@ -318,12 +325,34 @@ function parseExcelFile(filePath, columnSpec) {
 // Builds a grinding:save / cutting:save handler with duplicate detection dialog
 // ============================================================================
 
+/**
+ * Collect unique representative codes from records that don't exist in employees table for a given role.
+ */
+function collectUnmappedCodes(db, records, roleCode) {
+  const codes = [...new Set(records.map((r) => r.representative_code).filter(Boolean))];
+  const unmapped = [];
+  for (const code of codes) {
+    const emp = db
+      .prepare(`
+        SELECT e.id 
+        FROM employees e
+        JOIN roles r ON e.role_id = r.id
+        WHERE e.representative_code = ? AND r.code = ?
+        LIMIT 1
+      `)
+      .get(code, roleCode);
+    if (!emp) unmapped.push(code);
+  }
+  return unmapped;
+}
+
 function makeSaveHandler(
   moduleName,
   tableName,
   checkExistsFn,
   deleteByDateFn,
   importFn,
+  roleCode
 ) {
   return async (event, { records, fileName, reportDate }) => {
     const win = BrowserWindow.fromWebContents(event.sender);
@@ -357,6 +386,16 @@ function makeSaveHandler(
         reportDate,
       );
 
+      // Check unmapped representative codes before import
+      const { getDatabasePath } = require("./sqlite/paths");
+      const dbCheck = new Database(getDatabasePath());
+      let unmappedCodes = [];
+      try {
+        unmappedCodes = collectUnmappedCodes(dbCheck, records, roleCode);
+      } finally {
+        dbCheck.close();
+      }
+
       // Execute import linked to session
       const result = importFn(records, sessionId);
       const durationMs = Date.now() - startTime;
@@ -379,7 +418,7 @@ function makeSaveHandler(
         });
       }
 
-      return result;
+      return { ...result, unmappedCodes };
     } catch (error) {
       return { ok: false, message: "Lỗi khi lưu dữ liệu: " + error.message };
     }
@@ -420,7 +459,8 @@ const GRINDING_SPEC = [
     databaseField: "completed_quantity",
     type: "integer",
   },
-  { excelHeader: "Họ tên nhân viên员工名称", databaseField: "employee_name" },
+  // "Họ tên nhân viên员工名称" is actually the representative_code (mã đại diện)
+  { excelHeader: "Họ tên nhân viên员工名称", databaseField: "representative_code" },
   {
     excelHeader: "Số lượng báo phế报废数量",
     databaseField: "scrap_quantity",
@@ -453,7 +493,8 @@ const CUTTING_SPEC = [
     databaseField: "completed_quantity",
     type: "integer",
   },
-  { excelHeader: "Họ tên nhân viên员工名称", databaseField: "employee_name" },
+  // "Họ tên nhân viên员工名称" is actually the representative_code (mã đại diện)
+  { excelHeader: "Họ tên nhân viên员工名称", databaseField: "representative_code" },
   // No scrap_quantity in Cutting
   {
     excelHeader: "Đơn vị trọng lượng单位重量",
@@ -502,12 +543,157 @@ function registerIpcHandlers() {
   ipcMain.handle("employee:getByRepresentativeCode", (_event, repCode) =>
     getEmployeeByRepresentativeCode(repCode),
   );
+  ipcMain.handle("employee:getByRepresentativeCodeAndRole", (_event, repCode, roleCode) =>
+    getEmployeeByRepresentativeCodeAndRole(repCode, roleCode),
+  );
   ipcMain.handle("employee:getById", (_event, id) => getEmployeeById(id));
   ipcMain.handle("employee:create", (_event, data) => createEmployee(data));
   ipcMain.handle("employee:update", (_event, { id, data }) =>
     updateEmployee(id, data),
   );
   ipcMain.handle("employee:delete", (_event, id) => deleteEmployee(id));
+
+  ipcMain.handle("employee:importExcel", async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      title: "Chọn file Excel nhân viên",
+      filters: [{ name: "Excel Files", extensions: ["xlsx", "xls"] }],
+      properties: ["openFile"],
+    });
+    if (canceled || filePaths.length === 0) return { ok: false, canceled: true };
+
+    const filePath = filePaths[0];
+    try {
+      const workbook = XLSX.readFile(filePath);
+      const ws = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+      if (rows.length === 0) {
+        return { ok: false, message: "File Excel không có dữ liệu." };
+      }
+
+      const allRoles = getAllRoles();
+      const allPositions = getAllPositions();
+
+      // Build lookup maps by name
+      const roleByName = new Map(allRoles.map((r) => [r.name.trim().toLowerCase(), r.id]));
+      const posByName = new Map(allPositions.map((p) => [p.name.trim().toLowerCase(), p.id]));
+
+      let importedCount = 0;
+      const errors = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rowNum = i + 2;
+
+        const employee_code = String(row["Mã số"] || row["employee_code"] || "").trim();
+        const representative_code = String(row["Mã đại diện"] || row["representative_code"] || "").trim();
+        const full_name = String(row["Họ tên"] || row["full_name"] || "").trim();
+        const roleName = String(row["Vai trò"] || row["role"] || "").trim();
+        const posName = String(row["Chức vụ"] || row["position"] || "").trim();
+        const phone = String(row["Điện thoại"] || row["phone"] || "").trim();
+        const hire_date = String(row["Ngày vào làm"] || row["hire_date"] || "").trim();
+        const status = String(row["Trạng thái"] || row["status"] || "Đang làm việc").trim();
+
+        if (!employee_code || !full_name) {
+          errors.push(`Dòng ${rowNum}: Thiếu Mã số hoặc Họ tên.`);
+          continue;
+        }
+
+        if (!representative_code) {
+          errors.push(`Dòng ${rowNum} (${employee_code}): Thiếu Mã đại diện.`);
+          continue;
+        }
+
+        const role_id = roleByName.get(roleName.toLowerCase());
+        if (!role_id) {
+          errors.push(`Dòng ${rowNum} (${employee_code}): Không tìm thấy vai trò "${roleName}". Vui lòng khai báo trong Danh mục → Vai trò.`);
+          continue;
+        }
+
+        const position_id = posByName.get(posName.toLowerCase());
+        if (!position_id) {
+          errors.push(`Dòng ${rowNum} (${employee_code}): Không tìm thấy chức vụ "${posName}". Vui lòng khai báo trong Danh mục → Chức vụ.`);
+          continue;
+        }
+
+        // Try create first; if exists, update
+        const createResult = createEmployee({
+          employee_code,
+          representative_code,
+          full_name,
+          role_id,
+          position_id,
+          phone,
+          hire_date,
+          status,
+        });
+
+        if (createResult.ok) {
+          importedCount++;
+        } else if (createResult.message && createResult.message.includes("đã tồn tại")) {
+          // Update existing by employee_code
+          const existing = getEmployeeByCode(employee_code);
+          if (existing) {
+            const upd = updateEmployee(existing.id, {
+              representative_code,
+              full_name,
+              role_id,
+              position_id,
+              phone,
+              hire_date,
+              status,
+              note: existing.note,
+            });
+            if (upd.ok) importedCount++;
+            else errors.push(`Dòng ${rowNum} (${employee_code}): ${upd.message}`);
+          }
+        } else {
+          errors.push(`Dòng ${rowNum} (${employee_code}): ${createResult.message}`);
+        }
+      }
+
+      return { ok: true, imported: importedCount, errors };
+    } catch (err) {
+      return { ok: false, message: "Lỗi đọc file Excel: " + err.message };
+    }
+  });
+
+  ipcMain.handle("employee:exportExcel", async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: "Xuất danh sách nhân viên",
+      defaultPath: "DanhSachNhanVien.xlsx",
+      filters: [{ name: "Excel Files", extensions: ["xlsx"] }],
+    });
+    if (canceled || !filePath) return { ok: false, canceled: true };
+
+    try {
+      const employees = getAllEmployees();
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Nhân viên");
+
+      sheet.addRow(["Mã số", "Mã đại diện", "Họ tên", "Vai trò", "Chức vụ", "Điện thoại", "Trạng thái", "Ngày vào làm"]);
+
+      for (const emp of employees) {
+        sheet.addRow([
+          emp.employee_code,
+          emp.representative_code,
+          emp.full_name,
+          emp.role_name || "",
+          emp.position_name || "",
+          emp.phone || "",
+          emp.status || "",
+          emp.hire_date || "",
+        ]);
+      }
+
+      await workbook.xlsx.writeFile(filePath);
+      return { ok: true, filePath };
+    } catch (err) {
+      return { ok: false, message: "Lỗi xuất file: " + err.message };
+    }
+  });
 
   // ── Role IPC handlers ─────────────────────────────────────────────────────────────
   ipcMain.handle("role:getAll", () => getAllRoles());
@@ -551,6 +737,7 @@ function registerIpcHandlers() {
       checkGrindingDataExistsByDate,
       deleteGrindingDataByDate,
       importGrindingData,
+      "GRIND"
     ),
   );
 
@@ -578,6 +765,7 @@ function registerIpcHandlers() {
       checkCuttingDataExistsByDate,
       deleteCuttingDataByDate,
       importCuttingData,
+      "CUT"
     ),
   );
 
@@ -982,6 +1170,23 @@ function registerIpcHandlers() {
   ipcMain.handle("backup:import", async (_event, importPath) => {
     return backupDAO.importDatabase(importPath);
   });
+
+  // --- Dashboard handlers ---
+  ipcMain.handle("dashboard:getKPIs", (_event, { type, fromDate, toDate }) =>
+    getDashboardKPIs(type, fromDate, toDate),
+  );
+  ipcMain.handle("dashboard:getTopEmployees", (_event, { type, fromDate, toDate }) =>
+    getTopEmployees(type, fromDate, toDate),
+  );
+  ipcMain.handle("dashboard:getTopWorkOrders", (_event, { type, fromDate, toDate }) =>
+    getTopWorkOrders(type, fromDate, toDate),
+  );
+  ipcMain.handle("dashboard:getProductionByDate", (_event, { type, fromDate, toDate }) =>
+    getProductionByDate(type, fromDate, toDate),
+  );
+  ipcMain.handle("dashboard:getGridData", (_event, { type, fromDate, toDate }) =>
+    getDashboardGridData(type, fromDate, toDate),
+  );
 }
 
 async function printExcelFile(filePath) {

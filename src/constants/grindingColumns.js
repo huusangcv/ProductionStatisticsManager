@@ -1,3 +1,9 @@
+/**
+ * Grinding Production column specification.
+ * Single source of truth for Excel headers, database field names, and DataGrid config.
+ *
+ * NOTE: "Họ tên nhân viên 员工名称" in Excel = representative_code (mã đại diện), NOT the employee name.
+ */
 export const GRINDING_COLUMNS = [
   {
     excelHeader: "Ngày báo sản lượng报产日期",
@@ -51,9 +57,27 @@ export const GRINDING_COLUMNS = [
   },
   {
     excelHeader: "Họ tên nhân viên员工名称",
-    databaseField: "employee_name",
-    headerName: "Nhân viên",
-    width: 160,
+    databaseField: "representative_code",
+    headerName: "Mã đại diện",
+    width: 130,
+  },
+  {
+    // Computed via JOIN — not in Excel
+    databaseField: "employee_full_name",
+    headerName: "Tên nhân viên",
+    width: 180,
+  },
+  {
+    // Computed via JOIN — not in Excel
+    databaseField: "role_name",
+    headerName: "Vai trò",
+    width: 130,
+  },
+  {
+    // Computed via JOIN — not in Excel
+    databaseField: "position_name",
+    headerName: "Chức vụ",
+    width: 120,
   },
   {
     excelHeader: "Số lượng báo phế报废数量",
@@ -80,13 +104,7 @@ export const GRINDING_COLUMNS = [
 
 const formatDateForUI = (dateStr) => {
   if (!dateStr) return "";
-
-  // If already in dd/MM/yyyy format, just return it
-  if (dateStr.includes("/")) {
-    return dateStr;
-  }
-
-  // If in yyyy-MM-dd format, convert to dd/MM/yyyy
+  if (dateStr.includes("/")) return dateStr;
   const [year, month, day] = dateStr.split("-");
   if (!year || !month || !day) return dateStr;
   return `${day}/${month}/${year}`;

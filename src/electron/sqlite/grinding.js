@@ -15,13 +15,13 @@ const GRINDING_COLUMN_SPEC = [
   { databaseField: "item_name",             type: "text"    },
   { databaseField: "specification",         type: "text"    },
   { databaseField: "completed_quantity",    type: "integer" },
-  { databaseField: "employee_name",         type: "text"    },
+  { databaseField: "representative_code",   type: "text"    },
   { databaseField: "scrap_quantity",        type: "integer" },
   { databaseField: "unit_weight",           type: "float"   },
   { databaseField: "completed_weight",      type: "float"   },
 ];
 
-const grindingDAO = createProductionModule("grinding_production", GRINDING_COLUMN_SPEC);
+const grindingDAO = createProductionModule("grinding_production", GRINDING_COLUMN_SPEC, "GRIND");
 
 module.exports = {
   ensureGrindingTable:            grindingDAO.ensureTable,

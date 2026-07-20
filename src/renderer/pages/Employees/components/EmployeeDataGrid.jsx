@@ -7,6 +7,8 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 
 import EmployeeAvatar from "./EmployeeAvatar";
 import EmployeeStatusChip from "./EmployeeStatusChip";
@@ -24,19 +26,22 @@ function EmployeeDataGrid({
   onAddEmployee,
   onRefresh,
   onDeleteSelected,
+  onImport,
+  onExport,
 }) {
   const [contextMenu, setContextMenu] = useState(null);
 
   const columns = [
     { field: "employee_code", headerName: "Mã số", width: 110 },
+    { field: "representative_code", headerName: "Mã đại diện", width: 130 },
     {
-      field: "employee_name",
+      field: "full_name",
       headerName: "Họ tên",
       flex: 1,
       minWidth: 220,
       renderCell: (params) => (
         <Box sx={{ display: "flex", alignItems: "center", direction: "row", gap: 1, height: "100%" }}>
-          <EmployeeAvatar name={params.row.employee_name} />
+          <EmployeeAvatar name={params.row.full_name} />
           <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0 }}>
             <Box
               sx={{
@@ -48,14 +53,14 @@ function EmployeeDataGrid({
                 textOverflow: "ellipsis",
               }}
             >
-              {params.row.employee_name}
+              {params.row.full_name}
             </Box>
           </Box>
         </Box>
       ),
     },
-    { field: "department", headerName: "Bộ phận", width: 130 },
-    { field: "role_code", headerName: "Vai trò", width: 150 },
+    { field: "role_name", headerName: "Vai trò", width: 140 },
+    { field: "position_name", headerName: "Chức vụ", width: 130 },
     { field: "phone", headerName: "Số điện thoại", width: 140 },
     {
       field: "status",
@@ -70,7 +75,7 @@ function EmployeeDataGrid({
     event.preventDefault();
     const id = event.currentTarget.getAttribute("data-id");
     if (!id) return;
-    const row = data.find((r) => r.id === id);
+    const row = data.find((r) => String(r.id) === id);
     if (!row) return;
 
     setContextMenu({
@@ -132,6 +137,18 @@ function EmployeeDataGrid({
                       onClick={onAddEmployee}
                     />
                   )}
+                  <StandardButton
+                    primary={false}
+                    icon={<FileUploadOutlinedIcon />}
+                    label="Import"
+                    onClick={onImport}
+                  />
+                  <StandardButton
+                    primary={false}
+                    icon={<FileDownloadOutlinedIcon />}
+                    label="Export"
+                    onClick={onExport}
+                  />
                   <StandardButton
                     primary={false}
                     icon={<RefreshIcon />}

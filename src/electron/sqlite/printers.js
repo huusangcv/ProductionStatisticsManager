@@ -60,6 +60,17 @@ function ensurePrintLogsTable() {
         created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
       )
     `);
+
+    // Add new columns for tracking
+    const columns = db.pragma("table_info(print_logs)");
+    const columnNames = columns.map(c => c.name);
+    
+    if (!columnNames.includes('error_code')) db.exec("ALTER TABLE print_logs ADD COLUMN error_code TEXT");
+    if (!columnNames.includes('exception')) db.exec("ALTER TABLE print_logs ADD COLUMN exception TEXT");
+    if (!columnNames.includes('execution_time')) db.exec("ALTER TABLE print_logs ADD COLUMN execution_time INTEGER");
+    if (!columnNames.includes('command')) db.exec("ALTER TABLE print_logs ADD COLUMN command TEXT");
+    if (!columnNames.includes('version')) db.exec("ALTER TABLE print_logs ADD COLUMN version TEXT");
+
   } finally {
     db.close();
   }
@@ -171,8 +182,11 @@ function addPrintLog(log) {
     const result = db
       .prepare(
         `
-      INSERT INTO print_logs (printer_name, file_name, file_path, status, error_message)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO print_logs (
+        printer_name, file_name, file_path, status, error_message,
+        error_code, exception, execution_time, command, version
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       )
       .run(
@@ -181,6 +195,11 @@ function addPrintLog(log) {
         log.file_path || null,
         log.status,
         log.error_message || null,
+        log.error_code || null,
+        log.exception || null,
+        log.execution_time || null,
+        log.command || null,
+        log.version || null
       );
     return { ok: true, id: result.lastInsertRowid };
   } catch (error) {

@@ -30,6 +30,7 @@ function buildCreateTableSql(tableName, columnSpec) {
         CREATE TABLE ${tableName} (
           id                            INTEGER PRIMARY KEY AUTOINCREMENT,
 ${colDefs},
+          representative_code           TEXT,
           import_session_id             INTEGER,
           imported_at                   TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
         )
@@ -88,9 +89,13 @@ function calculateJointCount(db, record) {
  * Creates a production DAO module for a given table and column specification.
  * @param {string} tableName - e.g. "grinding_production" or "cutting_production"
  * @param {Array}  columnSpec - from grindingColumns.js / cuttingColumns.js
+ * @param {string} roleCode - e.g. "GRIND" or "CUT"
  */
-function createProductionModule(tableName, columnSpec) {
-  const dbFields = columnSpec.map((c) => c.databaseField);
+function createProductionModule(tableName, columnSpec, roleCode) {
+  // Filter out representative_code from dbFields since it's handled separately
+  const dbFields = columnSpec
+    .map((c) => c.databaseField)
+    .filter((f) => f !== "representative_code");
 
   // ── ensureTable ──────────────────────────────────────────────────────────
   function ensureTable() {
@@ -145,6 +150,23 @@ function createProductionModule(tableName, columnSpec) {
           );
         }
       }
+
+      // Migration: Add representative_code column if not exists
+      const hasRepCode = columns.some(
+        (col) => col.name === "representative_code",
+      );
+      if (!hasRepCode) {
+        db.exec(`ALTER TABLE ${tableName} ADD COLUMN representative_code TEXT`);
+        // Migrate old employee_name data: copy to representative_code if employee_name exists
+        const hasEmployeeName = columns.some(
+          (col) => col.name === "employee_name",
+        );
+        if (hasEmployeeName) {
+          db.exec(
+            `UPDATE ${tableName} SET representative_code = employee_name WHERE representative_code IS NULL`,
+          );
+        }
+      }
     } finally {
       db.close();
     }
@@ -162,8 +184,14 @@ function createProductionModule(tableName, columnSpec) {
             (SELECT dj.detail 
              FROM detail_joint dj 
              WHERE dj.material_code = p.material_code 
-             LIMIT 1) AS joint_detail
+             LIMIT 1) AS joint_detail,
+            e.full_name   AS employee_full_name,
+            r.name        AS role_name,
+            pos.name      AS position_name
           FROM ${tableName} p
+          LEFT JOIN roles r       ON r.code = '${roleCode}'
+          LEFT JOIN employees e   ON e.representative_code = p.representative_code AND e.role_id = r.id
+          LEFT JOIN positions pos ON pos.id = e.position_id
           ORDER BY p.imported_at DESC
         `,
         )
@@ -200,7 +228,22 @@ function createProductionModule(tableName, columnSpec) {
   function getById(id) {
     const db = openDatabase();
     try {
-      return db.prepare(`SELECT * FROM ${tableName} WHERE id = ?`).get(id);
+      return db
+        .prepare(
+          `
+          SELECT 
+            p.*,
+            e.full_name   AS employee_full_name,
+            r.name        AS role_name,
+            pos.name      AS position_name
+          FROM ${tableName} p
+          LEFT JOIN roles r       ON r.code = '${roleCode}'
+          LEFT JOIN employees e   ON e.representative_code = p.representative_code AND e.role_id = r.id
+          LEFT JOIN positions pos ON pos.id = e.position_id
+          WHERE p.id = ?
+        `,
+        )
+        .get(id);
     } finally {
       db.close();
     }
@@ -210,11 +253,15 @@ function createProductionModule(tableName, columnSpec) {
   function update(id, data) {
     const db = openDatabase();
     try {
+      // Build update fields from dbFields (excluding representative_code which we handle separately)
       let updateFields = dbFields.map((field) => `${field} = @${field}`);
 
       if (tableName === "cutting_production") {
         updateFields = [...updateFields, "joint_count = @joint_count"];
       }
+
+      // Always allow updating representative_code
+      updateFields = [...updateFields, "representative_code = @representative_code"];
 
       const updateData = { ...data, id };
 
@@ -283,14 +330,19 @@ function createProductionModule(tableName, columnSpec) {
   }
 
   // ── importData ───────────────────────────────────────────────────────────
+  /**
+   * records: array of { representative_code, report_date, ... other fields }
+   * The "Họ tên nhân viên 员工名称" Excel column has been mapped to representative_code
+   * before calling this function.
+   */
   function importData(records, sessionId) {
     const db = openDatabase();
     try {
-      // Prepare insert statement, add joint_count if cutting_production
-      let insertFields = [...dbFields, "import_session_id"];
+      // Prepare insert statement — always include representative_code
+      let insertFields = [...dbFields, "representative_code", "import_session_id"];
       let placeholders = dbFields
         .map((f) => `@${f}`)
-        .concat(["@import_session_id"]);
+        .concat(["@representative_code", "@import_session_id"]);
 
       if (tableName === "cutting_production") {
         insertFields = [...insertFields, "joint_count"];

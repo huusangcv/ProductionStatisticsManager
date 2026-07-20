@@ -3,6 +3,8 @@ import AppLayout from "../layout/AppLayout";
 import LoginPage from "../pages/Login/LoginPage";
 import DashboardPage from "../pages/Dashboard/DashboardPage";
 import EmployeesPage from "../pages/Employees/EmployeesPage";
+import RolesPage from "../pages/Roles/RolesPage";
+import PositionsPage from "../pages/Positions/PositionsPage";
 import DetailJointPage from "../pages/DetailJoint/DetailJointPage";
 import GrindingPage from "../pages/Grinding/GrindingPage";
 import CuttingPage from "../pages/Cutting/CuttingPage";
@@ -58,6 +60,8 @@ function AppRoutes() {
         <Route path="cutting" element={<CuttingPage />} />
         <Route path="import-history" element={<ImportHistoryPage />} />
         <Route path="employees" element={<EmployeesPage />} />
+        <Route path="roles" element={<RolesPage />} />
+        <Route path="positions" element={<PositionsPage />} />
         <Route path="detail-joint" element={<DetailJointPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsPage />} />

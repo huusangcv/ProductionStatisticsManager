@@ -10,13 +10,40 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getAccount: () => ipcRenderer.invoke("auth:getAccount"),
     updateAccount: (data) => ipcRenderer.invoke("auth:updateAccount", data),
   },
+  dashboard: {
+    getKPIs: (params) => ipcRenderer.invoke("dashboard:getKPIs", params),
+    getTopEmployees: (params) => ipcRenderer.invoke("dashboard:getTopEmployees", params),
+    getTopWorkOrders: (params) => ipcRenderer.invoke("dashboard:getTopWorkOrders", params),
+    getProductionByDate: (params) => ipcRenderer.invoke("dashboard:getProductionByDate", params),
+    getGridData: (params) => ipcRenderer.invoke("dashboard:getGridData", params),
+  },
   employees: {
     getAll: () => ipcRenderer.invoke("employee:getAll"),
+    getByRepresentativeCode: (representativeCode) =>
+      ipcRenderer.invoke("employee:getByRepresentativeCode", representativeCode),
+    getByRepresentativeCodeAndRole: (representativeCode, roleCode) =>
+      ipcRenderer.invoke("employee:getByRepresentativeCodeAndRole", representativeCode, roleCode),
     getByCode: (code) => ipcRenderer.invoke("employee:getByCode", code),
+    getById: (id) => ipcRenderer.invoke("employee:getById", id),
     create: (data) => ipcRenderer.invoke("employee:create", data),
-    update: (code, data) =>
-      ipcRenderer.invoke("employee:update", { employeeCode: code, data }),
-    delete: (code) => ipcRenderer.invoke("employee:delete", code),
+    update: (id, data) => ipcRenderer.invoke("employee:update", { id, data }),
+    delete: (id) => ipcRenderer.invoke("employee:delete", id),
+    importExcel: () => ipcRenderer.invoke("employee:importExcel"),
+    exportExcel: () => ipcRenderer.invoke("employee:exportExcel"),
+  },
+  roles: {
+    getAll: () => ipcRenderer.invoke("role:getAll"),
+    getById: (id) => ipcRenderer.invoke("role:getById", id),
+    create: (data) => ipcRenderer.invoke("role:create", data),
+    update: (id, data) => ipcRenderer.invoke("role:update", { id, data }),
+    delete: (id) => ipcRenderer.invoke("role:delete", id),
+  },
+  positions: {
+    getAll: () => ipcRenderer.invoke("position:getAll"),
+    getById: (id) => ipcRenderer.invoke("position:getById", id),
+    create: (data) => ipcRenderer.invoke("position:create", data),
+    update: (id, data) => ipcRenderer.invoke("position:update", { id, data }),
+    delete: (id) => ipcRenderer.invoke("position:delete", id),
   },
   grinding: {
     getAll: () => ipcRenderer.invoke("grinding:getAll"),

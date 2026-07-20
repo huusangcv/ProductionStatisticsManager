@@ -1,89 +1,72 @@
 .dashboardGrid {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: 20px;
+  gap: 24px;
   width: 100%;
 }
 
-@media (min-width: 1920px) {
-  .dashboardGrid {
-    gap: 24px;
-  }
+.filterBar {
+  grid-column: span 12;
+  background-color: #ffffff;
+  padding: 16px 24px;
+  border-radius: 16px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  border: 1px solid #e5e7eb;
 }
 
-.importPanel {
-  grid-column: span 12;
-}
-.recentFiles {
-  grid-column: span 12;
-}
-.kpiCard {
-  grid-column: span 12;
-}
-.leaderboard {
-  grid-column: span 12;
-}
 .chartsArea {
   grid-column: span 12;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: inherit;
 }
-.barChart {
+
+.leaderboard {
   grid-column: span 12;
 }
+
 .donutChart {
   grid-column: span 12;
 }
 
-@media (min-width: 1024px) {
-  .kpiCard {
-    grid-column: span 6;
-  }
-  .importPanel {
-    grid-column: span 5;
-  }
-  .recentFiles {
-    grid-column: span 7;
-  }
-  .leaderboard {
-    grid-column: span 5;
-  }
-  .chartsArea {
-    grid-column: span 7;
-  }
+.lineChart {
+  grid-column: span 12;
+}
+
+.dataGridArea {
+  grid-column: span 12;
+  height: 750px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  border: 1px solid #e5e7eb;
 }
 
 @media (min-width: 1366px) {
-  .importPanel {
-    grid-column: span 4;
-  }
-  .recentFiles {
-    grid-column: span 8;
-  }
-  .kpiCard {
-    grid-column: span 3;
-  }
   .leaderboard {
     grid-column: span 4;
   }
-  .chartsArea {
-    grid-column: span 8;
-  }
-  .barChart {
-    grid-column: span 7;
-  }
   .donutChart {
-    grid-column: span 5;
+    grid-column: span 4;
+  }
+  .lineChart {
+    grid-column: span 4;
   }
 }
 
 @media (min-width: 1920px) {
-  .barChart {
-    grid-column: span 8;
+  .leaderboard {
+    grid-column: span 3;
   }
   .donutChart {
-    grid-column: span 4;
+    grid-column: span 3;
+  }
+  .lineChart {
+    grid-column: span 6;
   }
 }
 

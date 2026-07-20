@@ -13,6 +13,7 @@ import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
 import ExportDialogs from "./components/ExportDialogs";
+import PrintErrorDialog from "../../components/shared/PrintErrorDialog";
 import ProductionDataGrid from "../../components/shared/ProductionDataGrid";
 import DataGridToolbarActions, {
   StandardButton,
@@ -36,6 +37,7 @@ export default function HeatTreatmentPage() {
     message: "",
     severity: "success",
   });
+  const [printErrorResult, setPrintErrorResult] = useState(null);
 
   const { printExcel, printing } = usePrinters();
 
@@ -156,10 +158,14 @@ export default function HeatTreatmentPage() {
       if (result.ok) {
         showSnackbar(result.message || "In thành công.");
       } else {
-        showSnackbar(result.message, "error");
+        setPrintErrorResult(result);
       }
     } catch (error) {
-      showSnackbar("Không thể in: " + error.message, "error");
+      setPrintErrorResult({
+        ok: false,
+        message: "Không thể in: " + error.message,
+        details: { file: filePath, exception: error.message }
+      });
     }
   };
 
@@ -246,6 +252,12 @@ export default function HeatTreatmentPage() {
         onOpenFile={handleOpenFile}
         onOpenFolder={handleOpenFolder}
         onPrint={handlePrint}
+      />
+
+      <PrintErrorDialog 
+        open={!!printErrorResult} 
+        onClose={() => setPrintErrorResult(null)} 
+        result={printErrorResult} 
       />
 
       <Box

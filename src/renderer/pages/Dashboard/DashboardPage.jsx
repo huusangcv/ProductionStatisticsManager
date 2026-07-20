@@ -1,168 +1,275 @@
-import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
-import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
-import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
-import { useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
-import KpiCard from "../../components/dashboard/KpiCard";
-import BarChartPanel from "../../components/dashboard/BarChartPanel";
+import {
+  Box,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  TextField,
+  Button,
+} from "@mui/material";
+
+import LineChartPanel from "../../components/dashboard/LineChartPanel";
 import DonutChartPanel from "../../components/dashboard/DonutChartPanel";
 import LeaderboardPanel from "../../components/dashboard/LeaderboardPanel";
-import ImportPanel from "../../components/dashboard/ImportPanel";
-import RecentFilesTable from "../../components/dashboard/RecentFilesTable";
+import ProductionDataGrid from "../../components/shared/ProductionDataGrid";
+import DataGridToolbarActions from "../../components/shared/DataGridToolbarActions";
 import styles from "./DashboardPage.module.css";
 
-const kpiCards = [
-  {
-    title: "Tổng sản lượng hôm nay",
-    value: "12,750",
-    suffix: "Sản phẩm",
-    delta: "+15.6% so với hôm qua",
-    deltaTone: "up",
-    color: "#2563eb",
-    icon: <TrendingUpRoundedIcon />,
-    sparkline: [18, 20, 19, 26, 24, 31, 30],
-  },
-  {
-    title: "Tổng nhân viên",
-    value: "523",
-    suffix: "Người",
-    delta: "-8 người so với tháng trước",
-    deltaTone: "down",
-    color: "#16a34a",
-    icon: <PeopleAltOutlinedIcon />,
-    sparkline: [22, 23, 25, 24, 26, 28, 27],
-  },
-  {
-    title: "Tổng file đã xử lý",
-    value: "128",
-    suffix: "File",
-    delta: "+20 file so với tuần trước",
-    deltaTone: "up",
-    color: "#7c3aed",
-    icon: <DescriptionOutlinedIcon />,
-    sparkline: [11, 12, 15, 16, 19, 18, 22],
-  },
-  {
-    title: "Tỷ lệ hoàn thành",
-    value: "92.4%",
-    delta: "+7.2% so với tuần trước",
-    deltaTone: "up",
-    color: "#f59e0b",
-    icon: <CheckCircleOutlineRoundedIcon />,
-    sparkline: [88, 89, 90, 91, 92, 93, 92],
-  },
-];
+import { getGrindingDataGridColumns } from "../../../constants/grindingColumns";
+import { getCuttingDataGridColumns } from "../../../constants/cuttingColumns";
 
-const bars = [
-  { label: "11/05", value: 8450, color: "#5b93ea" },
-  { label: "12/05", value: 9210, color: "#5b93ea" },
-  { label: "13/05", value: 10300, color: "#5b93ea" },
-  { label: "14/05", value: 11540, color: "#5b93ea" },
-  { label: "15/05", value: 12650, color: "#5b93ea" },
-  { label: "16/05", value: 11980, color: "#2f6df6" },
-  { label: "17/05", value: 12750, color: "#2f6df6" },
-];
+function calculateDateRange(rangeType) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-const leaderboardItems = [
-  { name: "Nguyễn Văn A", shortName: "NA", value: 1250, percent: 94, color: "#c4d8ff" },
-  { name: "Trần Thị B", shortName: "TB", value: 1180, percent: 90, color: "#d8e7ff" },
-  { name: "Lê Văn C", shortName: "LC", value: 1050, percent: 82, color: "#f0dfff" },
-  { name: "Phạm Thị D", shortName: "PD", value: 980, percent: 78, color: "#ffe8cc" },
-  { name: "Hoàng Văn E", shortName: "HE", value: 870, percent: 72, color: "#e6f3ff" },
-  { name: "Đỗ Thị F", shortName: "DF", value: 820, percent: 68, color: "#f2f4ff" },
-  { name: "Bùi Văn G", shortName: "BG", value: 760, percent: 62, color: "#e8fff8" },
-  { name: "Nguyễn Thị H", shortName: "NH", value: 720, percent: 59, color: "#eef2ff" },
-  { name: "Trần Văn I", shortName: "TI", value: 680, percent: 55, color: "#e6f0ff" },
-  { name: "Lê Thị K", shortName: "LK", value: 640, percent: 51, color: "#eaf8ff" },
-];
+  let fromDate = new Date(today);
+  let toDate = new Date(today);
 
-const importedFiles = [
-  { name: "SanLuong_2025_05_17.xlsx", meta: "12.5 MB / 17/05/2025 09:30", status: "100%", progress: 100, tone: "#16a34a", bar: "linear-gradient(90deg, #22c55e 0%, #16a34a 100%)" },
-  { name: "SanLuong_2025_05_16.xlsx", meta: "11.8 MB / 16/05/2025 14:20", status: "100%", progress: 100, tone: "#16a34a", bar: "linear-gradient(90deg, #22c55e 0%, #16a34a 100%)" },
-  { name: "SanLuong_2025_05_15.xlsx", meta: "10.7 MB / 15/05/2025 10:15", status: "75%", progress: 75, tone: "#2563eb", bar: "linear-gradient(90deg, #60a5fa 0%, #2563eb 100%)" },
-  { name: "SanLuong_2025_05_14.xlsx", meta: "9.3 MB / 14/05/2025 08:45", status: "0%", progress: 0, tone: "#ef4444", bar: "linear-gradient(90deg, #f87171 0%, #ef4444 100%)" },
-];
+  switch (rangeType) {
+    case "Hôm nay":
+      break;
+    case "Hôm qua":
+      fromDate.setDate(fromDate.getDate() - 1);
+      toDate.setDate(toDate.getDate() - 1);
+      break;
+    case "Tuần này":
+      const day = fromDate.getDay();
+      const diff = fromDate.getDate() - day + (day === 0 ? -6 : 1);
+      fromDate.setDate(diff);
+      break;
+    case "Tuần trước":
+      const prevWeek = new Date(today);
+      prevWeek.setDate(prevWeek.getDate() - 7);
+      const prevDay = prevWeek.getDay();
+      const prevDiff = prevWeek.getDate() - prevDay + (prevDay === 0 ? -6 : 1);
+      fromDate = new Date(prevWeek.setDate(prevDiff));
+      toDate = new Date(fromDate);
+      toDate.setDate(toDate.getDate() + 6);
+      break;
+    case "Tháng này":
+      fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      break;
+    case "Tháng trước":
+      fromDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      toDate = new Date(today.getFullYear(), today.getMonth(), 0);
+      break;
+    case "Năm nay":
+      fromDate = new Date(today.getFullYear(), 0, 1);
+      break;
+    case "Tùy chọn":
+      return null;
+    default:
+      break;
+  }
 
-const recentFiles = [
-  { name: "SanLuong_2025_05_17.xlsx", date: "17/05/2025 09:30", status: "Thành công", statusBg: "#e9f9ef", statusColor: "#15803d", quantity: 12750, creator: "Admin" },
-  { name: "SanLuong_2025_05_16.xlsx", date: "16/05/2025 14:20", status: "Thành công", statusBg: "#e9f9ef", statusColor: "#15803d", quantity: 11980, creator: "Admin" },
-  { name: "SanLuong_2025_05_15.xlsx", date: "15/05/2025 10:15", status: "Đang xử lý", statusBg: "#eef4ff", statusColor: "#2563eb", quantity: 10300, creator: "Admin" },
-  { name: "SanLuong_2025_05_14.xlsx", date: "14/05/2025 08:45", status: "Thất bại", statusBg: "#fef1f2", statusColor: "#dc2626", quantity: 0, creator: "Admin" },
-  { name: "SanLuong_2025_05_13.xlsx", date: "13/05/2025 16:30", status: "Thành công", statusBg: "#e9f9ef", statusColor: "#15803d", quantity: 9210, creator: "Admin" },
-];
+  const format = (d) => {
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${month}-${day}`;
+  };
+
+  return { fromDate: format(fromDate), toDate: format(toDate) };
+}
 
 function DashboardPage() {
   const { onDashboardReady } = useOutletContext() ?? {};
+
+  const [productionType, setProductionType] = useState("Mài");
+  const [dateRange, setDateRange] = useState("Hôm nay");
+  const [customFromDate, setCustomFromDate] = useState("");
+  const [customToDate, setCustomToDate] = useState("");
+
+  const [appliedFilters, setAppliedFilters] = useState({
+    type: "Mài",
+    fromDate: calculateDateRange("Hôm nay")?.fromDate,
+    toDate: calculateDateRange("Hôm nay")?.toDate,
+  });
+
+  const [kpis, setKpis] = useState({
+    total_quantity: 0,
+  });
+  const [topEmployees, setTopEmployees] = useState([]);
+  const [topWorkOrders, setTopWorkOrders] = useState([]);
+  const [productionByDate, setProductionByDate] = useState([]);
+  const [gridData, setGridData] = useState([]);
 
   useEffect(() => {
     onDashboardReady?.();
   }, [onDashboardReady]);
 
+  useEffect(() => {
+    fetchDashboardData(appliedFilters);
+  }, [appliedFilters]);
+
+  const fetchDashboardData = async (filters) => {
+    try {
+      const [kpiRes, empRes, woRes, prodRes, gridRes] = await Promise.all([
+        window.electronAPI.dashboard.getKPIs(filters),
+        window.electronAPI.dashboard.getTopEmployees(filters),
+        window.electronAPI.dashboard.getTopWorkOrders(filters),
+        window.electronAPI.dashboard.getProductionByDate(filters),
+        window.electronAPI.dashboard.getGridData(filters),
+      ]);
+
+      if (kpiRes.ok) setKpis(kpiRes.data);
+      if (empRes.ok) setTopEmployees(empRes.data);
+      if (woRes.ok) setTopWorkOrders(woRes.data);
+      if (prodRes.ok) setProductionByDate(prodRes.data);
+      if (gridRes.ok) setGridData(gridRes.data);
+    } catch (error) {
+      console.error("Failed to load dashboard data", error);
+      alert("Lỗi khi tải dữ liệu Dashboard: " + error.message);
+    }
+  };
+
+  const handleApplyFilters = () => {
+    let fromD = customFromDate;
+    let toD = customToDate;
+
+    if (dateRange !== "Tùy chọn") {
+      const calculated = calculateDateRange(dateRange);
+      if (calculated) {
+        fromD = calculated.fromDate;
+        toD = calculated.toDate;
+      }
+    }
+
+    setAppliedFilters({
+      type: productionType,
+      fromDate: fromD,
+      toDate: toD,
+    });
+  };
+
+  const leaderboardItems = topEmployees.map((emp) => ({
+    name: emp.employee_full_name || emp.representative_code,
+    roleName: emp.role || appliedFilters.type,
+    shortName: (emp.employee_full_name || emp.representative_code).substring(0, 2).toUpperCase(),
+    value: emp.total_quantity,
+    percent: kpis.total_quantity > 0 ? Math.round((emp.total_quantity / kpis.total_quantity) * 100) : 0,
+    color: "#e6f0ff",
+  }));
+
+  const donutData = topWorkOrders.map((wo) => ({
+    name: wo.work_order_number || "Không có",
+    value: wo.total_quantity,
+  }));
+
+  const lineChartData = productionByDate.map((prod) => ({
+    label: prod.report_date.substring(5), // MM-DD
+    value: prod.total_quantity,
+  }));
+
+  const gridColumns = useMemo(() => {
+    return appliedFilters.type === "Mài"
+      ? getGrindingDataGridColumns()
+      : getCuttingDataGridColumns();
+  }, [appliedFilters.type]);
+
   return (
-    <>
+    <Box sx={{ flex: 1, overflowY: "auto", overflowX: "hidden", p: 3, height: "100%", bgcolor: "#F8FAFC" }}>
       <div className={styles.dashboardGrid}>
-        {/* Row 1: Import Panel & Recent Files */}
-        <div className={styles.importPanel}>
-          <ImportPanel files={importedFiles} />
-        </div>
-        <div className={styles.recentFiles}>
-          <RecentFilesTable rows={recentFiles} />
+        
+        {/* Filter Bar */}
+        <div className={styles.filterBar}>
+          <FormControl size="small" style={{ minWidth: 150 }}>
+            <InputLabel>Loại sản lượng</InputLabel>
+            <Select
+              value={productionType}
+              label="Loại sản lượng"
+              onChange={(e) => setProductionType(e.target.value)}
+            >
+              <MenuItem value="Mài">Mài</MenuItem>
+              <MenuItem value="Cắt">Cắt</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" style={{ minWidth: 180 }}>
+            <InputLabel>Khoảng thời gian</InputLabel>
+            <Select
+              value={dateRange}
+              label="Khoảng thời gian"
+              onChange={(e) => setDateRange(e.target.value)}
+            >
+              <MenuItem value="Hôm nay">Hôm nay</MenuItem>
+              <MenuItem value="Hôm qua">Hôm qua</MenuItem>
+              <MenuItem value="Tuần này">Tuần này</MenuItem>
+              <MenuItem value="Tuần trước">Tuần trước</MenuItem>
+              <MenuItem value="Tháng này">Tháng này</MenuItem>
+              <MenuItem value="Tháng trước">Tháng trước</MenuItem>
+              <MenuItem value="Năm nay">Năm nay</MenuItem>
+              <MenuItem value="Tùy chọn">Tùy chọn</MenuItem>
+            </Select>
+          </FormControl>
+
+          {dateRange === "Tùy chọn" && (
+            <>
+              <TextField
+                type="date"
+                label="Từ ngày"
+                InputLabelProps={{ shrink: true }}
+                size="small"
+                value={customFromDate}
+                onChange={(e) => setCustomFromDate(e.target.value)}
+              />
+              <TextField
+                type="date"
+                label="Đến ngày"
+                InputLabelProps={{ shrink: true }}
+                size="small"
+                value={customToDate}
+                onChange={(e) => setCustomToDate(e.target.value)}
+              />
+            </>
+          )}
+
+          <Button variant="contained" color="primary" onClick={handleApplyFilters} sx={{ ml: "auto", borderRadius: 2, padding: "6px 20px" }}>
+            Lọc dữ liệu
+          </Button>
         </div>
 
-        {/* Row 2: KPI Cards */}
-        {kpiCards.map((card) => (
-          <div key={card.title} className={styles.kpiCard}>
-            <KpiCard {...card} />
-          </div>
-        ))}
-
-        {/* Row 3: Leaderboard (Left) & Charts (Right) */}
+        {/* Row 1: Charts Area */}
         <div className={styles.leaderboard}>
           <LeaderboardPanel
-            title="Top 10 nhân viên có sản lượng cao nhất"
+            title="Top 5 nhân viên"
             items={leaderboardItems}
           />
         </div>
+        <div className={styles.donutChart}>
+          <DonutChartPanel
+            title="Top 5 công đơn"
+            totalLabel="Tổng sản phẩm"
+            totalValue={donutData.reduce((acc, it) => acc + it.value, 0)}
+            data={donutData}
+          />
+        </div>
+        <div className={styles.lineChart}>
+          <LineChartPanel
+            title="Sản lượng theo ngày"
+            data={lineChartData}
+          />
+        </div>
 
-        <div className={styles.chartsArea}>
-          <div className={styles.barChart}>
-            <BarChartPanel
-              title="Sản lượng theo ngày"
-              periodLabel={
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <CalendarMonthOutlinedIcon style={{ fontSize: 16 }} />7 ngày qua
-                </div>
-              }
-              bars={bars}
-              scaleLabels={["0K", "2K", "4K", "6K", "8K", "10K", "12K", "14K"]}
-              hoverTable={[
-                { label: "Giá trị cao nhất", value: "12,750", trend: "up" },
-                { label: "Giá trị trung bình", value: "11,133", trend: "up" },
-                { label: "Ngày hiện tại", value: "17/05", trend: "up" },
-              ]}
+        {/* Row 2: DataGrid */}
+        <div className={styles.dataGridArea} id="dataGridSection">
+          <h3 style={{ margin: "0 0 20px 0", fontSize: 16, fontWeight: 700, color: "#0f172a" }}>Chi tiết sản lượng</h3>
+          <Box sx={{ height: 670 }}>
+            <ProductionDataGrid
+              data={gridData}
+              columnSpec={gridColumns}
+              renderToolbar={() => <DataGridToolbarActions hasExport={true} />}
+              enableDragDrop={false}
             />
-          </div>
-          <div className={styles.donutChart}>
-            <DonutChartPanel
-              title="Tỷ lệ CÁT / MAI"
-              total="12,750"
-              leftLabel="CAT"
-              leftValue="7,650"
-              rightLabel="MAI"
-              rightValue="5,100"
-              leftPercent="60.0%"
-              rightPercent="40.0%"
-            />
-          </div>
+          </Box>
         </div>
       </div>
 
       <div className={styles.footer}>
         © 2025 Production Statistics Manager. All rights reserved.
       </div>
-    </>
+    </Box>
   );
 }
 

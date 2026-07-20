@@ -19,15 +19,17 @@ import * as z from "zod";
 
 const schema = z.object({
   employee_code: z.string().min(1, "Mã NV là bắt buộc"),
-  employee_name: z.string().min(2, "Họ tên phải có ít nhất 2 ký tự"),
+  representative_code: z.string().min(1, "Mã đại diện là bắt buộc"),
+  full_name: z.string().min(2, "Họ tên phải có ít nhất 2 ký tự"),
   phone: z.string().regex(/(84|0[3|5|7|8|9])+([0-9]{8})\b/, "SĐT không hợp lệ").or(z.literal("")),
-  department: z.enum(["Mài", "Cắt"]),
-  role_code: z.enum(["Thống kê", "Trưởng ca", "Tổ trưởng", "Công nhân"]),
+  role_id: z.number({ required_error: "Vai trò là bắt buộc" }).min(1, "Vai trò là bắt buộc"),
+  position_id: z.number({ required_error: "Chức vụ là bắt buộc" }).min(1, "Chức vụ là bắt buộc"),
   status: z.enum(["Đang làm việc", "Nghỉ việc"]),
   hire_date: z.string().min(1, "Ngày vào làm là bắt buộc"),
+  note: z.string().optional(),
 });
 
-function EmployeeDialog({ open, employee, onClose, onSave }) {
+function EmployeeDialog({ open, employee, roles = [], positions = [], onClose, onSave }) {
   const {
     control,
     handleSubmit,
@@ -37,12 +39,14 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
     resolver: zodResolver(schema),
     defaultValues: {
       employee_code: "",
-      employee_name: "",
+      representative_code: "",
+      full_name: "",
       phone: "",
-      department: "Mài",
-      role_code: "Công nhân",
+      role_id: roles[0]?.id ?? 0,
+      position_id: positions[0]?.id ?? 0,
       status: "Đang làm việc",
       hire_date: new Date().toISOString().split("T")[0],
+      note: "",
     },
   });
 
@@ -51,26 +55,30 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
       if (employee) {
         reset({
           employee_code: employee.employee_code || "",
-          employee_name: employee.employee_name || "",
+          representative_code: employee.representative_code || "",
+          full_name: employee.full_name || "",
           phone: employee.phone || "",
-          department: employee.department || "Mài",
-          role_code: employee.role_code || "Công nhân",
+          role_id: employee.role_id || roles[0]?.id || 0,
+          position_id: employee.position_id || positions[0]?.id || 0,
           status: employee.status || "Đang làm việc",
           hire_date: employee.hire_date || new Date().toISOString().split("T")[0],
+          note: employee.note || "",
         });
       } else {
         reset({
           employee_code: `V${String(Math.floor(Math.random() * 9999)).padStart(4, "0")}`,
-          employee_name: "",
+          representative_code: "",
+          full_name: "",
           phone: "",
-          department: "Mài",
-          role_code: "Công nhân",
+          role_id: roles[0]?.id || 0,
+          position_id: positions[0]?.id || 0,
           status: "Đang làm việc",
           hire_date: new Date().toISOString().split("T")[0],
+          note: "",
         });
       }
     }
-  }, [open, employee, reset]);
+  }, [open, employee, reset, roles, positions]);
 
   const onSubmit = (data) => {
     onSave(data);
@@ -128,11 +136,11 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
                     <TextField
                       {...field}
                       fullWidth
-                      label="Mã NV"
+                      label="Mã số nhân viên"
                       error={!!errors.employee_code}
                       helperText={errors.employee_code?.message}
                       slotProps={{
-                        input: { readOnly: true, sx: { bgcolor: "#f8fafc" } },
+                        input: { readOnly: !!employee, sx: employee ? { bgcolor: "#f8fafc" } : {} },
                       }}
                     />
                   )}
@@ -140,15 +148,30 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Controller
-                  name="employee_name"
+                  name="representative_code"
                   control={control}
                   render={({ field }) => (
                     <TextField
                       {...field}
                       fullWidth
-                      label="Họ và tên"
-                      error={!!errors.employee_name}
-                      helperText={errors.employee_name?.message}
+                      label="Mã đại diện *"
+                      error={!!errors.representative_code}
+                      helperText={errors.representative_code?.message || "Mã dùng trong file Excel Cắt/Mài"}
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Controller
+                  name="full_name"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Họ và tên *"
+                      error={!!errors.full_name}
+                      helperText={errors.full_name?.message}
                     />
                   )}
                 />
@@ -187,39 +210,42 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Controller
-                  name="department"
+                  name="role_id"
                   control={control}
                   render={({ field }) => (
                     <TextField
                       {...field}
                       select
                       fullWidth
-                      label="Phòng ban"
-                      error={!!errors.department}
+                      label="Vai trò *"
+                      error={!!errors.role_id}
+                      helperText={errors.role_id?.message}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     >
-                      <MenuItem value="Mài">Mài</MenuItem>
-                      <MenuItem value="Cắt">Cắt</MenuItem>
+                      {roles.filter(r => r.is_active === 1).map((role) => (
+                        <MenuItem key={role.id} value={role.id}>{role.name}</MenuItem>
+                      ))}
                     </TextField>
                   )}
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Controller
-                  name="role_code"
+                  name="position_id"
                   control={control}
                   render={({ field }) => (
                     <TextField
                       {...field}
                       select
                       fullWidth
-                      label="Vai trò"
-                      error={!!errors.role_code}
+                      label="Chức vụ *"
+                      error={!!errors.position_id}
+                      helperText={errors.position_id?.message}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     >
-                      <MenuItem value="Thống kê">Thống kê</MenuItem>
-                      <MenuItem value="Trưởng ca">Trưởng ca</MenuItem>
-                      <MenuItem value="Tổ trưởng">Tổ trưởng</MenuItem>
-                      <MenuItem value="Nhân viên">Nhân viên</MenuItem>
-                      <MenuItem value="Công nhân">Công nhân</MenuItem>
+                      {positions.filter(p => p.is_active === 1).map((pos) => (
+                        <MenuItem key={pos.id} value={pos.id}>{pos.name}</MenuItem>
+                      ))}
                     </TextField>
                   )}
                 />
@@ -256,6 +282,21 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
                       <MenuItem value="Đang làm việc">Đang làm việc</MenuItem>
                       <MenuItem value="Nghỉ việc">Nghỉ việc</MenuItem>
                     </TextField>
+                  )}
+                />
+              </Grid>
+              <Grid size={{ xs: 12 }}>
+                <Controller
+                  name="note"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Ghi chú"
+                      multiline
+                      rows={2}
+                    />
                   )}
                 />
               </Grid>

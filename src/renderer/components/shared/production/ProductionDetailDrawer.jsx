@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Drawer,
   Box,
@@ -8,6 +8,7 @@ import {
   Divider,
   Stack,
   TextField,
+  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -16,6 +17,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import PersonSearchIcon from "@mui/icons-material/PersonSearch";
 import ProductionInfoSection, { InfoRow } from "./ProductionInfoSection";
 
 const formatDateForUI = (dateStr) => {
@@ -25,6 +27,10 @@ const formatDateForUI = (dateStr) => {
   return year && month && day ? `${day}/${month}/${year}` : dateStr;
 };
 
+/**
+ * ProductionEditForm — allows editing completed_quantity, scrap_quantity, and representative_code.
+ * After changing representative_code, it looks up the employee to show a preview.
+ */
 function ProductionEditForm({
   record,
   isGrinding,
@@ -35,16 +41,61 @@ function ProductionEditForm({
   const [formData, setFormData] = useState({
     completed_quantity: record?.completed_quantity || "",
     scrap_quantity: record?.scrap_quantity || "",
-    employee_name: record?.employee_name || "",
+    representative_code: record?.representative_code || "",
   });
+
+  // Employee lookup preview
+  const [employeePreview, setEmployeePreview] = useState(
+    record?.representative_code
+      ? {
+          full_name: record.employee_full_name || "",
+          role_name: record.role_name || "",
+          position_name: record.position_name || "",
+          found: !!record.employee_full_name,
+        }
+      : null,
+  );
+
+  const lookupTimeout = useRef(null);
+
+  const lookupEmployee = async (code) => {
+    if (!code?.trim()) {
+      setEmployeePreview(null);
+      return;
+    }
+    try {
+      const roleCode = isGrinding ? "GRIND" : "CUT";
+      const emp = await window.electronAPI.employees.getByRepresentativeCodeAndRole(code.trim(), roleCode);
+      if (emp) {
+        setEmployeePreview({
+          full_name: emp.full_name,
+          role_name: emp.role_name,
+          position_name: emp.position_name,
+          found: true,
+        });
+      } else {
+        setEmployeePreview({ found: false });
+      }
+    } catch {
+      setEmployeePreview(null);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (name === "representative_code") {
+      clearTimeout(lookupTimeout.current);
+      lookupTimeout.current = setTimeout(() => {
+        lookupEmployee(value);
+      }, 400);
+    }
   };
+
+  useEffect(() => {
+    return () => clearTimeout(lookupTimeout.current);
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -52,7 +103,7 @@ function ProductionEditForm({
       ...record,
       completed_quantity: Number(formData.completed_quantity),
       scrap_quantity: isGrinding ? Number(formData.scrap_quantity) : undefined,
-      employee_name: formData.employee_name,
+      representative_code: formData.representative_code,
     });
   };
 
@@ -81,14 +132,44 @@ function ProductionEditForm({
           InputProps={{ inputProps: { min: 0 } }}
         />
       )}
+
       <TextField
         fullWidth
-        label="Nhân viên"
-        name="employee_name"
-        value={formData.employee_name}
+        label="Mã đại diện"
+        name="representative_code"
+        value={formData.representative_code}
         onChange={handleChange}
         margin="normal"
+        helperText="Nhập mã đại diện — tên nhân viên sẽ tự động cập nhật"
       />
+
+      {/* Employee preview */}
+      {employeePreview && (
+        <Box
+          sx={{
+            mt: 1,
+            p: 1.5,
+            borderRadius: 1,
+            bgcolor: employeePreview.found ? "#f0fdf4" : "#fff8f0",
+            border: `1px solid ${employeePreview.found ? "#86efac" : "#fde68a"}`,
+          }}
+        >
+          {employeePreview.found ? (
+            <>
+              <Typography variant="caption" color="success.main" sx={{ fontWeight: 700 }}>✓ Tìm thấy nhân viên</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{employeePreview.full_name}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {employeePreview.role_name} • {employeePreview.position_name}
+              </Typography>
+            </>
+          ) : (
+            <Typography variant="caption" color="warning.main" sx={{ fontWeight: 700 }}>
+              ⚠ Không tìm thấy nhân viên với mã này. Dữ liệu vẫn sẽ được lưu.
+            </Typography>
+          )}
+        </Box>
+      )}
+
       <Divider sx={{ my: 2 }} />
       <Stack direction="row" spacing={2} justifyContent="flex-end">
         <Button onClick={onCancel} variant="outlined" color="secondary">
@@ -230,8 +311,22 @@ function ProductionDetailDrawer({
               </ProductionInfoSection>
 
               <ProductionInfoSection title="Thông tin nhân viên">
-                <InfoRow label="Nhân viên" value={record.employee_name} />
-                <Divider />
+                <InfoRow 
+            label="Mã đại diện" 
+            value={record.representative_code || "—"} 
+          />
+          <InfoRow
+            label="Tên nhân viên"
+            value={record.employee_full_name || "-"}
+          />
+          <InfoRow 
+            label="Vai trò" 
+            value={record.role_name || "-"} 
+          />
+          <InfoRow
+            label="Chức vụ"
+            value={record.position_name || "-"}
+          />      <Divider />
                 <InfoRow
                   label="Ngày báo sản lượng"
                   value={formatDateForUI(record.report_date)}

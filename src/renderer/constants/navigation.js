@@ -14,6 +14,8 @@ export const navigationItems = [
     icon: "Employees",
     children: [
       { label: "Nhân viên", path: "/employees" },
+      { label: "Vai trò", path: "/roles" },
+      { label: "Chức vụ", path: "/positions" },
       { label: "Chi tiết kết xâu", path: "/detail-joint" },
     ],
   },

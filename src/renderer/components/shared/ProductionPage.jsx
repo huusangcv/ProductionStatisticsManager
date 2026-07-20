@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Box, Snackbar, Alert, Card } from "@mui/material";
+import { Box, Snackbar, Alert, Card, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, List, ListItem, ListItemText } from "@mui/material";
 import ProductionDataGrid from "./ProductionDataGrid";
 import ProductionDetailDrawer from "./production/ProductionDetailDrawer";
 
@@ -22,6 +22,7 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [unmappedDialog, setUnmappedDialog] = useState({ open: false, codes: [] });
 
   const isGrinding = ipcKey === "grinding";
 
@@ -145,6 +146,10 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
       setPreviewData(null);
       setPreviewMeta(null);
       await loadData();
+      // Show warning if some representative_codes weren't found in employees
+      if (result.unmappedCodes && result.unmappedCodes.length > 0) {
+        setUnmappedDialog({ open: true, codes: result.unmappedCodes });
+      }
     } else {
       showSnackbar(result.message, "error");
     }
@@ -218,6 +223,37 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Unmapped Representative Codes Dialog */}
+      <Dialog
+        open={unmappedDialog.open}
+        onClose={() => setUnmappedDialog({ open: false, codes: [] })}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>⚠ Mã đại diện chưa khai báo</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 1 }}>
+            Các mã đại diện sau <b>không tìm thấy</b> trong danh sách nhân viên.
+            Dữ liệu đã được lưu nhưng không có thông tin nhân viên.
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Vui lòng vào <b>Danh mục → Nhân viên</b> để khai báo mã đại diện cho các nhân viên này.
+          </Typography>
+          <List dense sx={{ bgcolor: "#fff8f0", borderRadius: 1, border: "1px solid #fde68a", maxHeight: 240, overflow: "auto" }}>
+            {unmappedDialog.codes.map((code, i) => (
+              <ListItem key={i}>
+                <ListItemText primary={code} />
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUnmappedDialog({ open: false, codes: [] })} variant="contained">
+            Đã hiểu
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -15,12 +15,12 @@ const CUTTING_COLUMN_SPEC = [
   { databaseField: "item_name",             type: "text"    },
   { databaseField: "specification",         type: "text"    },
   { databaseField: "completed_quantity",    type: "integer" },
-  { databaseField: "employee_name",         type: "text"    },
+  { databaseField: "representative_code",   type: "text"    },
   { databaseField: "unit_weight",           type: "float"   },
   { databaseField: "completed_weight",      type: "float"   },
 ];
 
-const cuttingDAO = createProductionModule("cutting_production", CUTTING_COLUMN_SPEC);
+const cuttingDAO = createProductionModule("cutting_production", CUTTING_COLUMN_SPEC, "CUT");
 
 module.exports = {
   ensureCuttingTable:            cuttingDAO.ensureTable,
