@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Box, Snackbar, Alert, Card, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, List, ListItem, ListItemText } from "@mui/material";
 import ProductionDataGrid from "./ProductionDataGrid";
 import ProductionDetailDrawer from "./production/ProductionDetailDrawer";
@@ -23,6 +23,11 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [unmappedDialog, setUnmappedDialog] = useState({ open: false, codes: [] });
+
+  const [filterDate, setFilterDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
 
   const isGrinding = ipcKey === "grinding";
 
@@ -166,7 +171,13 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
   };
 
   const isPreview = previewData !== null;
-  const displayData = isPreview ? previewData : savedData;
+  
+  const filteredSavedData = useMemo(() => {
+    if (!filterDate) return savedData;
+    return savedData.filter((row) => row.report_date === filterDate);
+  }, [savedData, filterDate]);
+
+  const displayData = isPreview ? previewData : filteredSavedData;
 
   return (
     <Box
@@ -197,6 +208,9 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
           onFileDrop={handleFileDrop}
           onInvalidFile={handleInvalidFile}
           onRowDoubleClick={!isPreview ? handleRowDoubleClick : undefined}
+          summaryMode={ipcKey}
+          filterDate={filterDate}
+          onFilterDateChange={setFilterDate}
         />
       </Card>
 

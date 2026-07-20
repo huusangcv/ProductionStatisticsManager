@@ -261,6 +261,7 @@ function DashboardPage() {
               columnSpec={gridColumns}
               renderToolbar={() => <DataGridToolbarActions hasExport={true} />}
               enableDragDrop={false}
+              summaryMode={appliedFilters.type === "Mài" ? "grinding" : "cutting"}
             />
           </Box>
         </div>

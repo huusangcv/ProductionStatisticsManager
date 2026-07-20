@@ -1,5 +1,5 @@
 import { DataGrid } from "@mui/x-data-grid";
-import { Box, Chip } from "@mui/material";
+import { Box, Chip, TextField } from "@mui/material";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import SaveIcon from "@mui/icons-material/Save";
@@ -61,6 +61,9 @@ function ProductionDataGrid({
   density,
   pageSizeOptions = [10, 20, 50, 100],
   onRowDoubleClick,
+  summaryMode,
+  filterDate,
+  onFilterDateChange,
 }) {
   const { isDragging, dragProps } = useDragDropImport({
     onDropFile: onFileDrop,
@@ -106,6 +109,18 @@ function ProductionDataGrid({
         hasExport={true}
         rightActions={
           <>
+            {onFilterDateChange && (
+              <TextField
+                type="date"
+                size="small"
+                value={filterDate || ""}
+                onChange={(e) => onFilterDateChange(e.target.value)}
+                sx={{
+                  width: 150,
+                  "& .MuiInputBase-root": { height: 38, borderRadius: "8px", bgcolor: "#fff" },
+                }}
+              />
+            )}
             <StandardButton
               primary
               icon={<UploadFileRoundedIcon />}
@@ -147,6 +162,9 @@ function ProductionDataGrid({
         loading={isProcessing}
         density={density}
         slots={{ toolbar, footer: ProductionGridFooter }}
+        slotProps={{
+          footer: { summaryMode }
+        }}
         initialState={{ pagination: { paginationModel: { pageSize: 50 } } }}
         pageSizeOptions={pageSizeOptions}
         onRowDoubleClick={onRowDoubleClick}

@@ -3,6 +3,7 @@ export const PRODUCTION_SUMMARY_FIELDS = {
   scrapQuantity: "scrap_quantity",
   unitWeight: "unit_weight",
   completedWeight: "completed_weight",
+  jointCount: "joint_count",
 };
 
 export function parseProductionNumber(value) {
@@ -26,6 +27,7 @@ export function computeProductionSummaryTotals(rows) {
       totals.scrapQuantity += parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.scrapQuantity]);
       totals.unitWeight += parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.unitWeight]);
       totals.completedWeight += parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.completedWeight]);
+      totals.jointCount += parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.jointCount]);
       return totals;
     },
     {
@@ -33,6 +35,7 @@ export function computeProductionSummaryTotals(rows) {
       scrapQuantity: 0,
       unitWeight: 0,
       completedWeight: 0,
+      jointCount: 0,
     },
   );
 }
