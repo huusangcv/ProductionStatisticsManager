@@ -94,23 +94,17 @@ function LoginPage() {
           }}
         >
           <Stack spacing={2.5} alignItems="center" textAlign="center" sx={{ maxWidth: 360 }}>
-            <Box
-              component="img"
-              src="/ki-logo.svg"
-              alt="Logo"
-              sx={{ width: 72, height: 72, filter: "brightness(0) invert(1)" }}
-            />
             <Typography variant="h5" fontWeight={700} lineHeight={1.3}>
               {APP_NAME}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.92, letterSpacing: 0.4 }}>
-              Enterprise ERP / MES
+              Hệ thống Quản lý Dữ liệu Nội bộ
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.85 }}>
-              Kingdom Flow Control Co., Ltd.
+              Thống Kê Sản Xuất
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.75 }}>
-              Production Statistics System
+              Module: Cắt & Mài
             </Typography>
           </Stack>
         </Box>

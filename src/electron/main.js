@@ -15,9 +15,9 @@ const isDev = !app.isPackaged;
 
 function resolveIconPath() {
   if (isDev) {
-    return path.join(__dirname, "..", "..", "resources", "ki-logo.png");
+    return path.join(__dirname, "..", "..", "resources", "icon.png");
   }
-  return path.join(process.resourcesPath, "ki-logo.png");
+  return path.join(process.resourcesPath, "icon.png");
 }
 
 // ── createWindow ──────────────────────────────────────────────────────────────

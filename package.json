@@ -43,8 +43,7 @@
   "build": {
     "appId": "com.productionstatisticsmanager.app",
     "productName": "ProductionStatisticsManager",
-    "copyright": "KI Factory",
-    "icon": "resources/ki-logo.png",
+    "icon": "resources/icon.png",
     "files": [
       "dist/**",
       "src/electron/**",
