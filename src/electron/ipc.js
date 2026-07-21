@@ -923,11 +923,11 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle("heatTreatment:print", async (_event, filePath) => {
-    return await printExcelFile(filePath);
+    return await printerService.printExcel(filePath, null, "heat-treatment");
   });
 
-  ipcMain.handle("report:printExcel", async (_event, { filePath }) => {
-    return await printExcelFile(filePath);
+  ipcMain.handle("report:printExcel", async (_event, { filePath, module: moduleKey }) => {
+    return await printerService.printExcel(filePath, null, moduleKey || null);
   });
 
   // ── Printer IPC handlers ──────────────────────────────────────────────────────────
@@ -1187,10 +1187,6 @@ function registerIpcHandlers() {
   ipcMain.handle("dashboard:getGridData", (_event, { type, fromDate, toDate }) =>
     getDashboardGridData(type, fromDate, toDate),
   );
-}
-
-async function printExcelFile(filePath) {
-  return await printerService.printExcel(filePath);
 }
 
 module.exports = { registerIpcHandlers };

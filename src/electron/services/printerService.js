@@ -11,6 +11,7 @@ const {
   addPrintLog,
   saveSettings,
 } = require("../sqlite/printers");
+const { printExcelFile } = require("./print/excelPrinter");
 
 async function getAllWindowsPrinters() {
   console.log("[getAllWindowsPrinters] Starting printer detection...");
@@ -226,214 +227,33 @@ async function printTest(printerName) {
   }
 }
 
-async function printExcel(filePath, printerNameOverride = null) {
-  const startTime = performance.now();
-  console.log("[printExcel] Starting print for file:", filePath);
+/**
+ * printExcel — delegates to the new modular Print Engine.
+ *
+ * @param {string}      filePath            Absolute path to the workbook.
+ * @param {string|null} printerNameOverride Override the default printer from DB settings.
+ * @param {string|null} moduleKey           Module key for per-template config (e.g. "heat-treatment").
+ * @returns {Promise<{ ok: boolean, message: string, details: object }>}
+ */
+async function printExcel(filePath, printerNameOverride = null, moduleKey = null) {
+  console.log("[printExcel] Delegating to new Print Engine", { filePath, moduleKey });
 
-  const result = {
-    ok: false,
-    message: "In thất bại",
-    details: {
-      printer: printerNameOverride,
-      file: filePath,
-      command: null,
-      stdout: null,
-      stderr: null,
-      executionTime: 0,
-      exception: null,
-      errorCode: null
-    }
-  };
-
-  // 1. Check file basics
-  if (!filePath || !path.isAbsolute(filePath)) {
-    result.message = "Đường dẫn file không hợp lệ (phải là đường dẫn tuyệt đối).";
-    return logAndReturnError(result);
+  if (process.platform !== "win32") {
+    return { ok: true, message: "Bỏ qua in trên hệ điều hành không phải Windows.", details: {} };
   }
 
-  if (!fs.existsSync(filePath)) {
-    result.message = "Không tìm thấy file cần in. File có thể đã bị xóa hoặc di chuyển.";
-    return logAndReturnError(result);
-  }
-
-  const ext = path.extname(filePath).toLowerCase();
-  if (ext !== ".xlsx" && ext !== ".xls") {
-    result.message = "Định dạng file không hỗ trợ. Chỉ hỗ trợ .xlsx và .xls.";
-    return logAndReturnError(result);
-  }
-
-  try {
-    fs.accessSync(filePath, fs.constants.R_OK);
-  } catch (err) {
-    result.message = "Không có quyền đọc file hoặc file đang bị khóa bởi tiến trình khác.";
-    result.details.exception = err.message;
-    return logAndReturnError(result);
-  }
-
-  // 2. Get printer
-  let printerName = printerNameOverride;
-  if (!printerName) {
-    const settings = getSettings();
-    if (!settings || !settings.printer_name) {
-      result.message = "Vui lòng chọn máy in mặc định trong Cài đặt.";
-      return logAndReturnError(result);
-    }
-    printerName = settings.printer_name;
-  }
-  result.details.printer = printerName;
-
-  // 3. Check printer status
-  const printerCheck = await checkPrinter(printerName);
-  if (!printerCheck.printerFound) {
-    result.message = `Máy in "${printerName}" không tồn tại trong hệ thống.`;
-    return logAndReturnError(result);
-  }
-  
-  // 4. Execute PowerShell
-  if (process.platform === "win32") {
-    const psScript = `
-$ErrorActionPreference = "Stop"
-try {
-  $excel = New-Object -ComObject Excel.Application
-  $excel.Visible = $false
-  $excel.DisplayAlerts = $false
-  try {
-    $workbook = $excel.Workbooks.Open("${filePath.replace(/\\/g, "\\\\")}")
-    try {
-      ${printerName ? `$excel.ActivePrinter = "${printerName}"` : ""}
-      $workbook.PrintOut()
-      Write-Output "SUCCESS"
-    } finally {
-      $workbook.Close($false)
-      [System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
-    }
-  } finally {
-    $excel.Quit()
-    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
-    [System.GC]::Collect()
-    [System.GC]::WaitForPendingFinalizers()
-  }
-} catch {
-  Write-Output "FAILED_JSON:$($_.Exception.Message | ConvertTo-Json -Compress)"
-  exit 1
-}
-`;
-    // Base64 encode for EncodedCommand (UTF-16LE)
-    const encodedCommand = Buffer.from(psScript, "utf16le").toString("base64");
-    result.details.command = "powershell -EncodedCommand " + encodedCommand;
-
-    try {
-      const { execFile } = require("child_process");
-      const { promisify } = require("util");
-      const execFileAsync = promisify(execFile);
-      
-      const { stdout, stderr } = await execFileAsync("powershell.exe", [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-EncodedCommand",
-        encodedCommand
-      ]);
-
-      result.details.stdout = stdout;
-      result.details.stderr = stderr;
-      result.details.executionTime = Math.round(performance.now() - startTime);
-
-      const trimmedStdout = stdout.trim();
-      
-      if (trimmedStdout.includes("SUCCESS")) {
-        result.ok = true;
-        result.message = "Đã gửi lệnh in thành công.";
-        logSuccess(result);
-        return result;
-      } else {
-        // Parse custom FAILED_JSON
-        let errMsg = "Lỗi không xác định từ Excel COM.";
-        if (trimmedStdout.includes("FAILED_JSON:")) {
-           try {
-              const jsonPart = trimmedStdout.split("FAILED_JSON:")[1];
-              errMsg = JSON.parse(jsonPart);
-           } catch(e) {
-              errMsg = trimmedStdout;
-           }
-        }
-        
-        if (errMsg.includes("HRESULT: 0x80040154") || errMsg.includes("Excel.Application")) {
-           result.message = "Không tìm thấy Microsoft Excel. Vui lòng cài đặt MS Excel để sử dụng chức năng in.";
-           result.details.errorCode = "EXCEL_NOT_INSTALLED";
-        } else {
-           result.message = "In thất bại: " + errMsg;
-        }
-        
-        result.details.exception = errMsg;
-        return logAndReturnError(result);
-      }
-
-    } catch (execError) {
-      result.details.executionTime = Math.round(performance.now() - startTime);
-      result.details.stdout = execError.stdout || "";
-      result.details.stderr = execError.stderr || "";
-      result.details.exception = execError.message;
-      result.details.errorCode = execError.code || "";
-
-      let errMsg = execError.message || "Lỗi thực thi PowerShell.";
-      if (execError.stdout && execError.stdout.includes("FAILED_JSON:")) {
-          try {
-            const jsonPart = execError.stdout.split("FAILED_JSON:")[1].trim();
-            errMsg = JSON.parse(jsonPart);
-          } catch(e) {}
-      }
-
-      if (errMsg.includes("HRESULT: 0x80040154") || errMsg.includes("Excel.Application")) {
-        result.message = "Không tìm thấy Microsoft Excel. Vui lòng cài đặt MS Excel.";
-        result.details.errorCode = "EXCEL_NOT_INSTALLED";
-      } else if (errMsg.includes("0x800A03EC") || errMsg.includes("Open")) {
-        result.message = "Không thể mở file Excel. File có thể bị lỗi, bị khóa hoặc không hỗ trợ.";
-      } else if (errMsg.includes("ActivePrinter")) {
-        result.message = `Máy in "${printerName}" không khả dụng hoặc bị lỗi trong Excel.`;
-      } else {
-        result.message = "Gặp lỗi khi gọi máy in: " + (errMsg.substring(0, 100) + "...");
-      }
-      
-      return logAndReturnError(result);
-    }
-  } else {
-    result.ok = true;
-    result.message = "Bỏ qua in trên hệ điều hành không phải Windows.";
-    return result;
-  }
-}
-
-function logAndReturnError(result) {
-  addPrintLog({
-    printer_name: result.details.printer,
-    file_name: result.details.file ? path.basename(result.details.file) : null,
-    file_path: result.details.file,
-    status: "FAILED",
-    error_message: result.message,
-    error_code: String(result.details.errorCode || ""),
-    exception: String(result.details.exception || result.details.stderr || ""),
-    execution_time: result.details.executionTime,
-    command: result.details.command,
-    version: "1.1.0"
-  });
-  return result;
-}
-
-function logSuccess(result) {
-  addPrintLog({
-    printer_name: result.details.printer,
-    file_name: result.details.file ? path.basename(result.details.file) : null,
-    file_path: result.details.file,
-    status: "SUCCESS",
-    error_message: null,
-    error_code: null,
-    exception: null,
-    execution_time: result.details.executionTime,
-    command: result.details.command,
-    version: "1.1.0"
+  return await printExcelFile({
+    filePath,
+    printerName:    printerNameOverride,
+    module:         moduleKey,
+    checkPrinterFn: checkPrinter,
   });
 }
+
+// logAndReturnError and logSuccess have been moved to printerLogger.js (v2.0.0).
+// Kept as no-ops here to avoid breaking any future callers that may reference them.
+function logAndReturnError(result) { return result; }
+function logSuccess(_result) {}
 
 async function printPdf(filePath, printerNameOverride = null) {
   // PDF printing would be similar, using appropriate PDF viewer COM object
