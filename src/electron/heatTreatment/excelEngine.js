@@ -290,6 +290,15 @@ async function generateHeatTreatmentExcel({ templatePath, outputPath, rows, shee
       }
     }
 
+    // ── Get Template DB config for printArea ───────────────────────────────────
+    const { getTemplate } = require("../sqlite/excelTemplates");
+    const tplConfig = getTemplate("heat-treatment");
+    if (tplConfig && tplConfig.print_start_column && tplConfig.print_end_column) {
+      const startCol = tplConfig.print_start_column;
+      const endCol = tplConfig.print_end_column;
+      worksheet.pageSetup.printArea = `${startCol}1:${endCol}${worksheet.rowCount}`;
+    }
+
     // ── Save ──────────────────────────────────────────────────────────────────
     await workbook.xlsx.writeFile(outputPath);
     return { ok: true };

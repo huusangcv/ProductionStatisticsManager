@@ -82,7 +82,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     delete: (module) => ipcRenderer.invoke("template:delete", module),
     openFolder: () => ipcRenderer.invoke("template:openFolder"),
     checksum: (filePath) => ipcRenderer.invoke("template:checksum", filePath),
+    getSheets: (filePath) => ipcRenderer.invoke("template:getSheets", filePath),
     printTest: (params) => ipcRenderer.invoke("template:printTest", params),
+    updatePrintColumns: (params) => ipcRenderer.invoke("template:updatePrintColumns", params),
+    updatePrintConfig: (params) => ipcRenderer.invoke("template:updatePrintConfig", params),
   },
   heatTreatment: {
     getGrindingByDate: (date) =>
@@ -95,8 +98,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     print: (filePath) => ipcRenderer.invoke("heatTreatment:print", filePath),
   },
   report: {
-    printExcel: (filePath) =>
-      ipcRenderer.invoke("report:printExcel", { filePath }),
+    printExcel: (filePath, moduleKey) =>
+      ipcRenderer.invoke("report:printExcel", { filePath, module: moduleKey }),
   },
   printer: {
     getAll: () => ipcRenderer.invoke("printer:getAll"),
@@ -105,8 +108,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     save: (printerName) => ipcRenderer.invoke("printer:save", printerName),
     check: (printerName) => ipcRenderer.invoke("printer:check", printerName),
     test: (printerName) => ipcRenderer.invoke("printer:test", printerName),
-    printExcel: (filePath) =>
-      ipcRenderer.invoke("printer:printExcel", filePath),
+    printExcel: (filePath, moduleKey) =>
+      ipcRenderer.invoke("printer:printExcel", { filePath, module: moduleKey }),
     printPdf: (filePath) => ipcRenderer.invoke("printer:printPdf", filePath),
     getLogs: (limit) => ipcRenderer.invoke("printer:getLogs", limit),
     getSettings: () => ipcRenderer.invoke("printer:getSettings"),
@@ -129,6 +132,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     delete: (id) => ipcRenderer.invoke("detailJoint:delete", id),
     importExcel: () => ipcRenderer.invoke("detailJoint:importExcel"),
     exportExcel: () => ipcRenderer.invoke("detailJoint:exportExcel"),
+  },
+  templateType: {
+    getAll: () => ipcRenderer.invoke("templateType:getAll"),
   },
   db: {
     initialize: () => ipcRenderer.invoke("db:initialize"),

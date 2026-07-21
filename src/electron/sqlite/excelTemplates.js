@@ -54,6 +54,45 @@ function ensureExcelTemplatesTable() {
     if (!columns.includes("file_size")) {
       db.exec("ALTER TABLE excel_templates ADD COLUMN file_size INTEGER");
     }
+    if (!columns.includes("print_start_column")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN print_start_column TEXT DEFAULT 'A'");
+    }
+    if (!columns.includes("print_end_column")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN print_end_column TEXT DEFAULT 'Z'");
+    }
+    if (!columns.includes("repeat_header_rows")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN repeat_header_rows TEXT");
+    }
+    if (!columns.includes("orientation")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN orientation TEXT DEFAULT 'landscape'");
+    }
+    if (!columns.includes("paper_size")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN paper_size TEXT DEFAULT 'A4'");
+    }
+    if (!columns.includes("fit_width")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN fit_width INTEGER DEFAULT 1");
+    }
+    if (!columns.includes("fit_height")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN fit_height INTEGER");
+    }
+    if (!columns.includes("margin_left_cm")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN margin_left_cm REAL DEFAULT 1.5");
+    }
+    if (!columns.includes("margin_right_cm")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN margin_right_cm REAL DEFAULT 1.5");
+    }
+    if (!columns.includes("margin_top_cm")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN margin_top_cm REAL DEFAULT 1.5");
+    }
+    if (!columns.includes("margin_bottom_cm")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN margin_bottom_cm REAL DEFAULT 1.5");
+    }
+    if (!columns.includes("header_margin_cm")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN header_margin_cm REAL DEFAULT 0.8");
+    }
+    if (!columns.includes("footer_margin_cm")) {
+      db.exec("ALTER TABLE excel_templates ADD COLUMN footer_margin_cm REAL DEFAULT 0.8");
+    }
   } finally {
     db.close();
   }
@@ -192,6 +231,141 @@ function updateTemplateStatus(module, status) {
   }
 }
 
+// ── updatePrintColumns ────────────────────────────────────────────────────────────────
+
+/**
+ * Updates only the print column range for a given module.
+ * Does NOT touch template_path, checksum, file_size, or any other field.
+ *
+ * @param {string} module       e.g. "heat-treatment"
+ * @param {string} startColumn  e.g. "A"
+ * @param {string} endColumn    e.g. "W"
+ * @returns {{ ok: boolean, message?: string }}
+ */
+function updatePrintColumns(module, startColumn, endColumn) {
+  const db = openDatabase();
+  try {
+    const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+    const result = db
+      .prepare(
+        `UPDATE excel_templates
+         SET print_start_column = ?, print_end_column = ?, updated_at = ?
+         WHERE module = ?`,
+      )
+      .run(
+        (startColumn || "A").toUpperCase().trim(),
+        (endColumn   || "Z").toUpperCase().trim(),
+        now,
+        module,
+      );
+    if (result.changes === 0) {
+      return { ok: false, message: `Không tìm thấy template "${module}".` };
+    }
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, message: error.message };
+  } finally {
+    db.close();
+  }
+}
+
+// ── updatePrintConfig ─────────────────────────────────────────────────────────
+
+/**
+ * Updates all print configuration fields for a given module.
+ */
+function updatePrintConfig(module, config) {
+  const db = openDatabase();
+  try {
+    const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+    const result = db
+      .prepare(
+        `UPDATE excel_templates
+         SET print_start_column = ?,
+             print_end_column = ?,
+             repeat_header_rows = ?,
+             orientation = ?,
+             paper_size = ?,
+             fit_width = ?,
+             fit_height = ?,
+             margin_left_cm = ?,
+             margin_right_cm = ?,
+             margin_top_cm = ?,
+             margin_bottom_cm = ?,
+             header_margin_cm = ?,
+             footer_margin_cm = ?,
+             updated_at = ?
+         WHERE module = ?`
+      )
+      .run(
+        (config.startColumn || "A").toUpperCase().trim(),
+        (config.endColumn || "Z").toUpperCase().trim(),
+        config.repeatHeaderRows || null,
+        config.orientation || 'landscape',
+        config.paperSize || 'A4',
+        config.fitWidth !== '' ? config.fitWidth : null,
+        config.fitHeight !== '' ? config.fitHeight : null,
+        config.marginLeft !== '' ? config.marginLeft : 1.5,
+        config.marginRight !== '' ? config.marginRight : 1.5,
+        config.marginTop !== '' ? config.marginTop : 1.5,
+        config.marginBottom !== '' ? config.marginBottom : 1.5,
+        config.headerMargin !== '' ? config.headerMargin : 0.8,
+        config.footerMargin !== '' ? config.footerMargin : 0.8,
+        now,
+        module
+      );
+    if (result.changes === 0) {
+      return { ok: false, message: `Không tìm thấy template "${module}".` };
+    }
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, message: error.message };
+  } finally {
+    db.close();
+  }
+}
+
+// ── seedExcelTemplateConfigsIfEmpty ─────────────────────────────────────────
+
+function seedExcelTemplateConfigsIfEmpty() {
+  const db = openDatabase();
+  try {
+    const templates = [
+      {
+        module: "heat-treatment",
+        start: "A", end: "W", repeat: "1:5",
+        orientation: "landscape", paper: "A4",
+        fitWidth: 1, fitHeight: null,
+      },
+      {
+        module: "grinding",
+        start: "A", end: "T", repeat: "1:4",
+        orientation: "portrait", paper: "A4",
+        fitWidth: 1, fitHeight: null,
+      },
+      {
+        module: "cutting",
+        start: "A", end: "V", repeat: "1:4",
+        orientation: "landscape", paper: "A4",
+        fitWidth: 1, fitHeight: null,
+      },
+    ];
+
+    const stmt = db.prepare(`
+      UPDATE excel_templates
+      SET print_start_column = ?, print_end_column = ?, repeat_header_rows = ?,
+          orientation = ?, paper_size = ?, fit_width = ?, fit_height = ?
+      WHERE module = ? AND (repeat_header_rows IS NULL OR repeat_header_rows = '')
+    `);
+
+    for (const t of templates) {
+      stmt.run(t.start, t.end, t.repeat, t.orientation, t.paper, t.fitWidth, t.fitHeight, t.module);
+    }
+  } finally {
+    db.close();
+  }
+}
+
 module.exports = {
   ensureExcelTemplatesTable,
   getAllTemplates,
@@ -199,4 +373,7 @@ module.exports = {
   upsertTemplate,
   deleteTemplate,
   updateTemplateStatus,
+  updatePrintColumns,
+  updatePrintConfig,
+  seedExcelTemplateConfigsIfEmpty,
 };

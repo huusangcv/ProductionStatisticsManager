@@ -102,7 +102,12 @@ const {
   upsertTemplate,
   deleteTemplate,
   updateTemplateStatus,
+  updatePrintColumns,
+  updatePrintConfig,
 } = require("./sqlite/excelTemplates");
+const {
+  getAllActiveTemplateTypes,
+} = require("./sqlite/templateTypes");
 const backupDAO = require("./sqlite/backup");
 const printerService = require("./services/printerService");
 const templateService = require("./services/templateService");
@@ -956,8 +961,8 @@ function registerIpcHandlers() {
     return await printerService.printTest(printerName);
   });
 
-  ipcMain.handle("printer:printExcel", async (_event, filePath) => {
-    return await printerService.printExcel(filePath);
+  ipcMain.handle("printer:printExcel", async (_event, { filePath, module: moduleKey }) => {
+    return await printerService.printExcel(filePath, null, moduleKey || null);
   });
 
   ipcMain.handle("printer:printPdf", async (_event, filePath) => {
@@ -993,8 +998,8 @@ function registerIpcHandlers() {
 
   ipcMain.handle(
     "template:upload",
-    async (event, { module, sourcePath, overwrite = false }) => {
-      return await templateService.copyTemplate(sourcePath, module, overwrite);
+    async (event, { module, sourcePath, overwrite = false, sheetName, startColumn, endColumn }) => {
+      return await templateService.copyTemplate(sourcePath, module, { overwrite, sheetName, startColumn, endColumn });
     },
   );
 
@@ -1021,12 +1026,38 @@ function registerIpcHandlers() {
     };
   });
 
+  ipcMain.handle("template:getSheets", async (_event, filePath) => {
+    return await templateService.getExcelSheets(filePath);
+  });
+
   ipcMain.handle(
     "template:printTest",
     async (_event, { filePath, printerName }) => {
       return await printerService.printExcel(filePath, printerName);
     },
   );
+
+  ipcMain.handle(
+    "template:updatePrintColumns",
+    async (_event, { module: moduleKey, startColumn, endColumn }) => {
+      const result = updatePrintColumns(moduleKey, startColumn, endColumn);
+      return result;
+    },
+  );
+
+  ipcMain.handle(
+    "template:updatePrintConfig",
+    async (_event, { module: moduleKey, ...config }) => {
+      const result = updatePrintConfig(moduleKey, config);
+      return result;
+    },
+  );
+
+  // ── Template Types IPC handlers ─────────────────────────────────────────────────
+
+  ipcMain.handle("templateType:getAll", async () => {
+    return getAllActiveTemplateTypes();
+  });
 
   // ── DetailJoint IPC handlers ────────────────────────────────────────────────────
 

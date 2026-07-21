@@ -73,8 +73,14 @@ async function executePowerShell(psScript) {
       ok = true;
     } else {
       // Try to parse FAILED_JSON payload
-      errorMessage = _extractFailedMessage(trimmed);
-      errorCode = _detectErrorCode(errorMessage || "");
+      const extracted = _extractFailedMessage(trimmed);
+      if (typeof extracted === 'object' && extracted !== null) {
+        errorMessage = extracted.message;
+        errorCode = extracted.code;
+      } else {
+        errorMessage = extracted;
+        errorCode = _detectErrorCode(errorMessage || "");
+      }
     }
   } catch (execError) {
     rawStdout = execError.stdout || "";
@@ -83,8 +89,15 @@ async function executePowerShell(psScript) {
 
     // Try to extract PS error message from stdout (our FAILED_JSON pattern)
     const combinedOutput = rawStdout + "\n" + rawStderr;
-    errorMessage = _extractFailedMessage(combinedOutput) || execError.message;
-    errorCode = _detectErrorCode(errorMessage) || errorCode;
+    const extracted = _extractFailedMessage(combinedOutput);
+    
+    if (typeof extracted === 'object' && extracted !== null) {
+      errorMessage = extracted.message;
+      errorCode = extracted.code || errorCode;
+    } else {
+      errorMessage = extracted || execError.message;
+      errorCode = _detectErrorCode(errorMessage) || errorCode;
+    }
   }
 
   const executionTime = Math.round(performance.now() - startTime);
@@ -110,15 +123,22 @@ async function executePowerShell(psScript) {
  */
 function _extractFailedMessage(text) {
   if (!text) return null;
+  
+  // ConvertTo-Json -Compress outputs on a single line.
+  // Find the exact line containing the marker to avoid parsing trailing CLIXML.
+  const lines = text.split(/\r?\n/);
   const marker = "FAILED_JSON:";
-  const idx = text.indexOf(marker);
-  if (idx === -1) return text.trim().substring(0, 300) || null;
+  const failedLine = lines.find(l => l.includes(marker));
+  
+  if (!failedLine) return text.trim().substring(0, 300) || null;
+  
+  const idx = failedLine.indexOf(marker);
+  const jsonPart = failedLine.substring(idx + marker.length).trim();
 
   try {
-    const jsonPart = text.substring(idx + marker.length).trim();
     return JSON.parse(jsonPart);
   } catch {
-    return text.substring(idx + marker.length).trim().substring(0, 300) || null;
+    return jsonPart.substring(0, 300) || null;
   }
 }
 
@@ -132,8 +152,6 @@ function _detectErrorCode(message) {
     return "EXCEL_NOT_INSTALLED";
   if (m.includes("0x800A03EC") || m.includes("cannot open"))
     return "WORKBOOK_OPEN_FAILED";
-  if (m.includes("ActivePrinter") || m.includes("printer"))
-    return "PRINTER_ERROR";
   return "PRINT_FAILED";
 }
 

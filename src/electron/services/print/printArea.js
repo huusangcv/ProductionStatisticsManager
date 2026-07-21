@@ -1,40 +1,53 @@
 /**
  * printArea.js — Generates the PowerShell snippet that detects the actual
- * used range of a worksheet and sets the PrintArea accordingly.
+ * last row of a worksheet and sets the PrintArea using configured columns.
  *
- * Strategy:
- *   1. Primary:  Cells.Find("*", SearchOrder=xlByRows/xlByColumns, xlPrevious)
- *                to find the true last row and last column.
+ * Column detection has been REMOVED from this module.
+ * The print column range (startColumn, endColumn) is now always read from
+ * the database (excel_templates.print_start_column / print_end_column)
+ * and passed in by the orchestrator (excelPrinter.js).
+ *
+ * Strategy for LastRow detection:
+ *   1. Primary:  Cells.Find("*", SearchOrder=xlByRows, xlPrevious)
+ *                to find the true last row.
  *   2. Fallback: ws.UsedRange if Find returns $null (empty sheet).
  *
- * The snippet writes LOG lines so the orchestrator can parse them:
+ * LOG lines written by the snippet (parsed by orchestrator):
+ *   LOG:StartColumn=<col>
+ *   LOG:EndColumn=<col>
  *   LOG:LastRow=<n>
- *   LOG:LastCol=<letter(s)>
- *   LOG:PrintArea=A1:<letter(s)><n>
- *
- * NOTE: Column address is derived from the cell address itself
- * ($ws.Cells($lastRow, $lastCol).Address(false,false)) so columns beyond Z
- * (AA, AB, …) are handled correctly without manual conversion.
+ *   LOG:PrintArea=<range>
+ *   LOG:UsedRange_Fallback=true   (only if Find returned null)
  */
 
 "use strict";
 
 /**
- * Returns the PowerShell snippet (string) that detects UsedRange and sets
- * the PrintArea on the variable `$ws`.
+ * Returns the PowerShell snippet (string) that detects LastRow and sets
+ * PrintArea using the provided column range.
  *
- * The caller is responsible for declaring `$ws` before this snippet.
+ * The caller must declare `$ws` before this snippet.
  *
- * @returns {string}  Multi-line PowerShell block (no surrounding try/catch).
+ * @param {object} options
+ * @param {string} options.startColumn  e.g. "A"
+ * @param {string} options.endColumn    e.g. "W"
+ * @returns {string}  Multi-line PowerShell block.
  */
-function buildDetectAndSetPrintAreaSnippet() {
+function buildDetectAndSetPrintAreaSnippet({ startColumn = "A", endColumn = "Z" } = {}) {
+  const safeStart = (startColumn || "A").toUpperCase().trim();
+  const safeEnd = (endColumn || "Z").toUpperCase().trim();
+
   return `
-# ── Detect Used Range ─────────────────────────────────────────────────────────
+# ── Detect Last Row (column range is fixed from DB config) ────────────────────
+$startColumn = "${safeStart}"
+$endColumn   = "${safeEnd}"
+Write-Output "LOG:StartColumn=$startColumn"
+Write-Output "LOG:EndColumn=$endColumn"
+
 $xlByRows    = 1
-$xlByColumns = 2
 $xlPrevious  = 2
 
-# Find last row
+# Find last row using xlByRows + xlPrevious direction
 $lastRowCell = $ws.Cells.Find(
   "*",
   $ws.Cells(1, 1),
@@ -47,38 +60,19 @@ $lastRowCell = $ws.Cells.Find(
   [System.Type]::Missing
 )
 
-# Find last column
-$lastColCell = $ws.Cells.Find(
-  "*",
-  $ws.Cells(1, 1),
-  [System.Type]::Missing,
-  [System.Type]::Missing,
-  $xlByColumns,
-  $xlPrevious,
-  [System.Type]::Missing,
-  [System.Type]::Missing,
-  [System.Type]::Missing
-)
-
-if ($lastRowCell -eq $null -or $lastColCell -eq $null) {
+if ($lastRowCell -eq $null) {
   # Fallback to UsedRange
   $lastRow = $ws.UsedRange.Rows.Count + $ws.UsedRange.Row - 1
-  $lastCol = $ws.UsedRange.Columns.Count + $ws.UsedRange.Column - 1
   Write-Output "LOG:UsedRange_Fallback=true"
 } else {
   $lastRow = $lastRowCell.Row
-  $lastCol = $lastColCell.Column
 }
 
-# Derive column letter(s) from the cell address itself (handles AA, AB, etc.)
-$colAddress = $ws.Cells(1, $lastCol).Address($false, $false)
-$colLetter  = $colAddress -replace "\\d+", ""
-
 Write-Output "LOG:LastRow=$lastRow"
-Write-Output "LOG:LastCol=$colLetter"
 
-# Build and assign Print Area
-$printArea = "A1:$colLetter$lastRow"
+# Build Print Area from configured columns + detected last row
+# Note: "1" is a literal suffix for the start row; using string concatenation avoids PS quoting issues
+$printArea = $startColumn + "1:" + $endColumn + $lastRow
 $ws.PageSetup.PrintArea = $printArea
 Write-Output "LOG:PrintArea=$printArea"
 `;
@@ -88,12 +82,19 @@ Write-Output "LOG:PrintArea=$printArea"
  * Parses LOG lines from PowerShell stdout to extract print area diagnostics.
  *
  * @param {string} stdout
- * @returns {{ lastRow: string|null, lastCol: string|null, printArea: string|null, usedRangeFallback: boolean }}
+ * @returns {{
+ *   startColumn: string|null,
+ *   endColumn: string|null,
+ *   lastRow: string|null,
+ *   printArea: string|null,
+ *   usedRangeFallback: boolean,
+ * }}
  */
 function parsePrintAreaLogs(stdout) {
   const result = {
+    startColumn: null,
+    endColumn: null,
     lastRow: null,
-    lastCol: null,
     printArea: null,
     usedRangeFallback: false,
   };
@@ -101,8 +102,9 @@ function parsePrintAreaLogs(stdout) {
 
   for (const line of stdout.split(/\r?\n/)) {
     const t = line.trim();
-    if (t.startsWith("LOG:LastRow="))      result.lastRow = t.split("=")[1];
-    else if (t.startsWith("LOG:LastCol=")) result.lastCol = t.split("=")[1];
+    if (t.startsWith("LOG:StartColumn=")) result.startColumn = t.split("=")[1];
+    else if (t.startsWith("LOG:EndColumn=")) result.endColumn = t.split("=")[1];
+    else if (t.startsWith("LOG:LastRow=")) result.lastRow = t.split("=")[1];
     else if (t.startsWith("LOG:PrintArea=")) result.printArea = t.split("=").slice(1).join("=");
     else if (t.startsWith("LOG:UsedRange_Fallback=true")) result.usedRangeFallback = true;
   }

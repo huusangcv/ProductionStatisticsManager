@@ -5,7 +5,8 @@ const { ensurePositionsTable, seedPositionsIfEmpty } = require("./positions");
 const { ensureGrindingTable } = require("./grinding");
 const { ensureCuttingTable } = require("./cutting");
 const { ensureImportSessionsTable } = require("./importSessions");
-const { ensureExcelTemplatesTable } = require("./excelTemplates");
+const { ensureExcelTemplatesTable, seedExcelTemplateConfigsIfEmpty } = require("./excelTemplates");
+const { ensureTemplateTypesTable, seedTemplateTypesIfEmpty } = require("./templateTypes");
 const { ensureDetailJointTable } = require("./detail_joint");
 const {
   ensurePrintersTable,
@@ -56,6 +57,9 @@ function initializeDatabase() {
   ensureCuttingTable();
   ensureImportSessionsTable();
   ensureExcelTemplatesTable();
+  seedExcelTemplateConfigsIfEmpty();
+  ensureTemplateTypesTable();
+  seedTemplateTypesIfEmpty();
   ensureDetailJointTable();
   ensurePrintersTable();
   ensureSettingsTable();

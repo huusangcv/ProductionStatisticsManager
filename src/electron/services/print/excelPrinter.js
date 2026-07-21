@@ -31,15 +31,14 @@
 
 "use strict";
 
-const fs   = require("fs");
+const fs = require("fs");
 const path = require("path");
 
-const { getPrintConfig }                   = require("./printConfig");
-const { buildDetectAndSetPrintAreaSnippet, parsePrintAreaLogs } = require("./printArea");
-const { buildPageSetupSnippet }            = require("./pageSetup");
-const { executePowerShell }                = require("./printExecutor");
-const { logSuccess, logFailure }           = require("./printerLogger");
-const { getSettings }                      = require("../../sqlite/printers");
+const { getTemplatePrintConfig } = require("./printConfig");
+const { executePowerShell } = require("./printExecutor");
+const { logSuccess, logFailure } = require("./printerLogger");
+const { getSettings } = require("../../sqlite/printers");
+const { getTemplate } = require("../../sqlite/excelTemplates");
 
 // ── printExcelFile ─────────────────────────────────────────────────────────────
 
@@ -71,110 +70,79 @@ const { getSettings }                      = require("../../sqlite/printers");
  */
 async function printExcelFile({
   filePath,
-  printerName = null,
-  module      = null,
-  checkPrinterFn = null,
+  module = null,
 }) {
-  console.log("[excelPrinter] Starting print job", { filePath, module });
+  console.log("[excelPrinter] Starting native print job", { filePath, module });
 
   // ── Step 1: Validate file ──────────────────────────────────────────────────
   const fileValidation = _validateFile(filePath);
   if (!fileValidation.ok) {
-    return _buildError(fileValidation.message, "FILE_INVALID", { file: filePath, printer: printerName });
+    return _buildError(fileValidation.message, "FILE_INVALID", { file: filePath, printer: null });
   }
 
-  // ── Step 2: Resolve printer ────────────────────────────────────────────────
-  let resolvedPrinter = printerName;
-  if (!resolvedPrinter) {
-    const settings = getSettings();
-    if (!settings || !settings.printer_name) {
-      return _buildError(
-        "Vui lòng chọn máy in mặc định trong Cài đặt.",
-        "NO_PRINTER_CONFIGURED",
-        { file: filePath, printer: null }
-      );
-    }
-    resolvedPrinter = settings.printer_name;
+  // ── Step 2: Load print configuration from DB (via printConfig.js) ────────
+  let printCfg = null;
+  try {
+    printCfg = getTemplatePrintConfig(module);
+  } catch (err) {
+    console.warn("[excelPrinter] Failed to load print config (non-fatal):", err.message);
+    printCfg = require("./printConfig").DEFAULT_PRINT_CONFIG;
   }
 
-  console.log("[excelPrinter] Using printer:", resolvedPrinter);
-
-  // ── Step 3: Verify printer exists ──────────────────────────────────────────
-  if (checkPrinterFn) {
-    try {
-      const printerCheck = await checkPrinterFn(resolvedPrinter);
-      if (!printerCheck.printerFound) {
-        return _buildError(
-          `Máy in "${resolvedPrinter}" không tồn tại trong hệ thống.`,
-          "PRINTER_NOT_FOUND",
-          { file: filePath, printer: resolvedPrinter }
-        );
-      }
-    } catch (checkErr) {
-      console.warn("[excelPrinter] Printer check failed (non-fatal):", checkErr.message);
-      // Non-fatal — proceed; the PrintOut call will surface a real error if needed
-    }
-  }
-
-  // ── Step 4: Load module print config ──────────────────────────────────────
-  const printCfg = getPrintConfig(module);
+  // Print config not strictly needed if we just print the file natively,
+  // but kept for compatibility/logging if needed.
+  
   console.log("[excelPrinter] Print config:", printCfg);
 
-  // ── Step 5: Build PowerShell script ───────────────────────────────────────
-  const psScript = _buildPrintScript(filePath, resolvedPrinter, printCfg);
-
-  // ── Step 6: Execute ────────────────────────────────────────────────────────
+  // ── Step 4: Execute PowerShell script ──────────────────────────────────────
+  const psScript = _buildPrintScript(filePath);
   console.log("[excelPrinter] Executing PowerShell...");
   const execResult = await executePowerShell(psScript);
-
-  // Parse diagnostic info from LOG: lines
-  const areaInfo = parsePrintAreaLogs(execResult.stdout);
 
   console.log("[excelPrinter] Exec result:", {
     ok: execResult.ok,
     executionTime: execResult.executionTime,
     logs: execResult.logs,
-    printArea: areaInfo.printArea,
   });
 
   const details = {
-    printer:       resolvedPrinter,
-    file:          filePath,
+    printer: "Windows Default",
+    file: filePath,
     executionTime: execResult.executionTime,
-    logs:          execResult.logs,
-    printArea:     areaInfo.printArea,
-    stdout:        execResult.stdout,
-    stderr:        execResult.stderr,
-    exception:     execResult.ok ? null : (execResult.errorMessage || null),
-    errorCode:     execResult.ok ? null : (execResult.errorCode || null),
+    logs: execResult.logs,
+    printArea: null,
+    stdout: execResult.stdout,
+    stderr: execResult.stderr,
+    exception: execResult.ok ? null : (execResult.errorMessage || null),
+    errorCode: execResult.ok ? null : (execResult.errorCode || null),
   };
 
-  // ── Step 7: Log result ─────────────────────────────────────────────────────
+  // ── Step 5: Log result ─────────────────────────────────────────────────────
   if (execResult.ok) {
     logSuccess({
-      printer:       resolvedPrinter,
-      file:          filePath,
+      printer: "Windows Default",
+      file: filePath,
       executionTime: execResult.executionTime,
-      command:       execResult.encodedCmd,
-      logs:          execResult.logs,
+      command: execResult.encodedCmd,
+      logs: execResult.logs,
     });
 
     return {
       ok: true,
-      message: "Đã gửi lệnh in thành công.",
+      message: "Đã gửi lệnh in thành công bằng máy in mặc định.",
       details,
     };
   } else {
-    const userMessage = _buildUserMessage(execResult.errorMessage, execResult.errorCode, resolvedPrinter);
+    const userMessage = _buildUserMessage(execResult.errorMessage, execResult.errorCode);
 
     logFailure({
-      printer:       resolvedPrinter,
-      file:          filePath,
+      printer: "Windows Default",
+      file: filePath,
       executionTime: execResult.executionTime,
-      command:       execResult.encodedCmd,
-      errorMessage:  userMessage,
-      errorCode:     execResult.errorCode,
-      exception:     [
+      command: execResult.encodedCmd,
+      errorMessage: userMessage,
+      errorCode: execResult.errorCode,
+      exception: [
         execResult.errorMessage,
         ...execResult.logs,
         execResult.stderr,
@@ -196,22 +164,14 @@ async function printExcelFile({
  * Assembles the full PowerShell print script from composable snippets.
  *
  * @param {string} filePath
- * @param {string} printerName
- * @param {{ sheetIndex: number, repeatHeaderRows: string|null }} config
+ * @param {object} config Print configuration from getTemplatePrintConfig
  * @returns {string}
  */
-function _buildPrintScript(filePath, printerName, config) {
+function _buildPrintScript(filePath) {
   // Escape backslashes for embedding in a PS double-quoted string
-  const psFilePath    = filePath.replace(/\\/g, "\\\\");
-  const psPrinterName = printerName.replace(/"/g, '""'); // escape double-quotes in printer name
+  const psFilePath = filePath.replace(/\\/g, "\\\\");
 
-  const detectPrintAreaSnippet = buildDetectAndSetPrintAreaSnippet();
-  const pageSetupSnippet       = buildPageSetupSnippet({
-    repeatHeaderRows: config.repeatHeaderRows,
-  });
-
-  return `
-$ErrorActionPreference = "Stop"
+  return `$ErrorActionPreference = "Stop"
 $xl = $null
 $wb = $null
 $ws = $null
@@ -219,36 +179,56 @@ $ws = $null
 try {
   # ── Open Excel Application ────────────────────────────────────────────────
   Write-Output "LOG:Opening Excel Application..."
-  $xl = New-Object -ComObject Excel.Application
-  $xl.Visible        = $false
-  $xl.DisplayAlerts  = $false
+  try {
+    $xl = New-Object -ComObject Excel.Application
+    $xl.Visible        = $false
+    $xl.DisplayAlerts  = $false
+  } catch {
+    $err = @{ code="EXCEL_NOT_INSTALLED"; message=$_.Exception.Message }
+    Write-Output "FAILED_JSON:$($err | ConvertTo-Json -Compress)"
+    exit 1
+  }
   Write-Output "LOG:Excel Application Ready"
 
   # ── Open Workbook ─────────────────────────────────────────────────────────
   Write-Output "LOG:Opening Workbook: ${psFilePath}"
-  $wb = $xl.Workbooks.Open("${psFilePath}")
+  try {
+    $wb = $xl.Workbooks.Open("${psFilePath}")
+  } catch {
+    $err = @{ code="WORKBOOK_OPEN_FAILED"; message=$_.Exception.Message }
+    Write-Output "FAILED_JSON:$($err | ConvertTo-Json -Compress)"
+    exit 1
+  }
   Write-Output "LOG:Workbook Opened"
 
   # ── Select Worksheet ──────────────────────────────────────────────────────
-  $ws = $wb.Worksheets.Item(${config.sheetIndex})
-  Write-Output "LOG:Worksheet Loaded: $($ws.Name)"
+  try {
+    $ws = $wb.Worksheets.Item(1)
+  } catch {
+    $err = @{ code="WORKSHEET_NOT_FOUND"; message=$_.Exception.Message }
+    Write-Output "FAILED_JSON:$($err | ConvertTo-Json -Compress)"
+    exit 1
+  }
+  Write-Output "LOG:Template Loaded: $($ws.Name)"
 
-  ${detectPrintAreaSnippet}
-
-  ${pageSetupSnippet}
-
-  # ── Set Printer & Print ───────────────────────────────────────────────────
-  $xl.ActivePrinter = "${psPrinterName}"
-  Write-Output "LOG:Printer Set: ${psPrinterName}"
-  Write-Output "LOG:Printing 1 copy..."
-  $wb.PrintOut(1, [System.Type]::Missing, 1, $false)
-  Write-Output "SUCCESS"
-  Write-Output "LOG:Print command sent successfully"
+  # ── Print (Native Excel via Windows Default Printer) ──────────────────────
+  Write-Output "LOG:Print Started"
+  try {
+    $wb.PrintOut([System.Type]::Missing, [System.Type]::Missing, 1, $false)
+    Write-Output "SUCCESS"
+    Write-Output "LOG:Print Success"
+  } catch {
+    $err = @{ code="PRINT_FAILED"; message=$_.Exception.Message }
+    Write-Output "FAILED_JSON:$($err | ConvertTo-Json -Compress)"
+    exit 1
+  }
 
 } catch {
+  # Catch-all for unexpected errors
   $errMsg = $_.Exception.Message
   Write-Output "LOG:ERROR: $errMsg"
-  Write-Output "FAILED_JSON:$($errMsg | ConvertTo-Json -Compress)"
+  $err = @{ code="PRINT_FAILED"; message=$errMsg }
+  Write-Output "FAILED_JSON:$($err | ConvertTo-Json -Compress)"
   exit 1
 
 } finally {
@@ -297,15 +277,18 @@ function _validateFile(filePath) {
 
 // ── _buildUserMessage ─────────────────────────────────────────────────────────
 
-function _buildUserMessage(rawMessage, errorCode, printerName) {
+function _buildUserMessage(rawMessage, errorCode) {
   if (errorCode === "EXCEL_NOT_INSTALLED") {
     return "Không tìm thấy Microsoft Excel. Vui lòng cài đặt MS Excel để sử dụng chức năng in.";
   }
   if (errorCode === "WORKBOOK_OPEN_FAILED") {
-    return "Không thể mở file Excel để in. File có thể bị lỗi, đang mở ở chỗ khác, hoặc định dạng không tương thích.";
+    return "Không thể mở file Excel. File đang bị khóa hoặc định dạng không đúng.";
   }
-  if (errorCode === "PRINTER_ERROR") {
-    return `Máy in "${printerName}" không khả dụng hoặc bị lỗi trong Excel. Vui lòng kiểm tra kết nối máy in.`;
+  if (errorCode === "WORKSHEET_NOT_FOUND") {
+    return "Không tìm thấy Sheet cần in trong file Excel.";
+  }
+  if (errorCode === "PRINT_FAILED") {
+    return `Lệnh in bị lỗi hoặc từ chối trên máy in mặc định.`;
   }
   if (rawMessage) {
     const truncated = String(rawMessage).substring(0, 150);
@@ -323,15 +306,15 @@ function _buildError(message, code, partialDetails = {}) {
     message,
     code,
     details: {
-      printer:       partialDetails.printer  || null,
-      file:          partialDetails.file     || null,
+      printer: partialDetails.printer || null,
+      file: partialDetails.file || null,
       executionTime: 0,
-      logs:          [],
-      printArea:     null,
-      stdout:        "",
-      stderr:        "",
-      exception:     message,
-      errorCode:     code,
+      logs: [],
+      printArea: null,
+      stdout: "",
+      stderr: "",
+      exception: message,
+      errorCode: code,
     },
   };
 }

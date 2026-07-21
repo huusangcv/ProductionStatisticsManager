@@ -77,10 +77,10 @@ export function usePrinters() {
     }
   }, []);
 
-  const printExcel = useCallback(async (filePath) => {
+  const printExcel = useCallback(async (filePath, moduleKey = null) => {
     setPrinting(true);
     try {
-      return await printerService.printExcel(filePath);
+      return await printerService.printExcel(filePath, moduleKey);
     } catch (error) {
       console.error("Failed to print Excel", error);
       return { ok: false, message: "Lỗi không xác định" };

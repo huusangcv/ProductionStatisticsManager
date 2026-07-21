@@ -15,6 +15,10 @@ import {
   CircularProgress,
   IconButton,
   Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import UploadOutlinedIcon from "@mui/icons-material/UploadOutlined";
@@ -26,6 +30,15 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 import { useTemplates } from "../../../hooks/useTemplates";
+import PrintConfigCard from "./PrintConfigCard";
+
+// Column list for the Upload Dialog (A–ZZ covers all practical cases)
+function _idxToCol(n) {
+  let r = "";
+  while (n > 0) { const rem = (n - 1) % 26; r = String.fromCharCode(65 + rem) + r; n = Math.floor((n - 1) / 26); }
+  return r;
+}
+const UPLOAD_COL_LIST = Array.from({ length: 702 }, (_, i) => _idxToCol(i + 1));
 
 const formatFileSize = (bytes) => {
   if (!bytes || typeof bytes !== "number" || bytes <= 0) return "—";
@@ -37,19 +50,22 @@ const formatFileSize = (bytes) => {
 const TemplateTab = () => {
   const {
     templates,
+    templateTypes,
     loading,
     selectedTemplate,
     drawerOpen,
     confirmDialog,
+    fetchTemplates,
     handleSelectTemplate,
     handleCloseDrawer,
-    handleUpload,
+    handleUploadSubmit,
     handleReplace,
     handlePreview,
     handleOpenFolder,
     handlePrintTest,
     handleDelete,
     handleRefresh,
+    handleSavePrintConfig,
     handleConfirmDialogClose,
   } = useTemplates();
   const [snackbar, setSnackbar] = useState({
@@ -57,8 +73,17 @@ const TemplateTab = () => {
     message: "",
     severity: "success",
   });
+  
+  // Upload Dialog State
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [selectedModule, setSelectedModule] = useState("heat-treatment");
+  const [selectedModule, setSelectedModule] = useState("");
+  const [uploadFilePath, setUploadFilePath] = useState("");
+  const [uploadFileName, setUploadFileName] = useState("");
+  const [uploadSheets, setUploadSheets] = useState([]);
+  const [selectedSheet, setSelectedSheet] = useState("");
+  const [uploadStartCol, setUploadStartCol] = useState("A");
+  const [uploadEndCol,   setUploadEndCol]   = useState("Z");
+  const [uploadError, setUploadError] = useState("");
 
   const showSnackbar = (message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
@@ -75,9 +100,8 @@ const TemplateTab = () => {
       width: 150,
       renderCell: (params) => {
         const value = params?.value || "";
-        const label = value
-          .replace("-", " ")
-          .replace(/\b\w/g, (l) => l.toUpperCase());
+        const typeObj = templateTypes?.find(t => t.code === value);
+        const label = typeObj ? typeObj.name : value;
         return <Chip label={label} size="small" variant="outlined" />;
       },
     },
@@ -90,6 +114,16 @@ const TemplateTab = () => {
       field: "sheet_name",
       headerName: "Sheet",
       width: 120,
+    },
+    {
+      field: "print_start_column",
+      headerName: "Bắt đầu",
+      width: 90,
+    },
+    {
+      field: "print_end_column",
+      headerName: "Kết thúc",
+      width: 90,
     },
     {
       field: "start_row",
@@ -131,10 +165,51 @@ const TemplateTab = () => {
     setUploadDialogOpen(true);
   };
 
+  // Function to open OS file picker inside the Dialog
+  const handleSelectFileClick = async () => {
+    setUploadError("");
+    const result = await window.electronAPI.template.selectFile();
+    if (result.success && result.filePath) {
+      setUploadFilePath(result.filePath);
+      const name = result.filePath.split(/[\\/]/).pop();
+      setUploadFileName(name);
+      
+      // Fetch sheets dynamically
+      const sheetsResult = await window.electronAPI.template.getSheets(result.filePath);
+      if (sheetsResult.success && sheetsResult.sheets.length > 0) {
+        setUploadSheets(sheetsResult.sheets);
+        setSelectedSheet(sheetsResult.sheets[0]);
+      } else {
+        setUploadSheets([]);
+        setSelectedSheet("");
+        setUploadError("Không tìm thấy sheet nào trong file này.");
+      }
+    }
+  };
+
   const confirmUpload = async () => {
+    if (!selectedModule || !uploadFilePath || !selectedSheet) {
+      setUploadError("Vui lòng điền đầy đủ thông tin (Loại, Sheet, File)");
+      return;
+    }
+
+    const si = UPLOAD_COL_LIST.indexOf(uploadStartCol);
+    const ei = UPLOAD_COL_LIST.indexOf(uploadEndCol);
+    if (si > ei) {
+      setUploadError(`Cột kết thúc phải lớn hơn hoặc bằng cột bắt đầu`);
+      return;
+    }
+
     setUploadDialogOpen(false);
-    const result = await handleUpload(selectedModule);
-    if (result.canceled) return;
+    
+    const result = await handleUploadSubmit({
+      module: selectedModule,
+      sourcePath: uploadFilePath,
+      sheetName: selectedSheet,
+      startColumn: uploadStartCol,
+      endColumn: uploadEndCol
+    });
+    
     if (result.success) {
       showSnackbar(result.message, "success");
     } else {
@@ -317,6 +392,14 @@ const TemplateTab = () => {
             />
             <InfoItem label="Checksum" value={selectedTemplate.checksum} />
             <InfoItem label="Trạng Thái" value={selectedTemplate.status} />
+
+            {/* Print Config Card */}
+            <PrintConfigCard
+              template={selectedTemplate}
+              onSave={handleSavePrintConfig}
+              loading={loading}
+            />
+
             <Box sx={{ display: "flex", gap: 1, mt: 3, flexWrap: "wrap" }}>
               <Button
                 variant="outlined"
@@ -373,38 +456,113 @@ const TemplateTab = () => {
       <Dialog
         open={uploadDialogOpen}
         onClose={() => setUploadDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
       >
-        <DialogTitle>Upload Template</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" gutterBottom>
-              Chọn loại template:
-            </Typography>
-            <Box
-              sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1 }}
+        <DialogTitle sx={{ fontWeight: "bold" }}>Upload Template Mới</DialogTitle>
+        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 3, py: 3 }}>
+          {/* 1. Loại Template */}
+          <FormControl size="small" fullWidth>
+            <InputLabel>Loại Template *</InputLabel>
+            <Select
+              value={selectedModule}
+              label="Loại Template *"
+              onChange={(e) => setSelectedModule(e.target.value)}
             >
-              {[
-                { value: "heat-treatment", label: "Xử Lý Nhiệt" },
-                { value: "grinding", label: "Mài" },
-                { value: "cutting", label: "Cắt" },
-              ].map((option) => (
-                <Button
-                  key={option.value}
-                  variant={
-                    selectedModule === option.value ? "contained" : "outlined"
-                  }
-                  onClick={() => setSelectedModule(option.value)}
-                >
-                  {option.label}
-                </Button>
+              {templateTypes && templateTypes.map((type) => (
+                <MenuItem key={type.code} value={type.code}>
+                  {type.name}
+                </MenuItem>
               ))}
-            </Box>
+            </Select>
+          </FormControl>
+
+          {/* 2. Cột bắt đầu & Cột kết thúc */}
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <FormControl size="small" sx={{ flex: 1 }}>
+              <InputLabel>Cột bắt đầu</InputLabel>
+              <Select
+                value={uploadStartCol}
+                label="Cột bắt đầu"
+                onChange={(e) => setUploadStartCol(e.target.value)}
+                MenuProps={{ PaperProps: { style: { maxHeight: 200 } } }}
+              >
+                {UPLOAD_COL_LIST.map((col) => (
+                  <MenuItem key={col} value={col} dense>{col}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ flex: 1 }}>
+              <InputLabel>Cột kết thúc</InputLabel>
+              <Select
+                value={uploadEndCol}
+                label="Cột kết thúc"
+                onChange={(e) => setUploadEndCol(e.target.value)}
+                MenuProps={{ PaperProps: { style: { maxHeight: 200 } } }}
+              >
+                {UPLOAD_COL_LIST.map((col) => (
+                  <MenuItem key={col} value={col} dense>{col}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
+
+          <Typography variant="caption" color="text.secondary" sx={{ mt: -2, mb: 1 }}>
+            Phạm vi in: {uploadStartCol}1:{uploadEndCol}N
+          </Typography>
+
+          <Divider />
+
+          {/* 3. Chọn file & Sheet */}
+          <Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={handleSelectFileClick}
+                startIcon={<UploadOutlinedIcon />}
+              >
+                Chọn File
+              </Button>
+              <Typography variant="body2" color={uploadFileName ? "text.primary" : "text.secondary"}>
+                {uploadFileName ? uploadFileName : "Chưa chọn file nào"}
+              </Typography>
+            </Box>
+
+            {uploadSheets.length > 0 && (
+              <FormControl size="small" fullWidth>
+                <InputLabel>Sheet</InputLabel>
+                <Select
+                  value={selectedSheet}
+                  label="Sheet"
+                  onChange={(e) => setSelectedSheet(e.target.value)}
+                >
+                  {uploadSheets.map((sheet) => (
+                    <MenuItem key={sheet} value={sheet}>
+                      {sheet}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          </Box>
+
+          {/* Error message */}
+          {uploadError && (
+            <Alert severity="error" sx={{ mt: 1 }}>
+              {uploadError}
+            </Alert>
+          )}
+
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ pt: 2 }}>
           <Button onClick={() => setUploadDialogOpen(false)}>Hủy</Button>
-          <Button onClick={confirmUpload} variant="contained">
-            Chọn File
+          <Button 
+            onClick={confirmUpload} 
+            variant="contained"
+            disabled={!selectedModule || !uploadFilePath || !selectedSheet || loading}
+          >
+            {loading ? "Đang xử lý..." : "Upload"}
           </Button>
         </DialogActions>
       </Dialog>

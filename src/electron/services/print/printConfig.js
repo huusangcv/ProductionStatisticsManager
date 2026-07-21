@@ -1,52 +1,70 @@
 /**
  * printConfig.js — Per-module print configuration.
  *
- * Centralises all template-specific settings that the Print Engine needs.
- * Each module key must match the `module` field in the excel_templates table
- * (e.g. "heat-treatment") OR a semantic alias passed by the IPC caller.
- *
- * Fields:
- *   sheetIndex       {number}      1-based worksheet index to print.
- *   repeatHeaderRows {string|null} Excel row-repeat syntax, e.g. "1:5"
- *                                  → PrintTitleRows. null = no repeat.
+ * Reads template-specific print settings from the excel_templates table.
  */
 
 "use strict";
 
-/** @type {Record<string, { sheetIndex: number, repeatHeaderRows: string|null }>} */
-const MODULE_PRINT_CONFIGS = {
-  "heat-treatment": {
-    sheetIndex: 1,
-    repeatHeaderRows: "1:5", // Rows 1–5 contain the report header
-  },
-  grinding: {
-    sheetIndex: 1,
-    repeatHeaderRows: "1:4",
-  },
-  cutting: {
-    sheetIndex: 1,
-    repeatHeaderRows: "1:4",
-  },
-};
+const { getTemplate } = require("../../sqlite/excelTemplates");
 
-/** Fallback when module is unknown or not provided. */
+/** Fallback when module is unknown or DB row is missing/incomplete. */
 const DEFAULT_PRINT_CONFIG = {
-  sheetIndex: 1,
+  sheetName: "Sheet1",
+  startColumn: "A",
+  endColumn: "Z",
   repeatHeaderRows: null,
+  orientation: "landscape",
+  paperSize: "A4",
+  fitWidth: 1,
+  fitHeight: null,
+  marginLeft: 1.5,
+  marginRight: 1.5,
+  marginTop: 1.5,
+  marginBottom: 1.5,
+  headerMargin: 0.8,
+  footerMargin: 0.8,
 };
 
 /**
- * Returns the print config for a given module key.
- * Always returns a complete config object (never null).
+ * Returns the print config for a given module key by querying the database.
+ * Falls back to DEFAULT_PRINT_CONFIG for any missing fields.
  *
  * @param {string|null|undefined} module  Module key, e.g. "heat-treatment"
- * @returns {{ sheetIndex: number, repeatHeaderRows: string|null }}
+ * @returns {typeof DEFAULT_PRINT_CONFIG}
  */
-function getPrintConfig(module) {
-  if (module && MODULE_PRINT_CONFIGS[module]) {
-    return { ...MODULE_PRINT_CONFIGS[module] };
+function getTemplatePrintConfig(module) {
+  const config = { ...DEFAULT_PRINT_CONFIG };
+
+  if (module) {
+    try {
+      const tmpl = getTemplate(module);
+      if (tmpl) {
+        if (tmpl.sheet_name) config.sheetName = tmpl.sheet_name;
+        if (tmpl.print_start_column) config.startColumn = tmpl.print_start_column.toUpperCase().trim();
+        if (tmpl.print_end_column) config.endColumn = tmpl.print_end_column.toUpperCase().trim();
+        if (tmpl.repeat_header_rows) config.repeatHeaderRows = tmpl.repeat_header_rows.trim();
+        if (tmpl.orientation) config.orientation = tmpl.orientation.toLowerCase().trim();
+        if (tmpl.paper_size) config.paperSize = tmpl.paper_size.toUpperCase().trim();
+        
+        // fitWidth / fitHeight
+        if (tmpl.fit_width !== undefined && tmpl.fit_width !== null) config.fitWidth = tmpl.fit_width;
+        if (tmpl.fit_height !== undefined && tmpl.fit_height !== null) config.fitHeight = tmpl.fit_height;
+        
+        // Margins
+        if (tmpl.margin_left_cm !== undefined && tmpl.margin_left_cm !== null) config.marginLeft = tmpl.margin_left_cm;
+        if (tmpl.margin_right_cm !== undefined && tmpl.margin_right_cm !== null) config.marginRight = tmpl.margin_right_cm;
+        if (tmpl.margin_top_cm !== undefined && tmpl.margin_top_cm !== null) config.marginTop = tmpl.margin_top_cm;
+        if (tmpl.margin_bottom_cm !== undefined && tmpl.margin_bottom_cm !== null) config.marginBottom = tmpl.margin_bottom_cm;
+        if (tmpl.header_margin_cm !== undefined && tmpl.header_margin_cm !== null) config.headerMargin = tmpl.header_margin_cm;
+        if (tmpl.footer_margin_cm !== undefined && tmpl.footer_margin_cm !== null) config.footerMargin = tmpl.footer_margin_cm;
+      }
+    } catch (dbErr) {
+      console.warn("[printConfig] Could not read template config from DB:", dbErr.message);
+    }
   }
-  return { ...DEFAULT_PRINT_CONFIG };
+
+  return config;
 }
 
-module.exports = { getPrintConfig, MODULE_PRINT_CONFIGS, DEFAULT_PRINT_CONFIG };
+module.exports = { getTemplatePrintConfig, DEFAULT_PRINT_CONFIG };

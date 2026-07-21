@@ -26,6 +26,15 @@ const templateService = {
   checksum: async (filePath) => {
     return await window.electronAPI.template.checksum(filePath);
   },
+  getSheets: async (filePath) => {
+    return await window.electronAPI.template.getSheets(filePath);
+  },
+  updatePrintColumns: async ({ module, startColumn, endColumn }) => {
+    return await window.electronAPI.template.updatePrintColumns({ module, startColumn, endColumn });
+  },
+  updatePrintConfig: async (params) => {
+    return await window.electronAPI.template.updatePrintConfig(params);
+  },
 };
 
 export default templateService;

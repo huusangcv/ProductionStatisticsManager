@@ -1,9 +1,29 @@
 import { useState, useCallback, useEffect } from "react";
 import templateService from "../services/templateService";
+import { templateTypeRepository } from "../repositories/templateTypeRepository";
 import { usePrinters } from "./usePrinters";
+
+// Pure column validation helper (mirrors printAreaBuilder logic in the frontend)
+function _columnToIndex(letter) {
+  if (!letter) return 0;
+  const upper = String(letter).toUpperCase().trim();
+  if (!/^[A-Z]{1,3}$/.test(upper)) return 0;
+  let idx = 0;
+  for (let i = 0; i < upper.length; i++) idx = idx * 26 + (upper.charCodeAt(i) - 64);
+  return idx;
+}
+function _validateColumns(start, end) {
+  const si = _columnToIndex(start);
+  const ei = _columnToIndex(end);
+  if (!si) return { valid: false, message: `Cột bắt đầu không hợp lệ: "${start}"` };
+  if (!ei) return { valid: false, message: `Cột kết thúc không hợp lệ: "${end}"` };
+  if (si > ei) return { valid: false, message: `Cột bắt đầu (${start}) phải nhỏ hơn hoặc bằng cột kết thúc (${end})` };
+  return { valid: true };
+}
 
 export function useTemplates() {
   const [templates, setTemplates] = useState([]);
+  const [templateTypes, setTemplateTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -18,15 +38,16 @@ export function useTemplates() {
   const fetchTemplates = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await templateService.getAll();
-      if (result.success) {
-        setTemplates(result.data || []);
-      } else {
-        setTemplates([]);
-      }
+      const [templatesResult, typesData] = await Promise.all([
+        templateService.getAll(),
+        templateTypeRepository.getAll()
+      ]);
+      setTemplates(templatesResult?.success ? (templatesResult.data || []) : []);
+      setTemplateTypes(typesData || []);
     } catch (error) {
-      console.error("Failed to fetch templates", error);
+      console.error("Failed to fetch templates:", error);
       setTemplates([]);
+      setTemplateTypes([]);
     } finally {
       setLoading(false);
     }
@@ -41,15 +62,10 @@ export function useTemplates() {
     setDrawerOpen(false);
   }, []);
 
-  const handleUpload = useCallback(
-    async (module) => {
+  const handleUploadSubmit = useCallback(
+    async ({ module, sourcePath, sheetName, startColumn, endColumn }) => {
       setLoading(true);
       try {
-        const selectResult = await templateService.selectFile();
-        if (!selectResult.success || selectResult.canceled) {
-          return { success: false, canceled: true };
-        }
-
         const existing = templates.find((t) => t.module === module);
         if (existing) {
           return new Promise((resolve) => {
@@ -61,20 +77,17 @@ export function useTemplates() {
                 setConfirmDialog({ open: false });
                 const result = await templateService.upload({
                   module,
-                  sourcePath: selectResult.filePath,
+                  sourcePath,
                   overwrite: true,
+                  sheetName,
+                  startColumn,
+                  endColumn
                 });
                 if (result.success) {
                   await fetchTemplates();
-                  resolve({
-                    success: true,
-                    message: "Upload template thành công",
-                  });
+                  resolve({ success: true, message: "Upload template thành công" });
                 } else {
-                  resolve({
-                    success: false,
-                    message: result.message || "Upload thất bại",
-                  });
+                  resolve({ success: false, message: result.message || "Upload thất bại" });
                 }
               },
             });
@@ -83,25 +96,22 @@ export function useTemplates() {
 
         const result = await templateService.upload({
           module,
-          sourcePath: selectResult.filePath,
+          sourcePath,
           overwrite: false,
+          sheetName,
+          startColumn,
+          endColumn
         });
 
         if (result.success) {
           await fetchTemplates();
           return { success: true, message: "Upload template thành công" };
         } else {
-          return {
-            success: false,
-            message: result.message || "Upload thất bại",
-          };
+          return { success: false, message: result.message || "Upload thất bại" };
         }
       } catch (error) {
         console.error("Failed to upload template:", error);
-        return {
-          success: false,
-          message: error.message || "Lỗi không xác định",
-        };
+        return { success: false, message: error.message || "Lỗi không xác định" };
       } finally {
         setLoading(false);
       }
@@ -253,6 +263,39 @@ export function useTemplates() {
     return { success: true, message: "Đã làm mới" };
   }, [fetchTemplates]);
 
+  const handleSavePrintConfig = useCallback(
+    async (config) => {
+      if (!selectedTemplate) return { success: false, message: "Chưa chọn template" };
+
+      const validation = _validateColumns(config.startColumn, config.endColumn);
+      if (!validation.valid) return { success: false, message: validation.message };
+
+      setLoading(true);
+      try {
+        const result = await templateService.updatePrintConfig({
+          module: selectedTemplate.module,
+          ...config,
+        });
+        if (result.ok) {
+          // Refresh list and update the selected template in-place
+          await fetchTemplates();
+          setSelectedTemplate((prev) =>
+            prev ? { ...prev, ...config, print_start_column: config.startColumn, print_end_column: config.endColumn } : prev
+          );
+          return { success: true, message: `Đã lưu cấu hình in` };
+        } else {
+          return { success: false, message: result.message || "Lưu thất bại" };
+        }
+      } catch (error) {
+        console.error("Failed to save print config:", error);
+        return { success: false, message: error.message || "Lỗi không xác định" };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [selectedTemplate, fetchTemplates],
+  );
+
   const handleConfirmDialogClose = useCallback(() => {
     setConfirmDialog({ open: false, title: "", message: "", onConfirm: null });
   }, []);
@@ -263,6 +306,7 @@ export function useTemplates() {
 
   return {
     templates,
+    templateTypes,
     loading,
     selectedTemplate,
     drawerOpen,
@@ -270,13 +314,14 @@ export function useTemplates() {
     fetchTemplates,
     handleSelectTemplate,
     handleCloseDrawer,
-    handleUpload,
+    handleUploadSubmit,
     handleReplace,
     handlePreview,
     handleOpenFolder,
     handlePrintTest,
     handleDelete,
     handleRefresh,
+    handleSavePrintConfig,
     handleConfirmDialogClose,
   };
 }

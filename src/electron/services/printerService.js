@@ -162,6 +162,12 @@ async function refreshPrinters() {
   return await getAllWindowsPrinters();
 }
 
+async function getWindowsDefaultPrinter() {
+  const printers = await getAllWindowsPrinters();
+  const defaultPrinter = printers.find(p => p.isDefault);
+  return defaultPrinter ? defaultPrinter.name : null;
+}
+
 async function createTestExcel(filePath) {
   const now = new Date();
   const dateStr = now.toLocaleDateString("vi-VN");
@@ -228,10 +234,10 @@ async function printTest(printerName) {
 }
 
 /**
- * printExcel — delegates to the new modular Print Engine.
+ * printExcel — delegates to the Native Print Engine.
  *
  * @param {string}      filePath            Absolute path to the workbook.
- * @param {string|null} printerNameOverride Override the default printer from DB settings.
+ * @param {string|null} printerNameOverride (Ignored: retained for API compat)
  * @param {string|null} moduleKey           Module key for per-template config (e.g. "heat-treatment").
  * @returns {Promise<{ ok: boolean, message: string, details: object }>}
  */
@@ -244,9 +250,7 @@ async function printExcel(filePath, printerNameOverride = null, moduleKey = null
 
   return await printExcelFile({
     filePath,
-    printerName:    printerNameOverride,
-    module:         moduleKey,
-    checkPrinterFn: checkPrinter,
+    module: moduleKey,
   });
 }
 
@@ -266,6 +270,7 @@ module.exports = {
   getAllWindowsPrinters,
   checkPrinter,
   refreshPrinters,
+  getWindowsDefaultPrinter,
   printTest,
   printExcel,
   printPdf,

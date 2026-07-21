@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const { shell, dialog, BrowserWindow } = require("electron");
+const xlsx = require("xlsx");
 const templateDAO = require("../sqlite/excelTemplates");
 const { getAppDataRoot } = require("../sqlite/paths");
 
@@ -107,7 +108,8 @@ const templateService = {
     }
   },
 
-  copyTemplate: async (sourcePath, module, overwrite = false) => {
+  copyTemplate: async (sourcePath, module, options = {}) => {
+    const { overwrite = false, sheetName = "Sheet1", startColumn = "A", endColumn = "Z" } = options;
     try {
       const templatesDir = getTemplatesDir();
       if (!fs.existsSync(templatesDir)) {
@@ -138,12 +140,15 @@ const templateService = {
         module,
         template_name: originalName,
         template_path: destPath,
-        sheet_name: "Sheet1",
+        sheet_name: sheetName,
         start_row: 3,
         checksum,
         file_size: fileSize,
-        status: "active"
+        status: "active",
       });
+
+      // Update print columns immediately after upserting
+      templateDAO.updatePrintColumns(module, startColumn, endColumn);
 
       if (!result.ok) {
         return { success: false, message: "Lỗi lưu CSDL" };
@@ -182,6 +187,20 @@ const templateService = {
       return { success: false, message: error.message || "Lỗi mở file" };
     }
   },
+
+  getExcelSheets: async (filePath) => {
+    try {
+      if (!fs.existsSync(filePath)) {
+        return { success: false, message: "Không tìm thấy file", sheets: [] };
+      }
+      // bookSheets: true reads only sheet names, making it very fast
+      const workbook = xlsx.readFile(filePath, { bookSheets: true });
+      return { success: true, sheets: workbook.SheetNames || [] };
+    } catch (error) {
+      console.error("Error reading sheets:", error);
+      return { success: false, message: error.message || "Lỗi đọc file Excel", sheets: [] };
+    }
+  }
 };
 
 module.exports = templateService;

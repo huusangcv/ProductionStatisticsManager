@@ -1,77 +1,62 @@
 /**
  * pageSetup.js — Generates the PowerShell snippet that configures
- * PageSetup for printing.
- *
- * Targets:
- *   - PaperSize   = xlPaperA4 (9)
- *   - Orientation = xlLandscape (2)
- *   - Zoom        = $false  (required before setting FitToPages*)
- *   - FitToPagesWide = 1    (always fit horizontally to one page)
- *   - FitToPagesTall = $false (allow as many pages tall as needed)
- *   - Margins (Left/Right/Top/Bottom/Header/Footer) via CentimetersToPoints
- *   - PrintTitleRows if repeatHeaderRows is configured
- *
- * All values are set unconditionally on every print job — the template's
- * saved PageSetup is completely ignored.
+ * PageSetup for printing, dynamically driven by DB configuration.
  */
 
 "use strict";
 
-/**
- * Margin defaults in centimetres.
- * Override by passing `margins` option to buildPageSetupSnippet.
- */
-const DEFAULT_MARGINS_CM = {
-  left:   1.5,
-  right:  1.5,
-  top:    1.5,
-  bottom: 1.5,
-  header: 0.8,
-  footer: 0.8,
+const PAPER_SIZES = {
+  "A4": 9,
+  "A3": 8,
+};
+
+const ORIENTATIONS = {
+  "portrait": 1,
+  "landscape": 2,
 };
 
 /**
  * Generates the PowerShell snippet that fully configures PageSetup on `$ws`.
  *
- * The caller must declare `$xl` (Excel.Application) and `$ws` (Worksheet)
- * before this snippet.
- *
- * @param {object}       [options]
- * @param {string|null}  [options.repeatHeaderRows]  e.g. "1:5" or null
- * @param {object}       [options.margins]            Override margin values (in cm)
+ * @param {object} config Print configuration object containing page setup values.
  * @returns {string}  Multi-line PowerShell block.
  */
-function buildPageSetupSnippet({ repeatHeaderRows = null, margins = {} } = {}) {
-  const m = { ...DEFAULT_MARGINS_CM, ...margins };
+function buildPageSetupSnippet(config) {
+  const paperSizeCode = PAPER_SIZES[config.paperSize] || 9;
+  const orientationCode = ORIENTATIONS[config.orientation] || 2;
+  
+  const fitWidthLine = config.fitWidth !== null && config.fitWidth !== undefined 
+    ? `$ws.PageSetup.FitToPagesWide = ${config.fitWidth}` 
+    : `$ws.PageSetup.FitToPagesWide = $false`;
+    
+  const fitHeightLine = config.fitHeight !== null && config.fitHeight !== undefined 
+    ? `$ws.PageSetup.FitToPagesTall = ${config.fitHeight}` 
+    : `$ws.PageSetup.FitToPagesTall = $false`;
 
-  const titleRowsLine = repeatHeaderRows
-    ? `$ws.PageSetup.PrintTitleRows = "${ repeatHeaderRows }"`
+  const titleRowsLine = config.repeatHeaderRows
+    ? `$ws.PageSetup.PrintTitleRows = "${config.repeatHeaderRows}"`
     : `# PrintTitleRows: not configured for this module`;
 
   return `
 # ── Page Setup ────────────────────────────────────────────────────────────────
-# PaperSize: 9 = xlPaperA4
-$ws.PageSetup.PaperSize    = 9
-# Orientation: 2 = xlLandscape
-$ws.PageSetup.Orientation  = 2
-# Zoom must be $false before setting FitToPages*
+$ws.PageSetup.PaperSize    = ${paperSizeCode}
+$ws.PageSetup.Orientation  = ${orientationCode}
 $ws.PageSetup.Zoom         = $false
-# Fit width to exactly 1 page; let height flow naturally
-$ws.PageSetup.FitToPagesWide = 1
-$ws.PageSetup.FitToPagesTall = $false
-# Margins (centimetres → points)
-$ws.PageSetup.LeftMargin   = $xl.CentimetersToPoints(${ m.left })
-$ws.PageSetup.RightMargin  = $xl.CentimetersToPoints(${ m.right })
-$ws.PageSetup.TopMargin    = $xl.CentimetersToPoints(${ m.top })
-$ws.PageSetup.BottomMargin = $xl.CentimetersToPoints(${ m.bottom })
-$ws.PageSetup.HeaderMargin = $xl.CentimetersToPoints(${ m.header })
-$ws.PageSetup.FooterMargin = $xl.CentimetersToPoints(${ m.footer })
-# Repeat header rows on every printed page
+${fitWidthLine}
+${fitHeightLine}
+$ws.PageSetup.CenterHorizontally = $true
+$ws.PageSetup.CenterVertically   = $false
+$ws.PageSetup.LeftMargin   = $xl.CentimetersToPoints(${config.marginLeft})
+$ws.PageSetup.RightMargin  = $xl.CentimetersToPoints(${config.marginRight})
+$ws.PageSetup.TopMargin    = $xl.CentimetersToPoints(${config.marginTop})
+$ws.PageSetup.BottomMargin = $xl.CentimetersToPoints(${config.marginBottom})
+$ws.PageSetup.HeaderMargin = $xl.CentimetersToPoints(${config.headerMargin})
+$ws.PageSetup.FooterMargin = $xl.CentimetersToPoints(${config.footerMargin})
 ${titleRowsLine}
-Write-Output "LOG:PageSetup=A4,Landscape,FitWidth=1,FitHeight=Auto"
-Write-Output "LOG:Margins=L${m.left}_R${m.right}_T${m.top}_B${m.bottom}cm"
-${repeatHeaderRows ? `Write-Output "LOG:PrintTitleRows=${repeatHeaderRows}"` : `Write-Output "LOG:PrintTitleRows=none"`}
+Write-Output "LOG:PageSetup=${config.paperSize},${config.orientation},FitW=${config.fitWidth ?? 'auto'},FitH=${config.fitHeight ?? 'auto'}"
+Write-Output "LOG:Margins=L${config.marginLeft}_R${config.marginRight}_T${config.marginTop}_B${config.marginBottom}cm"
+Write-Output "LOG:PrintTitleRows=${config.repeatHeaderRows || 'none'}"
 `;
 }
 
-module.exports = { buildPageSetupSnippet, DEFAULT_MARGINS_CM };
+module.exports = { buildPageSetupSnippet };

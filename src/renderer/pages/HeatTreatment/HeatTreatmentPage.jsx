@@ -154,7 +154,7 @@ export default function HeatTreatmentPage() {
   const handlePrint = async (filePath) => {
     if (!filePath) return;
     try {
-      const result = await printExcel(filePath);
+      const result = await printExcel(filePath, "heat-treatment");
       if (result.ok) {
         showSnackbar(result.message || "In thành công.");
       } else {

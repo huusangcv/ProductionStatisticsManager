@@ -1,6 +1,1 @@
-const { getAllSessions } = require('./src/electron/sqlite/importSessions.js');
-try {
-  console.log(getAllSessions());
-} catch (e) {
-  console.error("ERROR:", e);
-}
+const str = `FAILED_JSON:{"code":"ACTIVE_PRINTER_FAILED","message":"Exception setting \\"ActivePrinter\\": \\"Exception from HRESULT: 0x800A03EC\\""}`; const jsonPart = str.substring(str.indexOf("FAILED_JSON:") + 12).trim(); console.log(JSON.parse(jsonPart));

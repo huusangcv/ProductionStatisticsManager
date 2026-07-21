@@ -17,8 +17,8 @@ const printerService = {
   test: async (printerName) => {
     return await window.electronAPI.printer.test(printerName);
   },
-  printExcel: async (filePath) => {
-    return await window.electronAPI.printer.printExcel(filePath);
+  printExcel: async (filePath, moduleKey = null) => {
+    return await window.electronAPI.printer.printExcel(filePath, moduleKey);
   },
   printPdf: async (filePath) => {
     return await window.electronAPI.printer.printPdf(filePath);
