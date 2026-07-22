@@ -1,0 +1,449 @@
+/* ============================================================
+   index.css  –  ONLY print styles + Excel document sheet styles
+   All UI chrome is handled by MUI theme / components
+   ============================================================ */
+
+/* ---------- Box sizing reset ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* ---------- Excel Sheet Replica ---------- */
+.sheet-wrap {
+  width: 794px;
+  /* A4 strict width */
+  height: 1123px;
+  /* A4 strict height */
+  background-color: #fff;
+  color: #000;
+  font-family: 'Times New Roman', Times, serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.xl-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.xl-table td {
+  border: 1px solid #999;
+  overflow: hidden;
+  padding: 0;
+  vertical-align: middle;
+}
+
+/* Col widths as % of total sheet width */
+.col-a {
+  width: 9.9%;
+}
+
+.col-b {
+  width: 14.5%;
+}
+
+.col-c {
+  width: 30.9%;
+}
+
+.col-d {
+  width: 10.3%;
+}
+
+.col-e {
+  width: 17.2%;
+}
+
+.col-f {
+  width: 9.6%;
+}
+
+.col-g {
+  width: 7.6%;
+}
+
+/* Row 1: Company name */
+.row1 {
+  height: 56px;
+}
+
+.xl-table td.r1-cell {
+  text-align: center;
+  vertical-align: middle;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12.5pt;
+  font-weight: normal;
+  line-height: 1.35;
+  padding: 4px 6px;
+  border: none;
+}
+
+.r1-inner {
+  display: flex;
+  align-items: center;
+  position: relative;
+  height: 100%;
+  padding: 4px 8px;
+}
+
+.r1-logo {
+  height: 34px;
+  width: auto;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+
+.r1-text {
+  text-align: center;
+  font-size: 12pt;
+  font-weight: normal;
+  font-family: 'Times New Roman', Times, serif;
+  line-height: 1.35;
+  flex: 1;
+}
+
+/* Row 2: Title block */
+.row2 {
+  height: 189px;
+}
+
+.xl-table td.r2-cell {
+  text-align: left;
+  vertical-align: top;
+  font-family: 'Times New Roman', Times, serif;
+  padding: 6px 10px;
+  border: none;
+}
+
+.r2-title {
+  text-align: center;
+  font-size: 15pt;
+  font-weight: bold;
+  margin-bottom: 2px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.r2-subtitle {
+  text-align: center;
+  font-size: 12pt;
+  font-weight: bold;
+  margin-bottom: 6px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.r2-body {
+  font-size: 9pt;
+  line-height: 1.55;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+/* Row 3: Dept + Date */
+.row3 {
+  height: 19px;
+}
+
+.xl-table td.r3-dept {
+  text-align: left;
+  vertical-align: middle;
+  font-size: 10pt;
+  font-weight: bold;
+  font-family: 'Times New Roman', Times, serif;
+  padding: 0 6px;
+  border: none;
+}
+
+.xl-table td.r3-mid {
+  border: none;
+}
+
+.xl-table td.r3-date {
+  text-align: center;
+  vertical-align: middle;
+  font-size: 12pt;
+  font-style: italic;
+  font-family: 'Times New Roman', Times, serif;
+  padding: 0 4px;
+  border: none;
+}
+
+/* Row 4: Header row */
+.row4 {
+  height: 63px;
+}
+
+.hdr {
+  text-align: center;
+  vertical-align: middle;
+  font-size: 11.5pt;
+  font-weight: bold;
+  font-family: 'Times New Roman', Times, serif;
+  white-space: pre-line;
+  line-height: 1.25;
+  padding: 3px 2px;
+  background: #f0f0f0;
+  border: 1px solid #777;
+}
+
+.hdr .sub {
+  font-weight: normal;
+  font-size: 9pt;
+}
+
+/* Data rows */
+.drow {
+  height: 29px;
+}
+
+.d-stt {
+  text-align: center;
+  vertical-align: middle;
+  font-size: 11pt;
+  font-family: 'Times New Roman', Times, serif;
+  padding: 0 2px;
+  border: 1px solid #999;
+}
+
+.d-id {
+  text-align: center;
+  vertical-align: middle;
+  font-size: 13pt;
+  font-family: Calibri, Arial, sans-serif;
+  padding: 0 3px;
+  border: 1px solid #999;
+}
+
+.d-name {
+  text-align: center;
+  vertical-align: middle;
+  font-size: 13pt;
+  font-family: 'Times New Roman', Times, serif;
+  padding: 0 4px;
+  border: 1px solid #999;
+}
+
+.d-role {
+  text-align: center;
+  vertical-align: middle;
+  font-size: 11pt;
+  font-family: 'Times New Roman', Times, serif;
+  padding: 0 2px;
+  border: 1px solid #999;
+}
+
+.d-time {
+  text-align: center;
+  vertical-align: middle;
+  font-size: 11pt;
+  font-family: 'Times New Roman', Times, serif;
+  border: 1px solid #999;
+}
+
+.d-sign {
+  border: 1px solid #999;
+}
+
+.d-note {
+  text-align: center;
+  vertical-align: middle;
+  font-size: 11pt;
+  font-family: 'Times New Roman', Times, serif;
+  border: 1px solid #999;
+}
+
+.d-empty {
+  color: #ccc;
+  font-size: 10pt;
+}
+
+/* Row 24: Gồm */
+.row24 {
+  height: 39px;
+}
+
+.xl-table td.r24-cell {
+  text-align: left;
+  vertical-align: middle;
+  font-size: 11pt;
+  font-weight: bold;
+  font-family: 'Times New Roman', Times, serif;
+  padding: 0 8px;
+  border: 2px solid #555;
+}
+
+/* Row 25: Signatures */
+.row25-tca {
+  height: 109px;
+}
+
+.row25-sun {
+  height: 84px;
+}
+
+.xl-table .sig-cell {
+  text-align: center;
+  vertical-align: top;
+  font-size: 11.5pt;
+  font-weight: bold;
+  font-family: 'Times New Roman', Times, serif;
+  white-space: pre-line;
+  line-height: 1.4;
+  padding: 5px 3px;
+  border: none;
+}
+
+.xl-table .sig-cell:last-child {
+  border-right: 1px solid #999;
+}
+
+/* ============================================================
+   PRINT STYLES
+   ============================================================ */
+@media print {
+
+  body,
+  html {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+  }
+
+  /* Ẩn tất cả giao diện — chỉ giữ lại tài liệu */
+  .no-print,
+  header,
+  aside,
+  nav {
+    display: none !important;
+  }
+
+  /*
+    .print-area: container bao toàn bộ các trang.
+    Dùng position:absolute để thoát khỏi các ràng buộc flex/overflow của layout.
+  */
+  .print-area {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+    width: 100vw !important;
+    height: auto !important;
+  }
+
+  /*
+    .print-page: mỗi trang PDF.
+    page-break-after: always → trình duyệt ngắt trang sau mỗi phần tử.
+    Trang cuối dùng avoid để không tạo trang trắng thừa.
+  */
+  .print-page {
+    display: block !important;
+    page-break-after: always;
+    break-after: page;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .print-page:last-child {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /*
+    .print-scale-wrapper: reset scale wrapper về trạng thái tự nhiên.
+    Trong preview nó có width/height theo zoom, khi in phải là 100%/auto.
+  */
+  .print-scale-wrapper {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .sheet-wrap {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .xl-table {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .xl-table td {
+    border-color: #000 !important;
+  }
+
+  .xl-table td.r24-cell {
+    border-color: #000 !important;
+  }
+
+  .time-input::placeholder {
+    color: transparent !important;
+  }
+
+  .note-input::placeholder {
+    color: transparent !important;
+  }
+
+  @page {
+    margin: 0.5cm;
+    size: A4 portrait;
+  }
+  
+  /* Hide select dropdown arrow on print */
+  .time-input {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+  }
+}
+
+/* Time Input in Document Sheet */
+.time-input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  text-align-last: center;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+  outline: none;
+  cursor: pointer;
+}
+
+.time-input::placeholder {
+  color: #aaa;
+  font-style: italic;
+  font-size: 9pt;
+}
+
+/* Note Input in Document Sheet (cột Ghi chú editable) */
+.note-input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+  outline: none;
+  cursor: text;
+}
+
+.note-input::placeholder {
+  color: #bbb;
+  font-style: italic;
+  font-size: 8pt;
+}

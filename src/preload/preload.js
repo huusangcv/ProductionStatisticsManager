@@ -148,6 +148,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     importExcel: () => ipcRenderer.invoke("price:importExcel"),
     exportExcel: () => ipcRenderer.invoke("price:exportExcel"),
   },
+  overtime: {
+    getHistory: (departmentId) => ipcRenderer.invoke("overtime:getHistory", departmentId),
+    saveHistory: (snapshotData) => ipcRenderer.invoke("overtime:saveHistory", snapshotData),
+    deleteHistory: (id) => ipcRenderer.invoke("overtime:deleteHistory", id),
+    clearHistory: (departmentId) => ipcRenderer.invoke("overtime:clearHistory", departmentId),
+  },
   castingDefect: {
     getByDate:  (date) => ipcRenderer.invoke("castingDefect:getByDate", date),
     debugDate:  (date) => ipcRenderer.invoke("castingDefect:debugDate", date),

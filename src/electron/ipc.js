@@ -124,6 +124,12 @@ const {
   importPricesFromExcel,
   exportPricesToExcel
 } = require("./sqlite/prices");
+const {
+  getHistory,
+  saveHistory,
+  deleteHistory,
+  clearHistory,
+} = require("./sqlite/overtime");
 const backupDAO = require("./sqlite/backup");
 const printerService = require("./services/printerService");
 const templateService = require("./services/templateService");
@@ -797,6 +803,12 @@ function registerIpcHandlers() {
   ipcMain.handle("cutting:selectFile", (event) =>
     selectProductionFile(event, "Chọn file Excel sản lượng Cắt"),
   );
+
+  // --- Overtime handlers ---
+  ipcMain.handle("overtime:getHistory", (_event, departmentId) => getHistory(departmentId));
+  ipcMain.handle("overtime:saveHistory", (_event, snapshotData) => saveHistory(snapshotData));
+  ipcMain.handle("overtime:deleteHistory", (_event, id) => deleteHistory(id));
+  ipcMain.handle("overtime:clearHistory", (_event, departmentId) => clearHistory(departmentId));
 
   ipcMain.handle("cutting:parseExcel", (_event, filePath) =>
     parseExcelFile(filePath, CUTTING_SPEC),

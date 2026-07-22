@@ -9,6 +9,7 @@ const { ensureExcelTemplatesTable, seedExcelTemplateConfigsIfEmpty } = require("
 const { ensureTemplateTypesTable, seedTemplateTypesIfEmpty } = require("./templateTypes");
 const { ensureDetailJointTable } = require("./detail_joint");
 const { ensurePricesTable } = require("./prices");
+const { ensureOvertimeTable } = require("./overtime");
 const {
   ensurePrintersTable,
   ensureSettingsTable,
@@ -63,6 +64,7 @@ function initializeDatabase() {
   seedTemplateTypesIfEmpty();
   ensureDetailJointTable();
   ensurePricesTable();
+  ensureOvertimeTable();
   ensurePrintersTable();
   ensureSettingsTable();
   ensurePrintLogsTable();

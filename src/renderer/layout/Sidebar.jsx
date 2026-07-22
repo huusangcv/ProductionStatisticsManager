@@ -11,6 +11,7 @@ import ContentCutRoundedIcon         from "@mui/icons-material/ContentCutRounded
 import LocalFireDepartmentRounded    from "@mui/icons-material/LocalFireDepartmentRounded";
 import BadgeRoundedIcon              from "@mui/icons-material/BadgeRounded";
 import HistoryRoundedIcon            from "@mui/icons-material/HistoryRounded";
+import AccessTimeFilledRoundedIcon   from "@mui/icons-material/AccessTimeFilledRounded";
 import AssessmentRoundedIcon         from "@mui/icons-material/AssessmentRounded";
 import SettingsRoundedIcon           from "@mui/icons-material/SettingsRounded";
 import ExpandLessRoundedIcon         from "@mui/icons-material/ExpandLessRounded";
@@ -36,6 +37,7 @@ const ICON_MAP = {
   HeatTreatment:<LocalFireDepartmentRounded    sx={{ fontSize: ICON_SIZE }} />,
   CastingDefect: <ReportProblemRoundedIcon      sx={{ fontSize: ICON_SIZE }} />,
   Employees:    <BadgeRoundedIcon              sx={{ fontSize: ICON_SIZE }} />,
+  Overtime:     <AccessTimeFilledRoundedIcon   sx={{ fontSize: ICON_SIZE }} />,
   History:      <HistoryRoundedIcon            sx={{ fontSize: ICON_SIZE }} />,
   Reports:      <AssessmentRoundedIcon         sx={{ fontSize: ICON_SIZE }} />,
   Settings:     <SettingsRoundedIcon           sx={{ fontSize: ICON_SIZE }} />,

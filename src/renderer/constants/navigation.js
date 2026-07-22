@@ -22,6 +22,7 @@ export const navigationItems = [
     ],
   },
   { label: "Lịch sử Import", path: "/import-history", icon: "History" },
+  { label: "Đăng ký tăng ca", path: "/overtime", icon: "Overtime" },
   { label: "Báo cáo", path: "/reports", icon: "Reports" },
   { label: "Cài đặt", path: "/settings", icon: "Settings" },
 ];
