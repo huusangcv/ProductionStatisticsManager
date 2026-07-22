@@ -9,6 +9,7 @@ import {
   computeProductionSummaryTotals,
   formatProductionQuantity,
   formatProductionWeight,
+  formatProductionPrice,
 } from "../../utils/productionSummaryFormat";
 
 const getSummaryItems = (mode) => {
@@ -20,6 +21,9 @@ const getSummaryItems = (mode) => {
   ];
   if (mode === "cutting") {
     items.push({ key: "jointCount", label: "Tổng số xâu", format: formatProductionQuantity });
+    items.push({ key: "totalPrice", label: "Tổng Tiền Cắt", format: formatProductionPrice });
+  } else if (mode === "grinding") {
+    items.push({ key: "totalPrice", label: "Tổng Tiền Mài", format: formatProductionPrice });
   }
   return items;
 };

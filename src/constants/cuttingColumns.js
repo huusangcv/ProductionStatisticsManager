@@ -101,6 +101,18 @@ export const CUTTING_COLUMNS = [
     width: 180,
     type: "number",
   },
+  {
+    databaseField: "cutting_price",
+    headerName: "Đơn giá Cắt",
+    width: 130,
+    type: "number",
+  },
+  {
+    databaseField: "total_price",
+    headerName: "Thành tiền Cắt",
+    width: 140,
+    type: "number",
+  },
 ];
 
 const formatDateForUI = (dateStr) => {

@@ -100,6 +100,18 @@ export const GRINDING_COLUMNS = [
     width: 180,
     type: "number",
   },
+  {
+    databaseField: "grinding_price",
+    headerName: "Đơn giá Mài",
+    width: 130,
+    type: "number",
+  },
+  {
+    databaseField: "total_price",
+    headerName: "Thành tiền Mài",
+    width: 140,
+    type: "number",
+  },
 ];
 
 const formatDateForUI = (dateStr) => {

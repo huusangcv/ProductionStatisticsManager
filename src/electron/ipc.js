@@ -115,6 +115,15 @@ const {
   updateTemplateType,
   deleteTemplateType,
 } = require("./sqlite/templateTypes");
+const {
+  getAllPrices,
+  getPriceByMaterialCode,
+  createPrice,
+  updatePrice,
+  deletePrice,
+  importPricesFromExcel,
+  exportPricesToExcel
+} = require("./sqlite/prices");
 const backupDAO = require("./sqlite/backup");
 const printerService = require("./services/printerService");
 const templateService = require("./services/templateService");
@@ -406,6 +415,30 @@ function makeSaveHandler(
         unmappedCodes = collectUnmappedCodes(dbCheck, records, roleCode);
       } finally {
         dbCheck.close();
+      }
+
+      // Populate prices from price_list
+      for (const record of records) {
+        if (record.material_code) {
+          const priceRec = getPriceByMaterialCode(record.material_code);
+          if (priceRec) {
+            if (roleCode === "CUT") {
+               record.cutting_price = priceRec.cutting_price || 0;
+               record.total_price = (record.completed_quantity || 0) * record.cutting_price;
+            } else if (roleCode === "GRIND") {
+               record.grinding_price = priceRec.grinding_price || 0;
+               record.total_price = (record.completed_quantity || 0) * record.grinding_price;
+            }
+          } else {
+             if (roleCode === "CUT") {
+               record.cutting_price = 0;
+               record.total_price = 0;
+             } else if (roleCode === "GRIND") {
+               record.grinding_price = 0;
+               record.total_price = 0;
+             }
+          }
+        }
       }
 
       // Execute import linked to session
@@ -785,6 +818,32 @@ function registerIpcHandlers() {
   ipcMain.handle("import-session:getAll", () => getAllSessions());
   ipcMain.handle("import-session:getById", (_event, id) => getSessionById(id));
   ipcMain.handle("import-session:delete", (_event, id) => deleteSession(id));
+
+  // --- Prices handlers ---
+  ipcMain.handle("price:getAll", () => getAllPrices());
+  ipcMain.handle("price:create", (_event, data) => createPrice(data));
+  ipcMain.handle("price:update", (_event, { id, data }) => updatePrice(id, data));
+  ipcMain.handle("price:delete", (_event, id) => deletePrice(id));
+  ipcMain.handle("price:importExcel", async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      title: "Chọn file Đơn giá gia công",
+      filters: [{ name: "Excel Files", extensions: ["xls", "xlsx"] }],
+      properties: ["openFile"],
+    });
+    if (canceled || filePaths.length === 0) return { ok: false, canceled: true };
+    return importPricesFromExcel(filePaths[0]);
+  });
+  ipcMain.handle("price:exportExcel", async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: "Xuất danh sách đơn giá",
+      defaultPath: "DanhSachDonGia.xlsx",
+      filters: [{ name: "Excel Files", extensions: ["xlsx"] }],
+    });
+    if (canceled || !filePath) return { ok: false, canceled: true };
+    return exportPricesToExcel(filePath);
+  });
 
   ipcMain.handle("import-session:rollback", async (event, sessionId) => {
     const win = BrowserWindow.fromWebContents(event.sender);

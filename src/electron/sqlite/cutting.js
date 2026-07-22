@@ -18,6 +18,8 @@ const CUTTING_COLUMN_SPEC = [
   { databaseField: "representative_code",   type: "text"    },
   { databaseField: "unit_weight",           type: "float"   },
   { databaseField: "completed_weight",      type: "float"   },
+  { databaseField: "cutting_price",         type: "float"   },
+  { databaseField: "total_price",           type: "float"   },
 ];
 
 const cuttingDAO = createProductionModule("cutting_production", CUTTING_COLUMN_SPEC, "CUT");

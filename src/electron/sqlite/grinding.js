@@ -19,6 +19,8 @@ const GRINDING_COLUMN_SPEC = [
   { databaseField: "scrap_quantity",        type: "integer" },
   { databaseField: "unit_weight",           type: "float"   },
   { databaseField: "completed_weight",      type: "float"   },
+  { databaseField: "grinding_price",        type: "float"   },
+  { databaseField: "total_price",           type: "float"   },
 ];
 
 const grindingDAO = createProductionModule("grinding_production", GRINDING_COLUMN_SPEC, "GRIND");

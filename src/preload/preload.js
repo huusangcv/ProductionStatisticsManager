@@ -140,6 +140,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
     update: (id, data) => ipcRenderer.invoke("templateType:update", { id, data }),
     delete: (id) => ipcRenderer.invoke("templateType:delete", id),
   },
+  price: {
+    getAll: () => ipcRenderer.invoke("price:getAll"),
+    create: (data) => ipcRenderer.invoke("price:create", data),
+    update: (id, data) => ipcRenderer.invoke("price:update", { id, data }),
+    delete: (id) => ipcRenderer.invoke("price:delete", id),
+    importExcel: () => ipcRenderer.invoke("price:importExcel"),
+    exportExcel: () => ipcRenderer.invoke("price:exportExcel"),
+  },
   castingDefect: {
     getByDate:  (date) => ipcRenderer.invoke("castingDefect:getByDate", date),
     debugDate:  (date) => ipcRenderer.invoke("castingDefect:debugDate", date),

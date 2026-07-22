@@ -8,6 +8,7 @@ const { ensureImportSessionsTable } = require("./importSessions");
 const { ensureExcelTemplatesTable, seedExcelTemplateConfigsIfEmpty } = require("./excelTemplates");
 const { ensureTemplateTypesTable, seedTemplateTypesIfEmpty } = require("./templateTypes");
 const { ensureDetailJointTable } = require("./detail_joint");
+const { ensurePricesTable } = require("./prices");
 const {
   ensurePrintersTable,
   ensureSettingsTable,
@@ -61,6 +62,7 @@ function initializeDatabase() {
   ensureTemplateTypesTable();
   seedTemplateTypesIfEmpty();
   ensureDetailJointTable();
+  ensurePricesTable();
   ensurePrintersTable();
   ensureSettingsTable();
   ensurePrintLogsTable();

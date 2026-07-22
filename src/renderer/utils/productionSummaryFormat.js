@@ -4,6 +4,7 @@ export const PRODUCTION_SUMMARY_FIELDS = {
   unitWeight: "unit_weight",
   completedWeight: "completed_weight",
   jointCount: "joint_count",
+  totalPrice: "total_price",
 };
 
 export function parseProductionNumber(value) {
@@ -20,6 +21,10 @@ export function formatProductionWeight(value) {
   return value.toLocaleString("vi-VN", { maximumFractionDigits: 3 });
 }
 
+export function formatProductionPrice(value) {
+  return Math.round(value).toLocaleString("vi-VN");
+}
+
 export function computeProductionSummaryTotals(rows) {
   return rows.reduce(
     (totals, row) => {
@@ -28,6 +33,7 @@ export function computeProductionSummaryTotals(rows) {
       totals.unitWeight += parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.unitWeight]);
       totals.completedWeight += parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.completedWeight]);
       totals.jointCount += parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.jointCount]);
+      totals.totalPrice += parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.totalPrice]);
       return totals;
     },
     {
@@ -36,6 +42,7 @@ export function computeProductionSummaryTotals(rows) {
       unitWeight: 0,
       completedWeight: 0,
       jointCount: 0,
+      totalPrice: 0,
     },
   );
 }

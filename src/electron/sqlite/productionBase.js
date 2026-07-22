@@ -167,6 +167,21 @@ function createProductionModule(tableName, columnSpec, roleCode) {
           );
         }
       }
+
+      // Migration: Add price columns
+      const hasCuttingPrice = columns.some((col) => col.name === "cutting_price");
+      if (!hasCuttingPrice && tableName === "cutting_production") {
+        db.exec(`ALTER TABLE ${tableName} ADD COLUMN cutting_price REAL DEFAULT 0`);
+      }
+      const hasGrindingPrice = columns.some((col) => col.name === "grinding_price");
+      if (!hasGrindingPrice && tableName === "grinding_production") {
+        db.exec(`ALTER TABLE ${tableName} ADD COLUMN grinding_price REAL DEFAULT 0`);
+      }
+      const hasTotalPrice = columns.some((col) => col.name === "total_price");
+      if (!hasTotalPrice) {
+        db.exec(`ALTER TABLE ${tableName} ADD COLUMN total_price REAL DEFAULT 0`);
+      }
+
     } finally {
       db.close();
     }
@@ -288,6 +303,30 @@ function createProductionModule(tableName, columnSpec, roleCode) {
         }
 
         updateData.joint_count = calculateJointCount(db, recordToCalculate);
+      }
+
+      // Recalculate total_price
+      if (tableName === "cutting_production" || tableName === "grinding_production") {
+         let qty = updateData.completed_quantity;
+         if (qty === undefined) {
+             const current = db.prepare(`SELECT completed_quantity FROM ${tableName} WHERE id = ?`).get(id);
+             qty = current ? current.completed_quantity : 0;
+         }
+         let price = 0;
+         if (tableName === "cutting_production") {
+             price = updateData.cutting_price;
+             if (price === undefined) {
+                 const current = db.prepare(`SELECT cutting_price FROM ${tableName} WHERE id = ?`).get(id);
+                 price = current ? current.cutting_price : 0;
+             }
+         } else {
+             price = updateData.grinding_price;
+             if (price === undefined) {
+                 const current = db.prepare(`SELECT grinding_price FROM ${tableName} WHERE id = ?`).get(id);
+                 price = current ? current.grinding_price : 0;
+             }
+         }
+         updateData.total_price = (qty || 0) * (price || 0);
       }
 
       const result = db

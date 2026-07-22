@@ -18,6 +18,7 @@ export const navigationItems = [
       { label: "Vai trò", path: "/roles" },
       { label: "Chức vụ", path: "/positions" },
       { label: "Chi tiết kết xâu", path: "/detail-joint" },
+      { label: "Đơn giá gia công", path: "/prices" },
     ],
   },
   { label: "Lịch sử Import", path: "/import-history", icon: "History" },
