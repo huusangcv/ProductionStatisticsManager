@@ -135,6 +135,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   templateType: {
     getAll: () => ipcRenderer.invoke("templateType:getAll"),
+    getActive: () => ipcRenderer.invoke("templateType:getActive"),
+    create: (data) => ipcRenderer.invoke("templateType:create", data),
+    update: (id, data) => ipcRenderer.invoke("templateType:update", { id, data }),
+    delete: (id) => ipcRenderer.invoke("templateType:delete", id),
+  },
+  castingDefect: {
+    getByDate:  (date) => ipcRenderer.invoke("castingDefect:getByDate", date),
+    debugDate:  (date) => ipcRenderer.invoke("castingDefect:debugDate", date),
+    generate:   (reportDate) => ipcRenderer.invoke("castingDefect:generate", { reportDate }),
+    openFolder: (filePath) => ipcRenderer.invoke("castingDefect:openFolder", filePath),
+    openFile:   (filePath) => ipcRenderer.invoke("castingDefect:openFile", filePath),
+    print:      (filePath) => ipcRenderer.invoke("castingDefect:print", filePath),
   },
   db: {
     initialize: () => ipcRenderer.invoke("db:initialize"),

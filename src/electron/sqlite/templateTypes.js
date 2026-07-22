@@ -69,8 +69,67 @@ function getAllActiveTemplateTypes() {
   }
 }
 
+function getAllTemplateTypes() {
+  const db = openDatabase();
+  try {
+    return db.prepare("SELECT * FROM template_types ORDER BY display_order ASC, id ASC").all();
+  } finally {
+    db.close();
+  }
+}
+
+function createTemplateType({ name, code, description, display_order = 0, is_active = 1 }) {
+  const db = openDatabase();
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO template_types (name, code, description, display_order, is_active)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    const info = stmt.run(name, code, description, display_order, is_active);
+    return { success: true, id: info.lastInsertRowid };
+  } catch (error) {
+    return { success: false, message: error.message };
+  } finally {
+    db.close();
+  }
+}
+
+function updateTemplateType(id, { name, code, description, display_order, is_active }) {
+  const db = openDatabase();
+  try {
+    const stmt = db.prepare(`
+      UPDATE template_types
+      SET name = ?, code = ?, description = ?, display_order = ?, is_active = ?, updated_at = datetime('now', 'localtime')
+      WHERE id = ?
+    `);
+    stmt.run(name, code, description, display_order, is_active, id);
+    return { success: true };
+  } catch (error) {
+    return { success: false, message: error.message };
+  } finally {
+    db.close();
+  }
+}
+
+function deleteTemplateType(id) {
+  const db = openDatabase();
+  try {
+    const stmt = db.prepare("DELETE FROM template_types WHERE id = ?");
+    stmt.run(id);
+    return { success: true };
+  } catch (error) {
+    return { success: false, message: error.message };
+  } finally {
+    db.close();
+  }
+}
+
 module.exports = {
   ensureTemplateTypesTable,
   seedTemplateTypesIfEmpty,
   getAllActiveTemplateTypes,
+  getAllTemplateTypes,
+  createTemplateType,
+  updateTemplateType,
+  deleteTemplateType,
 };

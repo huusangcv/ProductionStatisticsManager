@@ -355,7 +355,7 @@ function seedExcelTemplateConfigsIfEmpty() {
       UPDATE excel_templates
       SET print_start_column = ?, print_end_column = ?, repeat_header_rows = ?,
           orientation = ?, paper_size = ?, fit_width = ?, fit_height = ?
-      WHERE module = ? AND (repeat_header_rows IS NULL OR repeat_header_rows = '')
+      WHERE module = ? AND (print_end_column IS NULL OR print_end_column = '')
     `);
 
     for (const t of templates) {

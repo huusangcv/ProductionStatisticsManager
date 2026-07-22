@@ -77,6 +77,9 @@ const {
   previewTemplate,
 } = require("./heatTreatment/excelEngine");
 const { resolveExportPath } = require("./heatTreatment/exportPaths");
+const { generateCastingDefectExcel } = require("./castingDefectReturn/excelEngine");
+const { resolveExportPath: resolveCastingExportPath } = require("./castingDefectReturn/exportPaths");
+const { getDefectRowsByDate, mapRowToExcel } = require("./castingDefectReturn/defectRules");
 const {
   getAllPrinters,
   getDefaultPrinter,
@@ -107,6 +110,10 @@ const {
 } = require("./sqlite/excelTemplates");
 const {
   getAllActiveTemplateTypes,
+  getAllTemplateTypes,
+  createTemplateType,
+  updateTemplateType,
+  deleteTemplateType,
 } = require("./sqlite/templateTypes");
 const backupDAO = require("./sqlite/backup");
 const printerService = require("./services/printerService");
@@ -935,6 +942,97 @@ function registerIpcHandlers() {
     return await printerService.printExcel(filePath, null, moduleKey || null);
   });
 
+  // ── Casting Defect Return handlers ────────────────────────────────────────────────
+
+  ipcMain.handle("castingDefect:getByDate", async (_event, reportDate) => {
+    try {
+      return getDefectRowsByDate(reportDate);
+    } catch (error) {
+      return { rows: [], truncated: false, total: 0, error: error.message };
+    }
+  });
+
+  // DEBUG — xem raw data không filter scrap/completed
+  ipcMain.handle("castingDefect:debugDate", async (_event, reportDate) => {
+    const { getDatabasePath } = require("./sqlite/paths");
+    const Database = require("better-sqlite3");
+    const db = new Database(getDatabasePath());
+    try {
+      const all = db.prepare(`
+        SELECT work_order_number, completed_quantity, scrap_quantity
+        FROM grinding_production
+        WHERE report_date = ?
+        LIMIT 30
+      `).all(reportDate);
+      return { total: all.length, rows: all };
+    } finally {
+      db.close();
+    }
+  });
+
+  ipcMain.handle("castingDefect:generate", async (_event, { reportDate }) => {
+    const startTime = Date.now();
+    try {
+      // 1. Load template metadata
+      const tmpl = getTemplate("casting-defect-return");
+      if (!tmpl)
+        return {
+          ok: false,
+          message: "Chưa cấu hình template. Vui lòng upload template P-029-06.01 trong Cài đặt.",
+        };
+      if (!fs.existsSync(tmpl.template_path))
+        return { ok: false, message: "File template không tồn tại. Vui lòng upload lại." };
+
+      // 2. Query grinding_production (scrap_quantity > 0 only)
+      const { rows: dbRows, total } = getDefectRowsByDate(reportDate);
+      if (!dbRows || dbRows.length === 0)
+        return { ok: false, message: `Không có dữ liệu phế (Mài) cho ngày ${reportDate}.` };
+
+      // 3. Map to Excel column format
+      const excelRows = dbRows.map(mapRowToExcel);
+
+      // 4. Resolve output path
+      const { filePath, folderPath, fileName } = resolveCastingExportPath(reportDate);
+
+      // 5. Generate Excel
+      const genResult = await generateCastingDefectExcel({
+        templatePath: tmpl.template_path,
+        outputPath: filePath,
+        rows: excelRows,
+        reportDate,
+        startRow: Number(tmpl.start_row) || 6,
+      });
+
+      if (!genResult.ok) return genResult;
+
+      const durationMs = Date.now() - startTime;
+      return {
+        ok: true,
+        filePath,
+        folderPath,
+        fileName,
+        totalRows: dbRows.length,
+        durationMs,
+      };
+    } catch (error) {
+      return { ok: false, message: "Lỗi xuất Excel báo phế: " + error.message };
+    }
+  });
+
+  ipcMain.handle("castingDefect:openFolder", (_event, filePath) => {
+    shell.showItemInFolder(filePath);
+    return { ok: true };
+  });
+
+  ipcMain.handle("castingDefect:openFile", (_event, filePath) => {
+    shell.openPath(filePath);
+    return { ok: true };
+  });
+
+  ipcMain.handle("castingDefect:print", async (_event, filePath) => {
+    return await printerService.printExcel(filePath, null, "casting-defect-return");
+  });
+
   // ── Printer IPC handlers ──────────────────────────────────────────────────────────
 
   ipcMain.handle("printer:getAll", async () => {
@@ -1056,7 +1154,23 @@ function registerIpcHandlers() {
   // ── Template Types IPC handlers ─────────────────────────────────────────────────
 
   ipcMain.handle("templateType:getAll", async () => {
+    return getAllTemplateTypes();
+  });
+
+  ipcMain.handle("templateType:getActive", async () => {
     return getAllActiveTemplateTypes();
+  });
+
+  ipcMain.handle("templateType:create", async (_event, data) => {
+    return createTemplateType(data);
+  });
+
+  ipcMain.handle("templateType:update", async (_event, { id, data }) => {
+    return updateTemplateType(id, data);
+  });
+
+  ipcMain.handle("templateType:delete", async (_event, id) => {
+    return deleteTemplateType(id);
   });
 
   // ── DetailJoint IPC handlers ────────────────────────────────────────────────────

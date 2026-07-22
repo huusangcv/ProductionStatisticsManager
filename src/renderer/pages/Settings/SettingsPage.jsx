@@ -6,6 +6,8 @@ import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import SystemTab from "./components/SystemTab";
 import PrinterTab from "./components/PrinterTab";
 import TemplateTab from "./components/TemplateTab";
+import TemplateTypeTab from "./components/TemplateTypeTab";
+import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -16,11 +18,16 @@ const SettingsPage = () => {
       icon: <SettingsOutlinedIcon />,
       component: <SystemTab />,
     },
-    { label: "Máy in", icon: <PrintOutlinedIcon />, component: <PrinterTab /> },
+    // { label: "Máy in", icon: <PrintOutlinedIcon />, component: <PrinterTab /> },
     {
       label: "Excel Templates",
       icon: <DescriptionOutlinedIcon />,
       component: <TemplateTab />,
+    },
+    {
+      label: "Loại Mẫu Excel",
+      icon: <ViewListOutlinedIcon />,
+      component: <TemplateTypeTab />,
     },
   ];
 

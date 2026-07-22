@@ -7,6 +7,7 @@ export const navigationItems = [
       { label: "Mài", path: "/grinding", icon: "Grinding" },
       { label: "Cắt", path: "/cutting", icon: "Cutting" },
       { label: "Xử lý nhiệt", path: "/heat-treatment", icon: "HeatTreatment" },
+      { label: "Báo Phế Đúc", path: "/casting-defect", icon: "CastingDefect" },
     ],
   },
   {

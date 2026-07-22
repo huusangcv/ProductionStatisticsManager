@@ -34,7 +34,6 @@
 const fs = require("fs");
 const path = require("path");
 
-const { getTemplatePrintConfig } = require("./printConfig");
 const { executePowerShell } = require("./printExecutor");
 const { logSuccess, logFailure } = require("./printerLogger");
 const { getSettings } = require("../../sqlite/printers");
@@ -80,19 +79,7 @@ async function printExcelFile({
     return _buildError(fileValidation.message, "FILE_INVALID", { file: filePath, printer: null });
   }
 
-  // ── Step 2: Load print configuration from DB (via printConfig.js) ────────
-  let printCfg = null;
-  try {
-    printCfg = getTemplatePrintConfig(module);
-  } catch (err) {
-    console.warn("[excelPrinter] Failed to load print config (non-fatal):", err.message);
-    printCfg = require("./printConfig").DEFAULT_PRINT_CONFIG;
-  }
-
-  // Print config not strictly needed if we just print the file natively,
-  // but kept for compatibility/logging if needed.
-  
-  console.log("[excelPrinter] Print config:", printCfg);
+  // ── Step 2: Ensure printer and file are ready (optional logic can go here) ─
 
   // ── Step 4: Execute PowerShell script ──────────────────────────────────────
   const psScript = _buildPrintScript(filePath);

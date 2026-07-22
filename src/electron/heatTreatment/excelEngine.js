@@ -154,7 +154,7 @@ async function generateHeatTreatmentExcel({ templatePath, outputPath, rows, shee
             if (rn > startRow && rn <= dataEndRow) toUnmerge.push(key);
           }
         });
-        toUnmerge.forEach(key => { try { worksheet.unMergeCells(key); } catch (_) {} });
+        toUnmerge.forEach(key => { try { worksheet.unMergeCells(key); } catch (_) { } });
       }
       // Physically remove rows — summary shifts upward automatically
       worksheet.spliceRows(startRow + 1, surplusRows);
@@ -175,7 +175,7 @@ async function generateHeatTreatmentExcel({ templatePath, outputPath, rows, shee
     // ── Step 6: Apply template style to all N data rows and write values ──────
     for (let i = 0; i < N; i++) {
       const rowNum = startRow + i;
-      const wsRow  = worksheet.getRow(rowNum);
+      const wsRow = worksheet.getRow(rowNum);
 
       // Row startRow already carries the original template style.
       // Every inserted row (i > 0) needs the style cloned onto it.
@@ -186,7 +186,7 @@ async function generateHeatTreatmentExcel({ templatePath, outputPath, rows, shee
         }
         // Replicate horizontal merges from the template row
         tmplMerges.forEach(mg => {
-          try { worksheet.mergeCells(`${mg.startCol}${rowNum}:${mg.endCol}${rowNum}`); } catch (_) {}
+          try { worksheet.mergeCells(`${mg.startCol}${rowNum}:${mg.endCol}${rowNum}`); } catch (_) { }
         });
       }
 
@@ -194,7 +194,7 @@ async function generateHeatTreatmentExcel({ templatePath, outputPath, rows, shee
       const rowData = rows[i];
       Object.entries(COLUMN_MAPPING).forEach(([field, col]) => {
         const cell = wsRow.getCell(col);
-        const val  = rowData[field];
+        const val = rowData[field];
         if (val === undefined || val === null) {
           cell.value = "";
         } else if (typeof val === "number") {
@@ -237,8 +237,8 @@ async function generateHeatTreatmentExcel({ templatePath, outputPath, rows, shee
       // After Step 4 (delete surplus) + Step 5 (insert N-1), the summary now sits
       // immediately after the last data row.
       const newSummaryStart = lastDataRow + 1;
-      const finalRowCount   = worksheet.rowCount;
-      const offset          = newSummaryStart - summaryStartRow;
+      const finalRowCount = worksheet.rowCount;
+      const offset = newSummaryStart - summaryStartRow;
 
       // Regex: matches any A1-style range like  $COL$ROW:$COL$ROW
       // where the end row equals startRow (the original template row number).
@@ -247,7 +247,7 @@ async function generateHeatTreatmentExcel({ templatePath, outputPath, rows, shee
         `(\\$?[A-Z]+\\$?${startRowStr}):(\\$?[A-Z]+)\\$?${startRowStr}\\b`,
         "g"
       );
-      
+
       // Regex: matches any single cell reference (e.g., H7, $C$7, AA10)
       const singleCellRe = /(\$?[A-Z]{1,3}\$?)(\d+)\b/gi;
 
@@ -334,12 +334,12 @@ async function previewTemplate(templatePath, maxRows = 100) {
     await workbook.xlsx.readFile(templatePath);
 
     const sheetNames = workbook.worksheets.map((ws) => ws.name);
-    const sheets     = {};
+    const sheets = {};
 
     for (const ws of workbook.worksheets) {
       const headers = [];
-      const rows    = [];
-      let   rowCount = 0;
+      const rows = [];
+      let rowCount = 0;
 
       ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
         if (rowCount >= maxRows) return;
