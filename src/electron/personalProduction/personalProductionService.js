@@ -1,4 +1,4 @@
-const ExcelJS = require("exceljs");
+const XlsxPopulate = require("xlsx-populate");
 const fs = require("fs");
 const path = require("path");
 const { app, shell } = require("electron");
@@ -58,30 +58,15 @@ async function generate(startDate, endDate) {
       return { ok: false, message: "Không có dữ liệu để xuất." };
     }
 
-    // Load workbook
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(templatePath);
+    // Load workbook using xlsx-populate to preserve Excel Table structure perfectly
+    const workbook = await XlsxPopulate.fromFileAsync(templatePath);
 
-    const cuttingSheet = workbook.getWorksheet("CẮT");
-    const grindingSheet = workbook.getWorksheet("MÀI");
+    const cuttingSheet = workbook.sheet("CẮT");
+    const grindingSheet = workbook.sheet("MÀI");
 
     if (!cuttingSheet || !grindingSheet) {
       return { ok: false, message: "Template không đúng định dạng (thiếu sheet CẮT hoặc MÀI)." };
     }
-
-    // Neutralize all formulas to prevent "Shared Formula master must exist above and or left of clone" error
-    const neutralizeFormulas = (sheet) => {
-      sheet.eachRow({ includeEmpty: true }, (row) => {
-        row.eachCell({ includeEmpty: true }, (cell) => {
-          if (cell.type === ExcelJS.ValueType.Formula) {
-            cell.value = cell.result !== undefined ? cell.result : null;
-          }
-        });
-      });
-    };
-
-    neutralizeFormulas(cuttingSheet);
-    neutralizeFormulas(grindingSheet);
 
     const START_ROW = 4;
 
@@ -94,52 +79,21 @@ async function generate(startDate, endDate) {
     const uiDate = formatDate(startDate);
 
 
-    // Helper to write rows with exact style cloning (prevents lost design)
+    // Helper to write rows
     const writeSheet = (sheet, data) => {
       // 1. Ghi ngày báo cáo vào B2
-      const dateCell = sheet.getRow(2).getCell(2);
-      dateCell.value = uiDate;
-      sheet.getRow(2).commit();
+      sheet.cell("B2").value(uiDate);
 
       const N = data.length;
 
-      // 2. Snapshot Row 4 style
-      const tmplRow = sheet.getRow(START_ROW);
-      const tmplHeight = tmplRow.height;
-      const colCount = 15; // Scan up to 15 columns for styling
-      const tmplStyles = {};
-      for (let c = 1; c <= colCount; c++) {
-        const s = tmplRow.getCell(c).style;
-        tmplStyles[c] = s ? JSON.parse(JSON.stringify(s)) : {};
-      }
-
-      // 3. Xóa các dòng rỗng thừa của template bên dưới dòng bắt đầu
-      const totalRows = sheet.rowCount;
-      if (totalRows > START_ROW) {
-        sheet.spliceRows(START_ROW + 1, totalRows - START_ROW);
-      }
-
-      // 4. Chèn số dòng tương ứng với lượng dữ liệu
-      if (N > 1) {
-        sheet.spliceRows(START_ROW + 1, 0, ...Array.from({ length: N - 1 }, () => []));
-      }
-
+      // 3. Fill data into the fixed template rows
       let totalQty = 0;
       let totalJoints = 0;
 
-      // 5. Fill data and apply cloned styles
       for (let i = 0; i < N; i++) {
         const row = data[i];
         const rowIdx = START_ROW + i;
-        const wsRow = sheet.getRow(rowIdx);
-
-        // Apply cloned style for newly inserted rows
-        if (i > 0) {
-          wsRow.height = tmplHeight;
-          for (let c = 1; c <= colCount; c++) {
-            wsRow.getCell(c).style = JSON.parse(JSON.stringify(tmplStyles[c]));
-          }
-        }
+        const wsRow = sheet.row(rowIdx);
 
         const qty = Number(row.completed_quantity) || 0;
         const joints = Number(row.joint_count) || 0;
@@ -147,34 +101,29 @@ async function generate(startDate, endDate) {
         totalQty += qty;
         totalJoints += joints;
 
-        wsRow.getCell(1).value = i + 1; // STT
-        wsRow.getCell(2).value = row.customer_order_number || "";
-        wsRow.getCell(3).value = row.work_order_number || "";
-        wsRow.getCell(4).value = row.material_code || "";
-        wsRow.getCell(5).value = row.item_name || "";
-        wsRow.getCell(6).value = row.specification || "";
-        wsRow.getCell(7).value = qty;
-        wsRow.getCell(8).value = row.representative_code || "";
-        wsRow.getCell(9).value = row.remark || "";
-        wsRow.getCell(10).value = row.joint_detail || ""; // Chi tiết
-        wsRow.getCell(11).value = joints || "";  // Số xâu
-        wsRow.commit();
+        // Bỏ qua cột 1 (STT), 10 (Chi tiết), 11 (Số xâu) vì template đã cài sẵn công thức (Formula).
+        // Chỉ ghi các cột dữ liệu thật.
+        wsRow.cell(2).value(row.customer_order_number || "");
+        wsRow.cell(3).value(row.work_order_number || "");
+        wsRow.cell(4).value(row.material_code || "");
+        wsRow.cell(5).value(row.item_name || "");
+        wsRow.cell(6).value(row.specification || "");
+        wsRow.cell(7).value(qty);
+        wsRow.cell(8).value(row.representative_code || "");
+        wsRow.cell(9).value(row.remark || "");
       }
 
       // Edge case: N === 0 (Xóa dữ liệu mẫu nhưng giữ style)
       if (N === 0) {
-        const wsRow = sheet.getRow(START_ROW);
+        const wsRow = sheet.row(START_ROW);
         for (let c = 1; c <= 11; c++) {
-          wsRow.getCell(c).value = "";
+          wsRow.cell(c).value("");
         }
-        wsRow.commit();
       }
 
       // 6. Ghi tổng số lượng và xâu vào G2 và K2
-      const sumRow = sheet.getRow(2);
-      sumRow.getCell(7).value = totalQty;
-      sumRow.getCell(11).value = totalJoints;
-      sumRow.commit();
+      sheet.cell("G2").value(totalQty);
+      sheet.cell("K2").value(totalJoints);
     };
 
     writeSheet(cuttingSheet, cuttingData);
@@ -192,7 +141,7 @@ async function generate(startDate, endDate) {
     const exportDir = ensureExportDir(yyyy, mm);
     const filePath = path.join(exportDir, fileName);
 
-    await workbook.xlsx.writeFile(filePath);
+    await workbook.toFileAsync(filePath);
 
     // Log success
     logger.info("Xuất Sản lượng cá nhân thành công", {
