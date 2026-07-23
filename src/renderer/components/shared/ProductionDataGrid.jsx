@@ -161,11 +161,14 @@ function ProductionDataGrid({
         disableRowSelectionOnClick
         loading={isProcessing}
         density={density}
+        ignoreDiacritics={true}
         slots={{ toolbar, footer: ProductionGridFooter }}
         slotProps={{
           footer: { summaryMode }
         }}
-        initialState={{ pagination: { paginationModel: { pageSize: 50 } } }}
+        initialState={{ 
+          pagination: { paginationModel: { pageSize: 50 } },
+        }}
         pageSizeOptions={pageSizeOptions}
         onRowDoubleClick={onRowDoubleClick}
         sx={productionDataGridSx}

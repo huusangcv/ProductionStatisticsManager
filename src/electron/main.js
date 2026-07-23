@@ -4,6 +4,7 @@ const { registerIpcHandlers } = require("./ipc");
 const { initializeDatabase } = require("./sqlite/init");
 const { applyLoginMode, LOGIN_MODE } = require("./windowModes");
 const logger = require("./logger");
+const { initializeUpdateService } = require("./services/update/updateService");
 
 // ── isDev ─────────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,8 @@ function createWindow() {
       }
     }
   });
+
+  initializeUpdateService(mainWindow);
 
   if (isDev) {
     mainWindow.loadURL("http://localhost:5173");

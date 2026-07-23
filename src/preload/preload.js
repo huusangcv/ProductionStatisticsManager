@@ -165,6 +165,26 @@ contextBridge.exposeInMainWorld("electronAPI", {
   db: {
     initialize: () => ipcRenderer.invoke("db:initialize"),
   },
+  update: {
+    check: () => ipcRenderer.invoke("update:check"),
+    download: () => ipcRenderer.invoke("update:download"),
+    install: () => ipcRenderer.invoke("update:install"),
+    getLogs: () => ipcRenderer.invoke("update:getLogs"),
+    onStatus: (callback) => ipcRenderer.on("update:status", (event, data) => callback(data)),
+    onAvailable: (callback) => ipcRenderer.on("update:available", (event, data) => callback(data)),
+    onNotAvailable: (callback) => ipcRenderer.on("update:not-available", (event, data) => callback(data)),
+    onError: (callback) => ipcRenderer.on("update:error", (event, error) => callback(error)),
+    onProgress: (callback) => ipcRenderer.on("update:progress", (event, progress) => callback(progress)),
+    onDownloaded: (callback) => ipcRenderer.on("update:downloaded", (event, data) => callback(data)),
+    removeAllListeners: () => {
+      ipcRenderer.removeAllListeners("update:status");
+      ipcRenderer.removeAllListeners("update:available");
+      ipcRenderer.removeAllListeners("update:not-available");
+      ipcRenderer.removeAllListeners("update:error");
+      ipcRenderer.removeAllListeners("update:progress");
+      ipcRenderer.removeAllListeners("update:downloaded");
+    }
+  },
   window: {
     minimize: () => ipcRenderer.invoke("window:minimize"),
     maximizeToggle: () => ipcRenderer.invoke("window:maximize-toggle"),

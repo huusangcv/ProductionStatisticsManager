@@ -23,6 +23,7 @@
     "@mui/x-data-grid": "^7.29.13",
     "@tanstack/react-virtual": "^3.14.4",
     "better-sqlite3": "^11.10.0",
+    "electron-updater": "^6.8.9",
     "exceljs": "^4.4.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -54,7 +55,9 @@
       {
         "from": "resources/",
         "to": ".",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "directories": {
@@ -63,16 +66,37 @@
     "win": {
       "signAndEditExecutable": false,
       "target": [
-        { "target": "nsis",     "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "huusangcv",
+        "repo": "ProductionStatisticsManager",
+        "private": false,
+        "releaseType": "release"
+      }
+    ],
     "nsis": {
       "oneClick": false,
-      "perMachine": true,
-      "allowToChangeInstallationDirectory": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
     },
     "portable": {
       "artifactName": "ProductionStatisticsManager-${version}-Portable.exe"

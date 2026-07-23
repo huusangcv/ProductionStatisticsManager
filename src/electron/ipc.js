@@ -11,6 +11,8 @@ const {
   getAccount,
   updateAccount,
 } = require("./sqlite/account");
+const { getRecentUpdateLogs } = require("./sqlite/updateLogs");
+const { checkForUpdates, downloadUpdate, quitAndInstall } = require("./services/update/updateService");
 const {
   getAllEmployees,
   getEmployeeByCode,
@@ -1403,6 +1405,24 @@ function registerIpcHandlers() {
   ipcMain.handle("dashboard:getGridData", (_event, { type, fromDate, toDate }) =>
     getDashboardGridData(type, fromDate, toDate),
   );
+
+  // --- Auto Update Handlers ---
+  ipcMain.handle("update:check", async () => {
+    return await checkForUpdates();
+  });
+  
+  ipcMain.handle("update:download", async () => {
+    return await downloadUpdate();
+  });
+  
+  ipcMain.handle("update:install", () => {
+    quitAndInstall();
+    return { ok: true };
+  });
+
+  ipcMain.handle("update:getLogs", () => {
+    return getRecentUpdateLogs();
+  });
 }
 
 module.exports = { registerIpcHandlers };

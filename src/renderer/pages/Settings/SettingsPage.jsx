@@ -7,7 +7,9 @@ import SystemTab from "./components/SystemTab";
 import PrinterTab from "./components/PrinterTab";
 import TemplateTab from "./components/TemplateTab";
 import TemplateTypeTab from "./components/TemplateTypeTab";
+import UpdateTab from "./components/UpdateTab";
 import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
+import UpdateOutlinedIcon from "@mui/icons-material/UpdateOutlined";
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -29,6 +31,11 @@ const SettingsPage = () => {
       icon: <ViewListOutlinedIcon />,
       component: <TemplateTypeTab />,
     },
+    {
+      label: "Cập nhật",
+      icon: <UpdateOutlinedIcon />,
+      component: <UpdateTab />,
+    }
   ];
 
   return (

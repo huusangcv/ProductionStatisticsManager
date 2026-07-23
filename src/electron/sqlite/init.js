@@ -15,6 +15,7 @@ const {
   ensureSettingsTable,
   ensurePrintLogsTable,
 } = require("./printers");
+const { ensureUpdateLogsTable } = require("./updateLogs");
 const {
   getDatabasePath,
   ensureDirectories,
@@ -68,6 +69,7 @@ function initializeDatabase() {
   ensurePrintersTable();
   ensureSettingsTable();
   ensurePrintLogsTable();
+  ensureUpdateLogsTable();
 
   return databasePath;
 }

@@ -1,17 +1,9 @@
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsNoneRoundedIcon from "@mui/icons-material/NotificationsNoneRounded";
-import {
-  AppBar,
-  Badge,
-  Box,
-  Chip,
-  IconButton,
-  Stack,
-  Toolbar,
-  Typography,
-} from "@mui/material";
-import { useLocation } from "react-router-dom";
+import { AppBar, Badge, Box, Chip, IconButton, Stack, Toolbar, Typography, Tooltip } from "@mui/material";
+import { useLocation, useNavigate } from "react-router-dom";
 import AdminMenu from "./AdminMenu";
+import { useUpdate } from "../context/UpdateContext";
 
 const PAGE_META = {
   "/dashboard": {
@@ -50,6 +42,8 @@ const PAGE_META = {
 
 function Topbar({ onMenuClick }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { updateAvailable, updateDownloaded, updateInfo } = useUpdate();
   const pageMeta = PAGE_META[location.pathname] ?? PAGE_META["/dashboard"];
   const { title, subtitle, chipLabel } = pageMeta;
 
@@ -178,36 +172,43 @@ function Topbar({ onMenuClick }) {
             </Typography>
           </Box> */}
 
-          <Badge
-            badgeContent={3}
-            color="error"
-            sx={{
-              "& .MuiBadge-badge": {
-                fontSize: 10,
-                height: 18,
-                minWidth: 18,
-              },
-            }}
-          >
-            <IconButton
-              aria-label="notifications"
+          <Tooltip title={updateAvailable ? `Có bản cập nhật mới v${updateInfo?.version}` : "Không có thông báo mới"}>
+            <Badge
+              badgeContent={updateAvailable || updateDownloaded ? 1 : 0}
+              color="error"
               sx={{
-                width: 40,
-                height: 40,
-                border: "1px solid",
-                borderColor: "grey.200",
-                bgcolor: "grey.50",
-                color: "text.secondary",
-                "&:hover": {
-                  bgcolor: "action.hover",
-                  color: "primary.main",
-                  borderColor: "transparent",
+                "& .MuiBadge-badge": {
+                  fontSize: 10,
+                  height: 18,
+                  minWidth: 18,
                 },
               }}
             >
-              <NotificationsNoneRoundedIcon sx={{ fontSize: 19 }} />
-            </IconButton>
-          </Badge>
+              <IconButton
+                aria-label="notifications"
+                onClick={() => {
+                  if (updateAvailable || updateDownloaded) {
+                    navigate("/settings");
+                  }
+                }}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  border: "1px solid",
+                  borderColor: "grey.200",
+                  bgcolor: "grey.50",
+                  color: updateAvailable || updateDownloaded ? "primary.main" : "text.secondary",
+                  "&:hover": {
+                    bgcolor: "action.hover",
+                    color: "primary.main",
+                    borderColor: "transparent",
+                  },
+                }}
+              >
+                <NotificationsNoneRoundedIcon sx={{ fontSize: 19 }} />
+              </IconButton>
+            </Badge>
+          </Tooltip>
 
           <AdminMenu />
         </Stack>

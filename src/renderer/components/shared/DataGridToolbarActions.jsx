@@ -5,6 +5,7 @@ import {
   GridToolbarFilterButton,
   GridToolbarDensitySelector,
   GridToolbarExport,
+  GridToolbarQuickFilter,
 } from "@mui/x-data-grid";
 
 /**
@@ -34,6 +35,17 @@ export default function DataGridToolbarActions({ hasExport = true, rightActions 
         <GridToolbarFilterButton />
         <GridToolbarDensitySelector />
         {hasExport && <GridToolbarExport />}
+        <Box sx={{ ml: 2 }}>
+          <GridToolbarQuickFilter 
+            placeholder="Tìm kiếm nhanh..." 
+            variant="outlined" 
+            size="small" 
+            sx={{ 
+              width: 250, 
+              '& .MuiInputBase-root': { height: 36, borderRadius: '8px', bgcolor: '#fff' } 
+            }} 
+          />
+        </Box>
       </Box>
 
       {/* Right Section (Page-specific actions) */}
