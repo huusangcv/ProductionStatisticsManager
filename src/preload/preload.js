@@ -162,6 +162,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
     openFile:   (filePath) => ipcRenderer.invoke("castingDefect:openFile", filePath),
     print:      (filePath) => ipcRenderer.invoke("castingDefect:print", filePath),
   },
+  castingDefectReturn: {
+    generate: (params) => ipcRenderer.invoke("casting-defect-return:generate", params),
+    openFolder: (filePath) => ipcRenderer.invoke("casting-defect-return:openFolder", filePath),
+    openFile: (filePath) => ipcRenderer.invoke("casting-defect-return:openFile", filePath),
+  },
+  personalProduction: {
+    generate: (params) => ipcRenderer.invoke("personal-production:generate", params),
+    openFolder: (filePath) => ipcRenderer.invoke("personal-production:openFolder", filePath),
+  },
   db: {
     initialize: () => ipcRenderer.invoke("db:initialize"),
   },

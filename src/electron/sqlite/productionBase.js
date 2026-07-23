@@ -216,6 +216,36 @@ function createProductionModule(tableName, columnSpec, roleCode) {
     }
   }
 
+  // ── getByDateRange ───────────────────────────────────────────────────────
+  function getByDateRange(startDate, endDate) {
+    const db = openDatabase();
+    try {
+      return db
+        .prepare(
+          `
+          SELECT 
+            p.*,
+            (SELECT dj.detail 
+             FROM detail_joint dj 
+             WHERE dj.material_code = p.material_code 
+             LIMIT 1) AS joint_detail,
+            e.full_name   AS employee_full_name,
+            r.name        AS role_name,
+            pos.name      AS position_name
+          FROM ${tableName} p
+          LEFT JOIN roles r       ON r.code = '${roleCode}'
+          LEFT JOIN employees e   ON e.representative_code = p.representative_code AND e.role_id = r.id
+          LEFT JOIN positions pos ON pos.id = e.position_id
+          WHERE p.report_date >= ? AND p.report_date <= ?
+          ORDER BY p.report_date ASC, p.imported_at ASC
+        `
+        )
+        .all(startDate, endDate);
+    } finally {
+      db.close();
+    }
+  }
+
   // ── checkExistsByDate ────────────────────────────────────────────────────
   function checkExistsByDate(date) {
     const db = openDatabase();
@@ -427,6 +457,7 @@ function createProductionModule(tableName, columnSpec, roleCode) {
   return {
     ensureTable,
     getAll,
+    getByDateRange,
     getById,
     update,
     deleteById,

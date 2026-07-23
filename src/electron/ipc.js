@@ -135,6 +135,7 @@ const {
 const backupDAO = require("./sqlite/backup");
 const printerService = require("./services/printerService");
 const templateService = require("./services/templateService");
+const personalProductionService = require("./personalProduction/personalProductionService");
 
 // ============================================================================
 // Shared Excel Parse Engine
@@ -1104,6 +1105,14 @@ function registerIpcHandlers() {
 
   ipcMain.handle("castingDefect:print", async (_event, filePath) => {
     return await printerService.printExcel(filePath, null, "casting-defect-return");
+  });
+
+  // ── Personal Production (Sản lượng Cá nhân) ─────────────────────────────
+  ipcMain.handle("personal-production:generate", async (event, params) => {
+    return await personalProductionService.generate(params.startDate, params.endDate);
+  });
+  ipcMain.handle("personal-production:openFolder", async (event, filePath) => {
+    return personalProductionService.openFolder(filePath);
   });
 
   // ── Printer IPC handlers ──────────────────────────────────────────────────────────

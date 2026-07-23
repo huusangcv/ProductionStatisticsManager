@@ -27,6 +27,7 @@ const cuttingDAO = createProductionModule("cutting_production", CUTTING_COLUMN_S
 module.exports = {
   ensureCuttingTable:            cuttingDAO.ensureTable,
   getAllCuttingData:              cuttingDAO.getAll,
+  getCuttingDataByDateRange:      cuttingDAO.getByDateRange,
   getCuttingDataById:             cuttingDAO.getById,
   updateCuttingData:              cuttingDAO.update,
   deleteCuttingDataById:          cuttingDAO.deleteById,

@@ -15,6 +15,7 @@ import HeatTreatmentPage from "../pages/HeatTreatment/HeatTreatmentPage";
 import CastingDefectPage from "../pages/CastingDefect/CastingDefectPage";
 import PricesPage from "../pages/Prices/PricesPage";
 import OvertimePage from "../pages/Overtime/OvertimePage";
+import PersonalProductionPage from "../pages/PersonalProduction/PersonalProductionPage";
 import { useAuth } from "../context/AuthContext";
 
 function PrivateRoute({ children }) {
@@ -68,6 +69,7 @@ function AppRoutes() {
         <Route path="detail-joint" element={<DetailJointPage />} />
         <Route path="prices" element={<PricesPage />} />
         <Route path="overtime" element={<OvertimePage />} />
+        <Route path="personal-production" element={<PersonalProductionPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="heat-treatment" element={<HeatTreatmentPage />} />

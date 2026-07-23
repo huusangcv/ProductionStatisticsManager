@@ -23,6 +23,13 @@ export const navigationItems = [
   },
   { label: "Lịch sử Import", path: "/import-history", icon: "History" },
   { label: "Đăng ký tăng ca", path: "/overtime", icon: "Overtime" },
-  { label: "Báo cáo", path: "/reports", icon: "Reports" },
+  {
+    label: "Báo cáo",
+    icon: "Reports",
+    children: [
+      { label: "Sản lượng cá nhân", path: "/personal-production" },
+      { label: "Tổng hợp", path: "/reports" },
+    ]
+  },
   { label: "Cài đặt", path: "/settings", icon: "Settings" },
 ];
