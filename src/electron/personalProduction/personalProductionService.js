@@ -28,16 +28,21 @@ function ensureExportDir(year, month) {
 
 /**
  * Returns the path to the template file.
- * In development, it points to src/excels/...
- * In production (asar), it points to the packaged resources.
+ * Prioritizes D:\ProductionStatisticsManager\templates (factory deployment).
+ * Falls back to local dev path if in development.
  */
 function getTemplatePath() {
-  const isPackaged = app.isPackaged;
-  if (isPackaged) {
-    return path.join(process.resourcesPath, "src/excels/personal-production.xlsx");
-  } else {
-    return path.join(app.getAppPath(), "src/excels/personal-production.xlsx");
+  const dTemplatePath = path.join(getAppDataRoot(), "templates", "personal-production.xlsx");
+  if (fs.existsSync(dTemplatePath)) {
+    return dTemplatePath;
   }
+
+  const devPath = path.join(app.getAppPath(), "src/excels/personal-production.xlsx");
+  if (fs.existsSync(devPath)) {
+    return devPath;
+  }
+
+  return dTemplatePath;
 }
 
 /**
