@@ -1,12 +1,45 @@
-import { Box, Button } from "@mui/material";
+import { Box, Button, Tooltip } from "@mui/material";
 import {
   GridToolbarContainer,
   GridToolbarColumnsButton,
   GridToolbarFilterButton,
-  GridToolbarDensitySelector,
   GridToolbarExport,
   GridToolbarQuickFilter,
 } from "@mui/x-data-grid";
+
+const iconOnlyButtonSx = {
+  minWidth: "36px !important",
+  width: "36px !important",
+  height: "36px !important",
+  padding: "0 !important",
+  borderRadius: "8px !important",
+  color: "#64748B !important",
+  fontSize: "0px !important",
+  "& .MuiButton-startIcon": {
+    margin: "0 !important",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  "& .MuiButton-endIcon": {
+    display: "none !important",
+  },
+  "& span:not(.MuiButton-startIcon):not(.MuiTouchRipple-root):not(.MuiBadge-root):not(.MuiBadge-badge)": {
+    display: "none !important",
+  },
+  "& .MuiBadge-root": {
+    display: "flex !important",
+    alignItems: "center !important",
+    justifyContent: "center !important",
+  },
+  "& svg": {
+    fontSize: "1.25rem !important",
+  },
+  "&:hover": {
+    bgcolor: "#F8FAFC !important",
+    color: "#2563eb !important",
+  },
+};
 
 /**
  * Enterprise Shared DataGrid Toolbar
@@ -30,20 +63,36 @@ export default function DataGridToolbarActions({ hasExport = true, rightActions 
       }}
     >
       {/* Left Section (Fixed standard order) */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <GridToolbarColumnsButton />
-        <GridToolbarFilterButton />
-        <GridToolbarDensitySelector />
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Box component="span" sx={{ display: "inline-flex" }}>
+          <GridToolbarColumnsButton slotProps={{ button: { sx: iconOnlyButtonSx, "aria-label": "Cột" } }} sx={iconOnlyButtonSx} />
+        </Box>
+        <Box component="span" sx={{ display: "inline-flex" }}>
+          <GridToolbarFilterButton slotProps={{ button: { sx: iconOnlyButtonSx, "aria-label": "Bộ lọc" } }} sx={iconOnlyButtonSx} />
+        </Box>
         {hasExport && <GridToolbarExport />}
-        <Box sx={{ ml: 2 }}>
-          <GridToolbarQuickFilter 
-            placeholder="Tìm kiếm nhanh..." 
-            variant="outlined" 
-            size="small" 
-            sx={{ 
-              width: 250, 
-              '& .MuiInputBase-root': { height: 36, borderRadius: '8px', bgcolor: '#fff' } 
-            }} 
+        <Box sx={{ ml: 2, display: "flex", alignItems: "center" }}>
+          <GridToolbarQuickFilter
+            placeholder="Tìm kiếm nhanh..."
+            variant="outlined"
+            size="small"
+            sx={{
+              width: 250,
+              pb: "0 !important",
+              m: "0 !important",
+              "& .MuiFormControl-root": {
+                pb: "0 !important",
+                m: "0 !important",
+              },
+              "& .MuiInputBase-root": {
+                height: "36px !important",
+                minHeight: "36px !important",
+                maxHeight: "36px !important",
+                borderRadius: "8px",
+                bgcolor: "#fff",
+                boxSizing: "border-box",
+              },
+            }}
           />
         </Box>
       </Box>

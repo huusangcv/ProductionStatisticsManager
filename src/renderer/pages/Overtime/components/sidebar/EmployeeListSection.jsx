@@ -5,10 +5,8 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Typography from '@mui/material/Typography';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
-import ManageAccountsRoundedIcon from '@mui/icons-material/ManageAccountsRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 import EmployeeSelectList from './EmployeeSelectList';
-import EmployeeManageList from './EmployeeManageList';
 import HistoryList from './HistoryList';
 
 /**
@@ -38,20 +36,6 @@ const EmployeeListSection = memo(function EmployeeListSection({
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
       {/* Section label */}
-      <Box sx={{ px: 2.5, pt: 2, pb: 1 }}>
-        <Typography
-          variant="overline"
-          sx={{
-            fontSize: '0.6875rem',
-            fontWeight: 700,
-            color: 'text.secondary',
-            letterSpacing: '0.08em',
-          }}
-        >
-          Nhân viên
-        </Typography>
-      </Box>
-
       {/* Tabs */}
       <Tabs
         value={activeTab}
@@ -81,21 +65,6 @@ const EmployeeListSection = memo(function EmployeeListSection({
           aria-label="Tab chọn nhân viên"
         />
         <Tab
-          value="manage"
-          label="Quản lý"
-          icon={<ManageAccountsRoundedIcon sx={{ fontSize: '1rem' }} />}
-          iconPosition="start"
-          sx={{
-            minHeight: 40,
-            fontSize: '0.75rem',
-            gap: 0.5,
-            whiteSpace: 'nowrap',
-            p: 1,
-            minWidth: 0,
-          }}
-          aria-label="Tab quản lý nhân viên"
-        />
-        <Tab
           value="history"
           label="Lịch sử"
           icon={<HistoryRoundedIcon sx={{ fontSize: '1rem' }} />}
@@ -121,14 +90,6 @@ const EmployeeListSection = memo(function EmployeeListSection({
           onSearchChange={onSearchChange}
           onToggle={onToggle}
           onToggleAll={onToggleAll}
-        />
-      )}
-      {activeTab === 'manage' && (
-        <EmployeeManageList
-          employees={employees}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onAdd={onAdd}
         />
       )}
       {activeTab === 'history' && (

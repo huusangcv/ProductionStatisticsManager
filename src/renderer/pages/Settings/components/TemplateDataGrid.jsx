@@ -200,6 +200,7 @@ export default function TemplateDataGrid() {
         </Box>
         <Box sx={{ height: 500, width: "100%" }}>
           <DataGrid
+            density="compact"
             rows={rows}
             columns={columns}
             loading={loading}

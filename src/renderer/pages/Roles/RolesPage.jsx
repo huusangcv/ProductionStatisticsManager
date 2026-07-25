@@ -156,6 +156,7 @@ function RolesPage() {
       <Card sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: "8px", p: "16px 20px", borderRadius: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
         <DataGrid
           localeText={viVNGridLocaleText}
+          density="compact"
           rows={roles}
           columns={columns}
           loading={loading}

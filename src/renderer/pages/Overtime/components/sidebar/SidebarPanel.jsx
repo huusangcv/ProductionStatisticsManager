@@ -39,19 +39,22 @@ const SidebarPanel = memo(function SidebarPanel({
         overflow: 'hidden',
       }}
     >
-      {/* ── Phiếu thông tin ─────────────────────────────── */}
+      {/* ── Khối gộp duy nhất (Form thông tin + Danh sách nhân viên) ── */}
       <Box
         sx={{
           m: 2,
-          mb: 0,
+          flex: 1,
           borderRadius: '12px',
           backgroundColor: '#FFFFFF',
           border: '1px solid',
           borderColor: '#E4E7EB',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
           overflow: 'hidden',
-          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
+        {/* ── Phần 1: Ngày tăng ca & Loại tăng ca ──────────────── */}
         <FormInfoSection
           otDate={otDate}
           setOtDate={setOtDate}
@@ -59,26 +62,17 @@ const SidebarPanel = memo(function SidebarPanel({
           setOtType={setOtType}
           selectedCount={selectedCount}
         />
-      </Box>
 
-      {/* ── Divider spacer ──────────────────────────────── */}
-      <Box sx={{ height: 16 }} />
+        {/* ── Phần 2: Divider phân tách ────────────────────────── */}
+        <Box
+          sx={{
+            height: '1px',
+            bgcolor: 'divider',
+            flexShrink: 0,
+          }}
+        />
 
-      {/* ── Nhân viên panel ─────────────────────────────── */}
-      <Box
-        sx={{
-          mx: 2,
-          mb: 2,
-          flex: 1,
-          borderRadius: '12px',
-          backgroundColor: '#FFFFFF',
-          border: '1px solid',
-          borderColor: '#E4E7EB',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
+        {/* ── Phần 3: Danh sách nhân viên ──────────────────────── */}
         <EmployeeListSection
           activeTab={activeTab}
           setActiveTab={setActiveTab}

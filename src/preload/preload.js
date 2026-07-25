@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     parseExcel: (filePath) =>
       ipcRenderer.invoke("grinding:parseExcel", filePath),
     save: (payload) => ipcRenderer.invoke("grinding:save", payload),
+    getLatestDate: (date) => ipcRenderer.invoke("grinding:getLatestDate", date),
   },
   cutting: {
     getAll: () => ipcRenderer.invoke("cutting:getAll"),
@@ -64,6 +65,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     parseExcel: (filePath) =>
       ipcRenderer.invoke("cutting:parseExcel", filePath),
     save: (payload) => ipcRenderer.invoke("cutting:save", payload),
+    getLatestDate: (date) => ipcRenderer.invoke("cutting:getLatestDate", date),
   },
   importSessions: {
     getAll: () => ipcRenderer.invoke("import-session:getAll"),
@@ -90,7 +92,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   heatTreatment: {
     getGrindingByDate: (date) =>
       ipcRenderer.invoke("heatTreatment:getGrindingByDate", date),
+    getLatestDate: (date) =>
+      ipcRenderer.invoke("heatTreatment:getLatestDate", date),
     generate: (params) => ipcRenderer.invoke("heatTreatment:generate", params),
+    checkExportFile: (date) =>
+      ipcRenderer.invoke("heatTreatment:checkExportFile", date),
     openFolder: (filePath) =>
       ipcRenderer.invoke("heatTreatment:openFolder", filePath),
     openFile: (filePath) =>
@@ -193,6 +199,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.removeAllListeners("update:progress");
       ipcRenderer.removeAllListeners("update:downloaded");
     }
+  },
+  file: {
+    exists: (filePath) => ipcRenderer.invoke("file:exists", filePath),
   },
   window: {
     minimize: () => ipcRenderer.invoke("window:minimize"),

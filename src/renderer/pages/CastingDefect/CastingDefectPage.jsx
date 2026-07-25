@@ -221,6 +221,7 @@ export default function CastingDefectPage() {
       {/* ── Data Grid ── */}
       <Box sx={{ flex: 1, overflow: "hidden" }}>
         <DataGrid
+          density="compact"
           rows={previewRows}
           columns={DEFECT_COLUMNS}
           loading={loadingData}

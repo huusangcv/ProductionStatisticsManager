@@ -35,7 +35,7 @@ const HistoryList = memo(function HistoryList({
   }
 
   return (
-    <Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+    <Box className="sidebar-scroll" sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       {/* Header section with Clear All */}
       <Box sx={{ px: 2, pt: 2, pb: 1, display: 'flex', justifyContent: 'flex-end' }}>
         <Button

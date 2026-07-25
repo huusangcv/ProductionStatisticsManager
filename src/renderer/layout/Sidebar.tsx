@@ -134,22 +134,25 @@ export default function Sidebar({ collapsed }: SidebarProps) {
         )}
       </Box>
 
+      {/* ── Menu (scroll) ─────────────────────────────────────────────────── */}
       <Box
+        className="sidebar-scroll"
         sx={{
           flex: 1,
+          overflowY: "auto",
+          overflowX: "hidden",
           minHeight: 0,
+          p: 2,
           display: "flex",
           flexDirection: "column",
-          p: 2,
-          overflow: "hidden",
         }}
       >
-        <List disablePadding sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+        <List disablePadding sx={{ flex: 1 }}>
           {navItems.map((entry) => {
             if (isGroup(entry)) {
               const isOpen = !!openGroups[entry.label];
               return (
-                <Box key={entry.label}>
+                <Box key={entry.label} sx={{ flexShrink: 0 }}>
                   <ListItemButton
                     onClick={() => !collapsed && toggleGroup(entry.label)}
                     sx={navItemSx}
@@ -179,7 +182,7 @@ export default function Sidebar({ collapsed }: SidebarProps) {
                           key={child.path}
                           component={NavLink}
                           to={child.path}
-                          sx={{ ...navItemSx, height: 40, mb: 0.5 }}
+                          sx={{ ...navItemSx, height: 40, mb: 0.5, flexShrink: 0 }}
                         >
                           <ListItemIcon sx={{ minWidth: 28, color: "inherit", justifyContent: "center" }}>
                             {child.icon}
@@ -202,34 +205,42 @@ export default function Sidebar({ collapsed }: SidebarProps) {
 
             // Flat nav item
             return (
-              <ListItemButton
-                key={entry.path}
-                component={NavLink}
-                to={entry.path}
-                sx={navItemSx}
-              >
-                <ListItemIcon sx={{ minWidth: collapsed ? 0 : 36, color: "inherit", justifyContent: "center" }}>
-                  {entry.icon}
-                </ListItemIcon>
-                {!collapsed && (
-                  <ListItemText
-                    primary={entry.label}
-                    primaryTypographyProps={{
-                      fontSize: theme.typography.fontSize.base,
-                      fontWeight: theme.typography.fontWeight.semibold,
-                      noWrap: true,
-                    }}
-                  />
-                )}
-              </ListItemButton>
+              <Box key={entry.path} sx={{ flexShrink: 0 }}>
+                <ListItemButton
+                  component={NavLink}
+                  to={entry.path}
+                  sx={navItemSx}
+                >
+                  <ListItemIcon sx={{ minWidth: collapsed ? 0 : 36, color: "inherit", justifyContent: "center" }}>
+                    {entry.icon}
+                  </ListItemIcon>
+                  {!collapsed && (
+                    <ListItemText
+                      primary={entry.label}
+                      primaryTypographyProps={{
+                        fontSize: theme.typography.fontSize.base,
+                        fontWeight: theme.typography.fontWeight.semibold,
+                        noWrap: true,
+                      }}
+                    />
+                  )}
+                </ListItemButton>
+              </Box>
             );
           })}
         </List>
+      </Box>
 
+      {/* ── Footer (fixed) ────────────────────────────────────────────────── */}
+      <Box
+        sx={{
+          flexShrink: 0,
+          p: 2,
+          pt: 1,
+        }}
+      >
         <Box
           sx={{
-            flexShrink: 0,
-            mt: "auto",
             p: collapsed ? 1 : 2,
             borderRadius: `${theme.borderRadius.md}px`,
             bgcolor: "rgba(255, 255, 255, 0.05)",

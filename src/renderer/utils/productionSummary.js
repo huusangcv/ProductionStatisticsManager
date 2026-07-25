@@ -5,23 +5,30 @@ export function buildEmployeeSummary(rows, mode) {
 
   for (const row of rows) {
     const empName = row.employee_full_name || row.representative_code || "Khác";
+    const repCode = String(row.representative_code || "").trim();
     const value = mode === "cutting" ? (row.joint_count || 0) : (row.completed_quantity || 0);
 
     if (value === 0 && !row.employee_full_name && !row.representative_code) continue;
 
     if (employeeMap.has(empName)) {
-      employeeMap.set(empName, employeeMap.get(empName) + value);
+      employeeMap.get(empName).total += value;
     } else {
-      employeeMap.set(empName, value);
+      employeeMap.set(empName, {
+        name: empName,
+        code: repCode || empName,
+        total: value,
+      });
     }
   }
 
-  const result = Array.from(employeeMap.entries()).map(([name, total]) => ({
-    name,
-    total,
-  }));
+  const result = Array.from(employeeMap.values());
 
-  result.sort((a, b) => b.total - a.total);
+  result.sort((a, b) => {
+    return String(a.code).localeCompare(String(b.code), undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
+  });
 
   return result;
 }

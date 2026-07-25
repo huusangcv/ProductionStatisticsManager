@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Box, Snackbar, Alert, Card, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, List, ListItem, ListItemText } from "@mui/material";
 import ProductionDataGrid from "./ProductionDataGrid";
 import ProductionDetailDrawer from "./production/ProductionDetailDrawer";
@@ -88,10 +88,54 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
     }
   };
 
+  const isInitialLoad = useRef(true);
+  const [fallbackNote, setFallbackNote] = useState("");
+
   useEffect(() => {
+    isInitialLoad.current = true;
+    setFallbackNote("");
+    const d = new Date();
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    setFilterDate(todayStr);
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ipcKey]);
+
+  useEffect(() => {
+    if (!savedData) return;
+    if (!isInitialLoad.current) return;
+
+    const todayStr = filterDate;
+    const todayRows = savedData.filter((row) => row.report_date === todayStr);
+
+    if (todayRows.length === 0 && savedData.length > 0) {
+      window.electronAPI[ipcKey].getLatestDate(todayStr).then((latestDate) => {
+        if (latestDate && isInitialLoad.current) {
+          isInitialLoad.current = false;
+          setFilterDate(latestDate);
+          const [y, m, d] = latestDate.split("-");
+          const formattedFallback = `${d}/${m}/${y}`;
+          const [ty, tm, td] = todayStr.split("-");
+          const formattedToday = `${td}/${tm}/${ty}`;
+          setFallbackNote(`Đang hiển thị dữ liệu gần nhất (${formattedFallback}) do hôm nay (${formattedToday}) không có dữ liệu`);
+        } else {
+          isInitialLoad.current = false;
+        }
+      }).catch(() => {
+        isInitialLoad.current = false;
+      });
+    } else {
+      if (savedData.length > 0 || todayRows.length > 0) {
+        isInitialLoad.current = false;
+      }
+    }
+  }, [savedData, filterDate, ipcKey]);
+
+  const handleFilterDateChange = (newDate) => {
+    isInitialLoad.current = false;
+    setFallbackNote("");
+    setFilterDate(newDate);
+  };
 
   // --- Shared File Processing ---
   const processExcelFile = async (filePath) => {
@@ -210,7 +254,8 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
           onRowDoubleClick={!isPreview ? handleRowDoubleClick : undefined}
           summaryMode={ipcKey}
           filterDate={filterDate}
-          onFilterDateChange={setFilterDate}
+          onFilterDateChange={handleFilterDateChange}
+          fallbackNote={fallbackNote}
         />
       </Card>
 

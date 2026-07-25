@@ -58,11 +58,6 @@ function OvertimePage() {
     resetSelection,
   } = useEmployeeManager({ departmentId, departmentName });
 
-  // Update document title dynamically based on the department
-  React.useEffect(() => {
-    document.title = `Đăng Ký Tăng Ca – ${departmentName}`;
-  }, [departmentName]);
-
   const [zoom, setZoom] = React.useState(100);
   const [previewRecord, setPreviewRecord] = React.useState(null);
 
@@ -80,12 +75,6 @@ function OvertimePage() {
   return (
     <>
       <AppShell
-        topBarProps={{
-          onPrint: doPrint,
-          onReset: resetSelection,
-          selectedCount: selectedIds.size,
-          departmentName, // Truyền tên bộ phận vào TopBar
-        }}
         statusBarProps={{
           zoom: zoom,
         }}
@@ -166,7 +155,7 @@ function OvertimePage() {
         open={snackbar.open}
         autoHideDuration={2400}
         onClose={closeSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert
           onClose={closeSnackbar}

@@ -35,4 +35,5 @@ module.exports = {
   checkGrindingDataExistsByDate:  grindingDAO.checkExistsByDate,
   deleteGrindingDataByDate:       grindingDAO.deleteByDate,
   importGrindingData:             grindingDAO.importData,
+  getLatestGrindingDate:          grindingDAO.getLatestDate,
 };

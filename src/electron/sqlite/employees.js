@@ -703,6 +703,7 @@ function createEmployee({
 function updateEmployee(
   id,
   {
+    employee_code = null,
     representative_code,
     full_name,
     role_id,
@@ -718,7 +719,8 @@ function updateEmployee(
     const result = db
       .prepare(
         `UPDATE employees
-         SET representative_code = @representative_code,
+         SET employee_code = COALESCE(@employee_code, employee_code),
+             representative_code = @representative_code,
              full_name = @full_name,
              role_id = @role_id,
              position_id = @position_id,
@@ -731,6 +733,7 @@ function updateEmployee(
       )
       .run({
         id,
+        employee_code,
         representative_code,
         full_name,
         role_id,

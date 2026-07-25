@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Alert,
   Box,
@@ -6,18 +6,19 @@ import {
   Snackbar,
   TextField,
   CircularProgress,
+  Typography,
+  Tooltip,
 } from "@mui/material";
 import DescriptionIcon from "@mui/icons-material/Description";
 import PrintIcon from "@mui/icons-material/Print";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
 import ExportDialogs from "./components/ExportDialogs";
 import PrintErrorDialog from "../../components/shared/PrintErrorDialog";
 import ProductionDataGrid from "../../components/shared/ProductionDataGrid";
-import DataGridToolbarActions, {
-  StandardButton,
-} from "../../components/shared/DataGridToolbarActions";
+import ReportToolbar from "../../components/shared/ReportToolbar";
 import { HEAT_TREATMENT_PREVIEW_COLUMNS } from "../../../constants/heatTreatmentColumns";
 import { usePrinters } from "../../hooks/usePrinters";
 
@@ -25,6 +26,8 @@ export default function HeatTreatmentPage() {
   const today = new Date().toISOString().slice(0, 10);
 
   const [selectedDate, setSelectedDate] = useState(today);
+  const isInitialLoad = useRef(true);
+  const [fallbackNote, setFallbackNote] = useState("");
   const [template, setTemplate] = useState(null);
   const [templateLoading, setTemplateLoading] = useState(true);
   const [previewRows, setPreviewRows] = useState([]);
@@ -67,6 +70,26 @@ export default function HeatTreatmentPage() {
       const rows =
         await window.electronAPI.heatTreatment.getGrindingByDate(date);
 
+      if ((!rows || rows.length === 0) && isInitialLoad.current) {
+        try {
+          const latestDate = await window.electronAPI.heatTreatment.getLatestDate(date);
+          if (latestDate && isInitialLoad.current) {
+            isInitialLoad.current = false;
+            setSelectedDate(latestDate);
+            const [y, m, d] = latestDate.split("-");
+            const formattedFallback = `${d}/${m}/${y}`;
+            const [ty, tm, td] = date.split("-");
+            const formattedToday = `${td}/${tm}/${ty}`;
+            setFallbackNote(`Đang hiển thị dữ liệu gần nhất (${formattedFallback}) do hôm nay (${formattedToday}) không có dữ liệu`);
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to get latest heat treatment date:", e);
+        }
+      }
+
+      isInitialLoad.current = false;
+
       const mapped = (rows || []).map((row, idx) => ({
         id: idx,
         stt: idx + 1,
@@ -89,10 +112,29 @@ export default function HeatTreatmentPage() {
     }
   }, []);
 
+  const checkExportStatus = useCallback(async (date) => {
+    if (!date) return;
+    try {
+      const res = await window.electronAPI.heatTreatment.checkExportFile(date);
+      if (res && res.ok && res.exists) {
+        setLastResult((prev) => ({
+          ...(prev || {}),
+          filePath: res.filePath,
+          folderPath: res.folderPath,
+          fileName: res.fileName,
+        }));
+      } else {
+        setLastResult(null);
+      }
+    } catch (err) {
+      setLastResult(null);
+    }
+  }, []);
+
   useEffect(() => {
-    setLastResult(null);
     loadGrindingData(selectedDate);
-  }, [selectedDate, loadGrindingData]);
+    checkExportStatus(selectedDate);
+  }, [selectedDate, loadGrindingData, checkExportStatus]);
 
   function classifyLocal(row) {
     const kws = ["XLN", "XỬ LÝ NHIỆT", "NHIỆT LUYỆN", "HT", "HARDENED"];
@@ -129,6 +171,7 @@ export default function HeatTreatmentPage() {
         setLastResult(result);
         setShowSuccessDialog(true);
         showSnackbar(`Xuất thành công: ${result.fileName}`);
+        checkExportStatus(reportDate);
       } else {
         showSnackbar(result.message || "Tạo file thất bại.", "error");
       }
@@ -169,67 +212,52 @@ export default function HeatTreatmentPage() {
     }
   };
 
+  const handleDateChange = (newDate) => {
+    isInitialLoad.current = false;
+    setFallbackNote("");
+    setSelectedDate(newDate);
+  };
+
   const heatTreatmentToolbar = () => (
-    <DataGridToolbarActions
-      hasExport={false}
-      rightActions={
-        <>
+    <ReportToolbar
+      leftCustomControls={
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <TextField
             type="date"
             size="small"
             value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+            onChange={(e) => handleDateChange(e.target.value)}
             inputProps={{ max: today }}
             sx={{
-              width: 160,
+              width: 150,
               "& .MuiInputBase-root": {
-                height: 38,
+                height: 36,
                 borderRadius: "8px",
                 fontSize: 14,
+                bgcolor: "#fff",
               },
             }}
           />
-          <StandardButton
-            primary
-            icon={
-              generating ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : (
-                <DescriptionIcon />
-              )
-            }
-            label={generating ? "Đang tạo..." : "Tạo Excel"}
-            disabled={!template || generating}
-            onClick={handleGenerate}
-          />
-          <StandardButton
-            primary={false}
-            icon={
-              printing ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : (
-                <PrintIcon />
-              )
-            }
-            label={printing ? "Đang in..." : "In"}
-            disabled={!lastResult || generating || printing}
-            onClick={() => handlePrint(lastResult?.filePath)}
-          />
-          <StandardButton
-            primary={false}
-            icon={<FolderOpenIcon />}
-            label="Mở thư mục"
-            disabled={!lastResult || generating}
-            onClick={() => handleOpenFolder(lastResult?.filePath)}
-          />
-          <StandardButton
-            primary={false}
-            icon={<RefreshIcon />}
-            label="Làm mới"
-            onClick={loadTemplate}
-          />
-        </>
+          {fallbackNote && (
+            <Tooltip title={fallbackNote} arrow placement="top">
+              <Box component="span" sx={{ display: "inline-flex", alignItems: "center", ml: 0.5 }}>
+                <WarningAmberRoundedIcon sx={{ fontSize: 16, color: "warning.main", cursor: "pointer" }} />
+              </Box>
+            </Tooltip>
+          )}
+        </Box>
       }
+      onGenerate={handleGenerate}
+      generating={generating}
+      disableGenerate={!template || generating}
+      generateLabel="Tạo Excel"
+      onPrint={() => handlePrint(lastResult?.filePath)}
+      printing={printing}
+      disablePrint={!lastResult || !lastResult.filePath || generating || printing}
+      printLabel="In"
+      onOpenFolder={() => handleOpenFolder(lastResult?.filePath || lastResult?.folderPath)}
+      disableOpenFolder={!lastResult || (!lastResult.filePath && !lastResult.folderPath) || generating}
+      onRefresh={loadTemplate}
     />
   );
 

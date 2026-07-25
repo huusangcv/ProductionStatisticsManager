@@ -174,6 +174,7 @@ const PrinterTab = () => {
             </Box>
             <Box sx={{ flex: 1, overflow: "hidden" }}>
               <DataGrid
+                density="compact"
                 rows={rows}
                 columns={columns}
                 loading={loading}

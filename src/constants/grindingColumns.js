@@ -34,6 +34,7 @@ export const GRINDING_COLUMNS = [
     databaseField: "joint_detail",
     headerName: "Chi tiết kết xâu",
     width: 180,
+    defaultHidden: true,
   },
   {
     excelHeader: "Tên hàng品名",
@@ -133,6 +134,7 @@ export const getGrindingDataGridColumns = () => {
     if (col.flex) dataGridCol.flex = col.flex;
     if (col.minWidth) dataGridCol.minWidth = col.minWidth;
     if (col.type) dataGridCol.type = col.type;
+    if (col.defaultHidden) dataGridCol.defaultHidden = true;
     if (col.databaseField === "report_date") {
       dataGridCol.renderCell = (params) => {
         const formatted = formatDateForUI(params.row?.report_date);

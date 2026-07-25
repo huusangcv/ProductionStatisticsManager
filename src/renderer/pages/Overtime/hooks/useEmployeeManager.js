@@ -2,6 +2,8 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { MAX_ROWS } from '../constants';
 
+const ROLE_PRIORITY = { TT: 1, CT: 2, NV: 3, CN: 4 };
+
 export function useEmployeeManager({ departmentId = 'default', departmentName = '' } = {}) {
   const [employees, setEmployees] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -13,36 +15,91 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
   const [notes, setNotes] = useState({});
   const [otHistory, setOtHistory] = useState([]);
 
-  // Fetch employees from database
+  const [dbRoles, setDbRoles] = useState([]);
+  const [dbPositions, setDbPositions] = useState([]);
+
   useEffect(() => {
-    async function fetchEmployees() {
+    async function loadMasterData() {
       try {
-        const allEmployees = await window.electronAPI.employee.getAll();
-        
-        // Cấu hình: chỉ lấy bộ phận Trước xử lý
-        // Có thể filter theo role_code hoặc lấy tất cả tuỳ nghiệp vụ. Tạm lấy tất cả.
-        // Map position_code sang viết tắt TT, CT, NV, CN
-        const positionToRoleMap = {
-          LEADER: 'TT',
-          SHIFT: 'CT',
-          STAFF: 'NV',
-          WORKER: 'CN',
-        };
-
-        const mappedEmployees = allEmployees.map(emp => ({
-          id: emp.employee_code, // Dùng employee_code làm id như cũ
-          name: emp.full_name,
-          role: positionToRoleMap[emp.position_code] || 'CN',
-          originalId: emp.id // ID thực trong bảng employees nếu cần
-        }));
-
-        setEmployees(mappedEmployees);
-      } catch (error) {
-        console.error("Lỗi khi tải danh sách nhân viên:", error);
+        if (window.electronAPI?.roles?.getAll && window.electronAPI?.positions?.getAll) {
+          const [r, p] = await Promise.all([
+            window.electronAPI.roles.getAll(),
+            window.electronAPI.positions.getAll(),
+          ]);
+          setDbRoles(r || []);
+          setDbPositions(p || []);
+        }
+      } catch (err) {
+        console.error("Lỗi load master data:", err);
       }
     }
-    fetchEmployees();
+    loadMasterData();
   }, []);
+
+  // Fetch employees from database
+  const fetchEmployees = useCallback(async () => {
+    try {
+      if (!window.electronAPI?.employees?.getAll) {
+        console.error("window.electronAPI.employees.getAll is not available");
+        return;
+      }
+      const allEmployees = await window.electronAPI.employees.getAll();
+      
+      const mapToRole = (emp) => {
+        const posCode = String(emp.position_code || '').toUpperCase();
+        const posName = String(emp.position_name || '').toLowerCase();
+        const roleCode = String(emp.role_code || '').toUpperCase();
+        const roleName = String(emp.role_name || '').toLowerCase();
+
+        if (['LEADER', 'DEPUTY', 'TT', 'TỔ TRƯỞNG', 'TỔ PHÓ'].includes(posCode) || posName.includes('tổ trưởng') || posName.includes('tổ phó') || roleCode === 'TT' || roleName.includes('tổ trưởng')) return 'TT';
+        if (['SHIFT', 'CT', 'TRƯỞNG CA', 'CA TRƯỞNG'].includes(posCode) || posName.includes('trưởng ca') || posName.includes('ca trưởng') || roleCode === 'CT' || roleName.includes('trưởng ca')) return 'CT';
+        if (['STAFF', 'NV', 'NHÂN VIÊN', 'VĂN PHÒNG'].includes(posCode) || posName.includes('nhân viên') || posName.includes('văn phòng') || roleCode === 'NV' || roleName.includes('nhân viên')) return 'NV';
+        return 'CN';
+      };
+
+      const activeEmployees = (allEmployees || []).filter(emp => emp.status !== 'Nghỉ việc');
+
+      const mappedEmployees = activeEmployees.map(emp => {
+        const rawCode = String(emp.employee_code || emp.id || '');
+        const cleanCode = rawCode.replace(/^[vV]/, '');
+        return {
+          id: cleanCode,
+          employeeCode: rawCode,
+          name: emp.full_name || emp.employee_name || 'Chưa đặt tên',
+          role: mapToRole(emp),
+          originalId: emp.id,
+          role_id: emp.role_id,
+          position_id: emp.position_id,
+          phone: emp.phone || '',
+          status: emp.status || 'Đang làm việc',
+          hire_date: emp.hire_date || new Date().toISOString().split('T')[0],
+          note: emp.note || ''
+        };
+      });
+
+      mappedEmployees.sort((a, b) => {
+        const pA = ROLE_PRIORITY[a.role] || 5;
+        const pB = ROLE_PRIORITY[b.role] || 5;
+        if (pA !== pB) {
+          return pA - pB;
+        }
+        const numA = parseInt(a.id, 10);
+        const numB = parseInt(b.id, 10);
+        if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+          return numA - numB;
+        }
+        return String(a.id).localeCompare(String(b.id), 'vi');
+      });
+
+      setEmployees(mappedEmployees);
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách nhân viên:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
 
   // Lấy lịch sử từ SQLite
   const refreshHistory = useCallback(async () => {
@@ -96,9 +153,6 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
   // Giữ biến này để tương thích với DocumentSheet (PDF template dùng chung)
   const deptName = departmentId;
 
-  // Sort priorities for roles
-  const ROLE_PRIORITY = { TT: 1, CT: 2, NV: 3, CN: 4 };
-
   const selArr = useMemo(() => {
     const selected = employees.filter(e => selectedIds.has(e.id));
     return selected.sort((a, b) => {
@@ -128,7 +182,12 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
         }
       }
       
-      return 0; // Giữ nguyên thứ tự nếu không phải CN hoặc thời gian/ghi chú giống nhau
+      const numA = parseInt(a.id, 10);
+      const numB = parseInt(b.id, 10);
+      if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+        return numA - numB;
+      }
+      return String(a.id).localeCompare(String(b.id), 'vi');
     });
   }, [employees, selectedIds, otTimes, notes]);
 
@@ -168,18 +227,33 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
     setConfirmOpen(true);
   }, []);
 
-  const confirmDelete = useCallback(() => {
+  const confirmDelete = useCallback(async () => {
     if (!deletingId) return;
-    setEmployees(prev => prev.filter(e => e.id !== deletingId));
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      next.delete(deletingId);
-      return next;
-    });
-    showToast('Đã xóa nhân viên');
-    setConfirmOpen(false);
-    setDeletingId(null);
-  }, [deletingId, showToast]);
+    const existing = employees.find(e => e.id === deletingId);
+    try {
+      if (window.electronAPI?.employees?.delete && existing?.originalId) {
+        const res = await window.electronAPI.employees.delete(existing.originalId);
+        if (!res.ok) {
+          showToast(res.message || 'Lỗi xóa NV', 'error');
+          return;
+        }
+        await fetchEmployees();
+      } else {
+        setEmployees(prev => prev.filter(e => e.id !== deletingId));
+      }
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        next.delete(deletingId);
+        return next;
+      });
+      showToast('Đã xóa nhân viên');
+    } catch (err) {
+      showToast('Lỗi khi xóa: ' + err.message, 'error');
+    } finally {
+      setConfirmOpen(false);
+      setDeletingId(null);
+    }
+  }, [deletingId, employees, fetchEmployees, showToast]);
 
   const cancelDelete = useCallback(() => {
     setConfirmOpen(false);
@@ -211,35 +285,108 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
       showToast('Vui lòng nhập đủ thông tin', 'error');
       return;
     }
-    // TODO: In a full DB integration, this should also create/update in the employees table
-    // For now, we update local state for the overtime session
-    if (!editingId) {
-      if (employees.find(e => e.id === trimId)) {
-        showToast('Mã NV đã tồn tại', 'error');
-        return;
-      }
-      setEmployees(prev => [...prev, { id: trimId, name: trimName, role }]);
-      showToast('Đã thêm nhân viên');
+
+    let position_id = null;
+    if (role === 'TT') {
+      const p = dbPositions.find(x => x.code === 'LEADER' || x.name.toLowerCase().includes('tổ trưởng'));
+      position_id = p?.id || dbPositions[0]?.id || null;
+    } else if (role === 'CT') {
+      const p = dbPositions.find(x => x.code === 'SHIFT' || x.name.toLowerCase().includes('trưởng ca'));
+      position_id = p?.id || dbPositions[0]?.id || null;
+    } else if (role === 'NV') {
+      const p = dbPositions.find(x => x.code === 'STAFF' || x.name.toLowerCase().includes('nhân viên'));
+      position_id = p?.id || dbPositions[0]?.id || null;
     } else {
-      if (trimId !== editingId && employees.find(e => e.id === trimId)) {
+      const p = dbPositions.find(x => x.code === 'WORKER' || x.name.toLowerCase().includes('công nhân'));
+      position_id = p?.id || dbPositions[0]?.id || null;
+    }
+    const role_id = dbRoles[0]?.id || null;
+
+    const formatCodeForDb = (code, existingCode = '') => {
+      if (/^[vV]/i.test(code)) return code.toUpperCase();
+      if (existingCode && /^[vV]/i.test(existingCode)) return 'V' + code.replace(/^[vV]/i, '');
+      if (/^\d+$/.test(code)) return 'V' + code;
+      return code;
+    };
+
+    if (!editingId) {
+      if (employees.find(e => e.id.toLowerCase() === trimId.toLowerCase())) {
         showToast('Mã NV đã tồn tại', 'error');
         return;
       }
-      setEmployees(prev =>
-        prev.map(e => e.id === editingId ? { ...e, id: trimId, name: trimName, role } : e)
-      );
-      if (trimId !== editingId && selectedIds.has(editingId)) {
-        setSelectedIds(prev => {
-          const next = new Set(prev);
-          next.delete(editingId);
-          next.add(trimId);
-          return next;
-        });
+      try {
+        if (window.electronAPI?.employees?.create) {
+          const dbCode = formatCodeForDb(trimId);
+          const res = await window.electronAPI.employees.create({
+            employee_code: dbCode,
+            representative_code: dbCode,
+            full_name: trimName,
+            role_id: role_id || 1,
+            position_id: position_id || 1,
+            phone: '',
+            status: 'Đang làm việc',
+            hire_date: new Date().toISOString().split('T')[0],
+            note: ''
+          });
+          if (!res.ok) {
+            showToast(res.message || 'Lỗi thêm NV', 'error');
+            return;
+          }
+          await fetchEmployees();
+        } else {
+          setEmployees(prev => [...prev, { id: trimId, name: trimName, role }]);
+        }
+        showToast('Đã thêm nhân viên');
+      } catch (err) {
+        showToast('Lỗi khi lưu: ' + err.message, 'error');
+        return;
       }
-      showToast('Đã cập nhật');
+    } else {
+      if (trimId !== editingId && employees.find(e => e.id.toLowerCase() === trimId.toLowerCase())) {
+        showToast('Mã NV đã tồn tại', 'error');
+        return;
+      }
+      const existing = employees.find(e => e.id === editingId);
+      try {
+        if (window.electronAPI?.employees?.update && existing?.originalId) {
+          const dbCode = formatCodeForDb(trimId, existing?.employeeCode);
+          const res = await window.electronAPI.employees.update(existing.originalId, {
+            employee_code: dbCode,
+            representative_code: dbCode,
+            full_name: trimName,
+            role_id: existing.role_id || role_id || 1,
+            position_id: position_id || existing.position_id || 1,
+            phone: existing.phone || '',
+            status: existing.status || 'Đang làm việc',
+            hire_date: existing.hire_date || new Date().toISOString().split('T')[0],
+            note: existing.note || ''
+          });
+          if (!res.ok) {
+            showToast(res.message || 'Lỗi cập nhật NV', 'error');
+            return;
+          }
+          await fetchEmployees();
+        } else {
+          setEmployees(prev =>
+            prev.map(e => e.id === editingId ? { ...e, id: trimId, name: trimName, role } : e)
+          );
+        }
+        if (trimId !== editingId && selectedIds.has(editingId)) {
+          setSelectedIds(prev => {
+            const next = new Set(prev);
+            next.delete(editingId);
+            next.add(trimId);
+            return next;
+          });
+        }
+        showToast('Đã cập nhật');
+      } catch (err) {
+        showToast('Lỗi khi cập nhật: ' + err.message, 'error');
+        return;
+      }
     }
     closeModal();
-  }, [modalData, editingId, employees, showToast, closeModal]);
+  }, [modalData, editingId, employees, dbPositions, dbRoles, fetchEmployees, showToast, closeModal, selectedIds]);
 
   const doPrint = useCallback(async () => {
     if (selectedIds.size === 0) {

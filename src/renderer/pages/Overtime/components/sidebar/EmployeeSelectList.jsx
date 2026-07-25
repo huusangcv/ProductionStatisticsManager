@@ -3,7 +3,6 @@ import React, { memo, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Checkbox from '@mui/material/Checkbox';
-import Divider from '@mui/material/Divider';
 import SearchBar from '../employees/SearchBar';
 import EmployeeSelectRow from '../employees/EmployeeSelectRow';
 import EmptyState from '../employees/EmptyState';
@@ -51,38 +50,42 @@ const EmployeeSelectList = memo(function EmployeeSelectList({
 
       {/* Select-all header */}
       {!isEmpty && (
-        <>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              px: 2,
-              py: 0.75,
-              bgcolor: '#FAFAFA',
-            }}
-          >
-            <Checkbox
-              size="small"
-              checked={anyChecked}
-              onChange={handleToggleAll}
-              color="primary"
-              sx={{ p: 0.5, mr: 1 }}
-            />
-            <Typography variant="caption" fontWeight={600} color="text.secondary">
-              Chọn tất cả ({filteredEmployees.length})
-            </Typography>
-            <Box sx={{ flex: 1 }} />
-            <Typography variant="caption" color="text.secondary">
-              Đã chọn: <strong>{selectedIds.size}</strong>
-            </Typography>
-          </Box>
-          <Divider />
-        </>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            px: 2,
+            py: 0.75,
+            bgcolor: '#FAFAFA',
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            flexShrink: 0,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Checkbox
+            size="small"
+            checked={anyChecked}
+            onChange={handleToggleAll}
+            color="primary"
+            sx={{ p: 0.5, mr: 1 }}
+          />
+          <Typography variant="caption" fontWeight={600} color="text.secondary">
+            Chọn tất cả ({filteredEmployees.length})
+          </Typography>
+          <Box sx={{ flex: 1 }} />
+          <Typography variant="caption" color="text.secondary">
+            Đã chọn: <strong>{selectedIds.size}</strong>
+          </Typography>
+        </Box>
       )}
 
       {/* List */}
       <Box
         component="ul"
+        className="sidebar-scroll"
         role="listbox"
         aria-multiselectable="true"
         aria-label="Danh sách nhân viên"

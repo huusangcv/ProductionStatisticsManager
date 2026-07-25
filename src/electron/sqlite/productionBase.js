@@ -454,6 +454,19 @@ function createProductionModule(tableName, columnSpec, roleCode) {
     }
   }
 
+  // ── getLatestDate ────────────────────────────────────────────────────────
+  function getLatestDate(beforeDate) {
+    const db = openDatabase();
+    try {
+      const row = db
+        .prepare(`SELECT report_date FROM ${tableName} WHERE report_date < ? ORDER BY report_date DESC LIMIT 1`)
+        .get(beforeDate);
+      return row ? row.report_date : null;
+    } finally {
+      db.close();
+    }
+  }
+
   return {
     ensureTable,
     getAll,
@@ -464,6 +477,7 @@ function createProductionModule(tableName, columnSpec, roleCode) {
     checkExistsByDate,
     deleteByDate,
     importData,
+    getLatestDate,
   };
 }
 

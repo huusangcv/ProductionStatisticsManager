@@ -34,4 +34,5 @@ module.exports = {
   checkCuttingDataExistsByDate:  cuttingDAO.checkExistsByDate,
   deleteCuttingDataByDate:       cuttingDAO.deleteByDate,
   importCuttingData:             cuttingDAO.importData,
+  getLatestCuttingDate:          cuttingDAO.getLatestDate,
 };

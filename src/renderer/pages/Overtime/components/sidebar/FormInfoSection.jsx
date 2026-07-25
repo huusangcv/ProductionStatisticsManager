@@ -27,13 +27,13 @@ const FormInfoSection = memo(function FormInfoSection({
   const pageCount = selectedCount === 0 ? 1 : Math.ceil(selectedCount / MAX_ROWS);
 
   return (
-    <Box sx={{ px: 2.5, py: 2 }}>
+    <Box sx={{ px: 2, py: 1.25, display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
 
       {/* Date field */}
-      <Box sx={{ mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
-          <CalendarMonthRoundedIcon sx={{ fontSize: 13, color: 'text.secondary' }} />
-          <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+          <CalendarMonthRoundedIcon sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0 }} />
+          <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Ngày tăng ca
           </Typography>
         </Box>
@@ -48,20 +48,21 @@ const FormInfoSection = memo(function FormInfoSection({
             '& .MuiOutlinedInput-root': {
               borderRadius: '8px',
               backgroundColor: '#F9FAFB',
-              fontSize: '0.875rem',
+              fontSize: '0.8125rem',
               fontWeight: 500,
               '& fieldset': { borderColor: '#E5E7EB' },
               '&:hover fieldset': { borderColor: '#D1D5DB' },
             },
+            '& input': { px: 1, py: 0.75 }
           }}
         />
       </Box>
 
       {/* OT Type field */}
-      <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
-          <AccessTimeRoundedIcon sx={{ fontSize: 13, color: 'text.secondary' }} />
-          <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+      <Box sx={{ flex: 1.25, minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+          <AccessTimeRoundedIcon sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0 }} />
+          <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Loại tăng ca
           </Typography>
         </Box>
@@ -74,44 +75,21 @@ const FormInfoSection = memo(function FormInfoSection({
             sx={{
               borderRadius: '8px',
               backgroundColor: '#F9FAFB',
-              fontSize: '0.875rem',
+              fontSize: '0.8125rem',
               fontWeight: 500,
+              '& .MuiSelect-select': { px: 1, py: 0.75 },
               '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E5E7EB' },
               '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#D1D5DB' },
             }}
           >
             {OT_TYPES.map(t => (
-              <MenuItem key={t.value} value={t.value} sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
+              <MenuItem key={t.value} value={t.value} sx={{ fontSize: '0.8125rem', fontWeight: 500 }}>
                 {t.label}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
       </Box>
-
-      {/* Tóm tắt: số NV đã chọn và số trang sẽ in */}
-      {/* {selectedCount > 0 && (
-        <Box
-          sx={{
-            mt: 2,
-            px: 1.5,
-            py: 1,
-            borderRadius: '8px',
-            backgroundColor: '#F0FDF4',
-            border: '1px solid #BBF7D0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <Typography variant="caption" fontWeight={600} sx={{ color: '#15803D', fontSize: '0.75rem' }}>
-            ✓ {selectedCount} nhân viên
-          </Typography>
-          <Typography variant="caption" fontWeight={600} sx={{ color: '#15803D', fontSize: '0.75rem' }}>
-            {pageCount} trang
-          </Typography>
-        </Box>
-      )} */}
     </Box>
   );
 });

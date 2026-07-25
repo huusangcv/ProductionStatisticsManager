@@ -46,6 +46,7 @@ const {
   importGrindingData,
   checkGrindingDataExistsByDate,
   deleteGrindingDataByDate,
+  getLatestGrindingDate,
 } = require("./sqlite/grinding");
 const {
   getAllCuttingData,
@@ -55,6 +56,7 @@ const {
   importCuttingData,
   checkCuttingDataExistsByDate,
   deleteCuttingDataByDate,
+  getLatestCuttingDate,
 } = require("./sqlite/cutting");
 const {
   getDashboardKPIs,
@@ -779,6 +781,10 @@ function registerIpcHandlers() {
     selectProductionFile(event, "Chọn file Excel sản lượng Mài"),
   );
 
+  ipcMain.handle("grinding:getLatestDate", (_event, beforeDate) =>
+    getLatestGrindingDate(beforeDate),
+  );
+
   ipcMain.handle("grinding:parseExcel", (_event, filePath) =>
     parseExcelFile(filePath, GRINDING_SPEC),
   );
@@ -805,6 +811,10 @@ function registerIpcHandlers() {
 
   ipcMain.handle("cutting:selectFile", (event) =>
     selectProductionFile(event, "Chọn file Excel sản lượng Cắt"),
+  );
+
+  ipcMain.handle("cutting:getLatestDate", (_event, beforeDate) =>
+    getLatestCuttingDate(beforeDate),
   );
 
   // --- Overtime handlers ---
@@ -922,6 +932,10 @@ function registerIpcHandlers() {
     }
   });
 
+  ipcMain.handle("heatTreatment:getLatestDate", (_event, beforeDate) =>
+    getLatestGrindingDate(beforeDate),
+  );
+
   ipcMain.handle("heatTreatment:generate", async (_event, { reportDate }) => {
     const startTime = Date.now();
     try {
@@ -995,6 +1009,25 @@ function registerIpcHandlers() {
       };
     } catch (error) {
       return { ok: false, message: "Lỗi xuất Excel: " + error.message };
+    }
+  });
+
+  ipcMain.handle("heatTreatment:checkExportFile", (_event, reportDate) => {
+    try {
+      const { resolveExportPath } = require("./heatTreatment/exportPaths");
+      const { filePath, folderPath, fileName } = resolveExportPath(reportDate);
+      const exists = fs.existsSync(filePath);
+      return { ok: true, exists, filePath, folderPath, fileName };
+    } catch (error) {
+      return { ok: false, exists: false, message: error.message };
+    }
+  });
+
+  ipcMain.handle("file:exists", (_event, filePath) => {
+    try {
+      return { ok: true, exists: fs.existsSync(filePath) };
+    } catch (error) {
+      return { ok: false, exists: false };
     }
   });
 

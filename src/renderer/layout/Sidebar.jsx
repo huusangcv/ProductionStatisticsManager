@@ -62,6 +62,7 @@ function CollapsedIconButton({ icon, label, active, onClick }) {
           position:       "relative",
           width:          ITEM_HEIGHT,
           height:         ITEM_HEIGHT,
+          flexShrink:     0,
           borderRadius:   "12px",
           display:        "flex",
           alignItems:     "center",
@@ -111,6 +112,7 @@ function ExpandedNavItem({ icon, label, active, onClick, chevron }) {
       sx={{
         position:       "relative",
         height:         ITEM_HEIGHT,
+        flexShrink:     0,
         borderRadius:   "12px",
         display:        "flex",
         alignItems:     "center",
@@ -180,6 +182,7 @@ function ExpandedChildItem({ label, active }) {
     <Box
       sx={{
         height:       ITEM_HEIGHT,
+        flexShrink:   0,
         borderRadius: "12px",
         display:      "flex",
         alignItems:   "center",
@@ -224,17 +227,19 @@ function NavGroup({ item, collapsed }) {
 
   if (collapsed) {
     return (
-      <CollapsedIconButton
-        icon={ICON_MAP[item.icon]}
-        label={item.label}
-        active={isActive}
-        onClick={handleToggle}
-      />
+      <Box sx={{ flexShrink: 0 }}>
+        <CollapsedIconButton
+          icon={ICON_MAP[item.icon]}
+          label={item.label}
+          active={isActive}
+          onClick={handleToggle}
+        />
+      </Box>
     );
   }
 
   return (
-    <>
+    <Box sx={{ flexShrink: 0, display: "flex", flexDirection: "column" }}>
       <ExpandedNavItem
         icon={ICON_MAP[item.icon]}
         label={item.label}
@@ -249,7 +254,7 @@ function NavGroup({ item, collapsed }) {
       <Collapse in={open} timeout="auto" unmountOnExit>
         <Box sx={{ display: "flex", flexDirection: "column", gap: "4px", mt: "4px", mb: "4px" }}>
           {item.children.map((child) => (
-            <NavLink key={child.path} to={child.path} style={{ textDecoration: "none" }}>
+            <NavLink key={child.path} to={child.path} style={{ textDecoration: "none", display: "block" }}>
               {({ isActive: childActive }) => (
                 <ExpandedChildItem label={child.label} active={childActive} />
               )}
@@ -257,7 +262,7 @@ function NavGroup({ item, collapsed }) {
           ))}
         </Box>
       </Collapse>
-    </>
+    </Box>
   );
 }
 
@@ -335,18 +340,18 @@ function Sidebar({ desktopOpen }) {
 
       {/* ── Navigation ────────────────────────────────────────────────────── */}
       <Box
+        className="sidebar-scroll"
         sx={{
           flex:          1,
           overflowY:     "auto",
           overflowX:     "hidden",
+          minHeight:     0,
           pt:            `${NAV_PADDING}px`,
           pb:            `${NAV_PADDING}px`,
           px:            `${NAV_PADDING}px`,
           display:       "flex",
           flexDirection: "column",
           gap:           "8px",
-          "&::-webkit-scrollbar":       { width: "4px" },
-          "&::-webkit-scrollbar-thumb": { bgcolor: sb.hover, borderRadius: "4px" },
         }}
       >
         {navigationItems.map((item) => {
@@ -354,87 +359,96 @@ function Sidebar({ desktopOpen }) {
             return <NavGroup key={item.label} item={item} collapsed={collapsed} />;
           }
           return (
-            <NavLink key={item.path} to={item.path} style={{ textDecoration: "none" }}>
-              {({ isActive }) =>
-                collapsed ? (
-                  <CollapsedIconButton
-                    icon={ICON_MAP[item.icon]}
-                    label={item.label}
-                    active={isActive}
-                  />
-                ) : (
-                  <ExpandedNavItem
-                    icon={ICON_MAP[item.icon]}
-                    label={item.label}
-                    active={isActive}
-                  />
-                )
-              }
-            </NavLink>
+            <Box key={item.path} sx={{ flexShrink: 0 }}>
+              <NavLink to={item.path} style={{ textDecoration: "none", display: "block" }}>
+                {({ isActive }) =>
+                  collapsed ? (
+                    <CollapsedIconButton
+                      icon={ICON_MAP[item.icon]}
+                      label={item.label}
+                      active={isActive}
+                    />
+                  ) : (
+                    <ExpandedNavItem
+                      icon={ICON_MAP[item.icon]}
+                      label={item.label}
+                      active={isActive}
+                    />
+                  )
+                }
+              </NavLink>
+            </Box>
           );
         })}
+      </Box>
 
-        {/* ── Status footer ─────────────────────────────────────────────── */}
-        <Box sx={{ mt: "auto", pt: "8px" }}>
-          {collapsed ? (
-            <Tooltip title="Hệ thống đang hoạt động" placement="right" arrow>
-              <Box
-                sx={{
-                  display:        "flex",
-                  justifyContent: "center",
-                  alignItems:     "center",
-                  height:         32,
-                  cursor:         "default",
-                }}
-              >
-                <Box
-                  sx={{
-                    width:        10,
-                    height:       10,
-                    borderRadius: "50%",
-                    bgcolor:      "#22c55e",
-                    boxShadow:    "0 0 0 3px rgba(34,197,94,0.2)",
-                  }}
-                />
-              </Box>
-            </Tooltip>
-          ) : (
+      {/* ── Status footer (fixed) ─────────────────────────────────────────── */}
+      <Box
+        sx={{
+          flexShrink: 0,
+          px:         `${NAV_PADDING}px`,
+          pb:         `${NAV_PADDING}px`,
+          pt:         "8px",
+        }}
+      >
+        {collapsed ? (
+          <Tooltip title="Hệ thống đang hoạt động" placement="right" arrow>
             <Box
               sx={{
-                borderRadius: "12px",
-                bgcolor:      sb.hover,
-                border:       `1px solid ${sb.border}`,
-                px:           "14px",
-                py:           "12px",
-                display:      "flex",
-                alignItems:   "center",
-                gap:          "8px",
+                display:        "flex",
+                justifyContent: "center",
+                alignItems:     "center",
+                height:         32,
+                cursor:         "default",
               }}
             >
               <Box
                 sx={{
-                  width:        8,
-                  height:       8,
+                  width:        10,
+                  height:       10,
                   borderRadius: "50%",
                   bgcolor:      "#22c55e",
-                  flexShrink:   0,
                   boxShadow:    "0 0 0 3px rgba(34,197,94,0.2)",
                 }}
               />
-              <Box
-                component="span"
-                sx={{
-                  fontSize:   "11px",
-                  fontWeight: 600,
-                  color:      sb.statusText,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Đang hoạt động
-              </Box>
             </Box>
-          )}
-        </Box>
+          </Tooltip>
+        ) : (
+          <Box
+            sx={{
+              borderRadius: "12px",
+              bgcolor:      sb.hover,
+              border:       `1px solid ${sb.border}`,
+              px:           "14px",
+              py:           "12px",
+              display:      "flex",
+              alignItems:   "center",
+              gap:          "8px",
+            }}
+          >
+            <Box
+              sx={{
+                width:        8,
+                height:       8,
+                borderRadius: "50%",
+                bgcolor:      "#22c55e",
+                flexShrink:   0,
+                boxShadow:    "0 0 0 3px rgba(34,197,94,0.2)",
+              }}
+            />
+            <Box
+              component="span"
+              sx={{
+                fontSize:   "11px",
+                fontWeight: 600,
+                color:      sb.statusText,
+                whiteSpace: "nowrap",
+              }}
+            >
+              Đang hoạt động
+            </Box>
+          </Box>
+        )}
       </Box>
     </Box>
   );

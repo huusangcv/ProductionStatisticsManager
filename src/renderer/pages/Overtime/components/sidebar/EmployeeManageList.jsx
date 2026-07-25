@@ -41,6 +41,7 @@ const EmployeeManageList = memo(function EmployeeManageList({
 
       {/* Scrollable list */}
       <Box
+        className="sidebar-scroll"
         sx={{
           flex: 1,
           overflowY: 'auto',

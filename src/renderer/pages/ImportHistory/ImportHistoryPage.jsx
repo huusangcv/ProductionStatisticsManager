@@ -184,6 +184,7 @@ export default function ImportHistoryPage() {
         }}
       >
         <DataGrid
+          density="compact"
           rows={sessions}
           columns={columns}
           loading={loading}

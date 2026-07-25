@@ -17,7 +17,7 @@ export const ROLE_COLORS = {
 };
 
 export const OT_TYPES = [
-  { value: 'TCA THƯỜNG', label: 'TCA Thường (Ngày thường)' },
+  { value: 'TCA THƯỜNG', label: 'Ngày thường' },
   { value: 'CHỦ NHẬT', label: 'Chủ Nhật' },
 ];
 

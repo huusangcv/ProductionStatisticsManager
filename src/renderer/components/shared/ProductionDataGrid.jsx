@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import { Box, Chip, TextField } from "@mui/material";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
@@ -9,6 +10,7 @@ import DataGridToolbarActions, {
   StandardButton,
 } from "./DataGridToolbarActions";
 import ProductionGridFooter from "./ProductionGridFooter";
+import ProductionToolbar from "./production/ProductionToolbar";
 import { useDragDropImport } from "../../hooks/useDragDropImport";
 import { viVNGridLocaleText } from "../../constants/dataGridLocale";
 
@@ -58,12 +60,13 @@ function ProductionDataGrid({
   isProcessing = false,
   renderToolbar,
   enableDragDrop = true,
-  density,
+  density = "compact",
   pageSizeOptions = [10, 20, 50, 100],
   onRowDoubleClick,
   summaryMode,
   filterDate,
   onFilterDateChange,
+  fallbackNote,
 }) {
   const { isDragging, dragProps } = useDragDropImport({
     onDropFile: onFileDrop,
@@ -105,41 +108,29 @@ function ProductionDataGrid({
     }
 
     return (
-      <DataGridToolbarActions
-        hasExport={true}
-        rightActions={
-          <>
-            {onFilterDateChange && (
-              <TextField
-                type="date"
-                size="small"
-                value={filterDate || ""}
-                onChange={(e) => onFilterDateChange(e.target.value)}
-                sx={{
-                  width: 150,
-                  "& .MuiInputBase-root": { height: 38, borderRadius: "8px", bgcolor: "#fff" },
-                }}
-              />
-            )}
-            <StandardButton
-              primary
-              icon={<UploadFileRoundedIcon />}
-              label="Import Excel"
-              onClick={onImport}
-            />
-            <StandardButton
-              primary={false}
-              icon={<RefreshRoundedIcon />}
-              label="Làm mới"
-              onClick={onRefresh}
-            />
-          </>
-        }
+      <ProductionToolbar
+        onImport={onImport}
+        onRefresh={onRefresh}
+        filterDate={filterDate}
+        onFilterDateChange={onFilterDateChange}
+        fallbackNote={fallbackNote}
       />
     );
   };
 
   const toolbar = renderToolbar ?? defaultToolbar;
+
+  const defaultColumnVisibilityModel = useMemo(() => {
+    const model = {};
+    if (columnSpec) {
+      columnSpec.forEach((col) => {
+        if (col.defaultHidden) {
+          model[col.field || col.databaseField] = false;
+        }
+      });
+    }
+    return model;
+  }, [columnSpec]);
 
   return (
     <Box
@@ -168,6 +159,9 @@ function ProductionDataGrid({
         }}
         initialState={{ 
           pagination: { paginationModel: { pageSize: 50 } },
+          columns: {
+            columnVisibilityModel: defaultColumnVisibilityModel,
+          },
         }}
         pageSizeOptions={pageSizeOptions}
         onRowDoubleClick={onRowDoubleClick}

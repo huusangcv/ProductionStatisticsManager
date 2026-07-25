@@ -167,6 +167,7 @@ const TemplateTypeTab = () => {
 
       <Paper sx={{ flex: 1, overflow: "hidden" }}>
         <DataGrid
+          density="compact"
           rows={types}
           columns={columns}
           loading={loading}

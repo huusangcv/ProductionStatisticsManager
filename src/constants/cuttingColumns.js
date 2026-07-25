@@ -35,6 +35,7 @@ export const CUTTING_COLUMNS = [
     databaseField: "joint_detail",
     headerName: "Chi tiết kết xâu",
     width: 180,
+    defaultHidden: true,
   },
   {
     excelHeader: "Số xâu",
@@ -133,6 +134,7 @@ export const getCuttingDataGridColumns = () => {
     if (col.flex) gridCol.flex = col.flex;
     if (col.minWidth) gridCol.minWidth = col.minWidth;
     if (col.type) gridCol.type = col.type;
+    if (col.defaultHidden) gridCol.defaultHidden = true;
     if (col.databaseField === "report_date") {
       gridCol.renderCell = (params) => {
         const formatted = formatDateForUI(params.row?.report_date);

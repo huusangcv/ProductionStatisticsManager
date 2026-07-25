@@ -44,32 +44,27 @@ const EmployeeSelectRow = memo(function EmployeeSelectRow({ employee, selected, 
       sx={{
         display: 'flex',
         alignItems: 'center',
-        gap: 2, // More breathing room
-        px: 2, // 16px padding
-        py: 1.5, // Total height ~68px
-        mx: 1.5,
-        my: 0.5,
+        gap: 1.5,
+        px: 2,
+        py: 0.75,
         cursor: 'pointer',
-        borderRadius: '8px',
-        border: '1px solid',
-        borderColor: selected ? alpha('#B91C1C', 0.15) : '#E4E7EB', // very light gray border
+        borderBottom: '1px solid',
+        borderColor: 'divider',
         backgroundColor: selected ? alpha('#B91C1C', 0.06) : '#FFFFFF',
-        transition: 'all 150ms ease',
+        transition: 'background-color 150ms ease',
         '&:hover': {
-          backgroundColor: selected ? alpha('#B91C1C', 0.08) : '#F9FAFB',
-          borderColor: selected ? alpha('#B91C1C', 0.2) : '#D1D5DB',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+          backgroundColor: selected ? alpha('#B91C1C', 0.1) : '#F9FAFB',
         },
-        '&:active': { transform: 'scale(0.99)', boxShadow: 'none' },
+        '&:active': { transform: 'scale(0.99)' },
         outline: 'none',
       }}
     >
       {/* Avatar */}
       <Avatar
         sx={{
-          width: 40,
-          height: 40,
-          fontSize: '0.875rem',
+          width: 36,
+          height: 36,
+          fontSize: '0.8125rem',
           fontWeight: 600,
           bgcolor: avatarColor,
           color: '#FFF',
@@ -81,7 +76,7 @@ const EmployeeSelectRow = memo(function EmployeeSelectRow({ employee, selected, 
       </Avatar>
 
       {/* Info */}
-      <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+      <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <Typography
           variant="body2"
           fontWeight={600}
@@ -89,18 +84,20 @@ const EmployeeSelectRow = memo(function EmployeeSelectRow({ employee, selected, 
           sx={{
             color: 'text.primary',
             fontSize: '0.875rem',
+            lineHeight: 1.25,
           }}
         >
           {name}
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
           <Typography
             variant="caption"
             sx={{
               fontFamily: '"JetBrains Mono", monospace',
-              fontWeight: 500,
+              fontWeight: 600,
               color: 'text.secondary',
               fontSize: '0.75rem',
+              lineHeight: 1,
             }}
           >
             #{id}

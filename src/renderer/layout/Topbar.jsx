@@ -10,10 +10,6 @@ const PAGE_META = {
     title: "Dashboard",
     subtitle: "Tổng quan hệ thống",
   },
-  "/employees": {
-    title: "Quản lý nhân viên",
-    subtitle: "Quản lý nhân sự bộ phận Mài và Cắt",
-  },
   "/grinding": {
     title: "Sản lượng Mài",
     subtitle: "Quản lý và thống kê sản lượng mài từ file Excel",
@@ -22,17 +18,49 @@ const PAGE_META = {
     title: "Sản lượng Cắt",
     subtitle: "Quản lý và thống kê sản lượng cắt từ file Excel",
   },
+  "/heat-treatment": {
+    title: "Xử lý nhiệt",
+    subtitle: "Xuất báo cáo xử lý nhiệt từ dữ liệu Mài",
+  },
+  "/casting-defect": {
+    title: "Báo Phế Đúc",
+    subtitle: "Quản lý và thống kê báo phế đúc",
+  },
+  "/employees": {
+    title: "Quản lý nhân viên",
+    subtitle: "Quản lý danh sách nhân sự",
+  },
+  "/roles": {
+    title: "Vai trò",
+    subtitle: "Quản lý vai trò và phân quyền hệ thống",
+  },
+  "/positions": {
+    title: "Chức vụ",
+    subtitle: "Quản lý danh mục chức vụ nhân viên",
+  },
+  "/detail-joint": {
+    title: "Chi tiết kết xâu",
+    subtitle: "Quản lý danh mục chi tiết kết xâu",
+  },
+  "/prices": {
+    title: "Đơn giá gia công",
+    subtitle: "Quản lý đơn giá gia công sản phẩm",
+  },
   "/import-history": {
     title: "Lịch sử Import",
     subtitle: "Quản lý các phiên import dữ liệu",
   },
+  "/overtime": {
+    title: "Đăng ký tăng ca",
+    subtitle: "Quản lý đăng ký làm thêm giờ",
+  },
+  "/personal-production": {
+    title: "Sản lượng cá nhân",
+    subtitle: "Thống kê sản lượng chi tiết theo từng nhân viên",
+  },
   "/reports": {
     title: "Báo cáo",
     subtitle: "Thống kê và xuất dữ liệu sản xuất",
-  },
-  "/heat-treatment": {
-    title: "Xử lý nhiệt",
-    subtitle: "Xuất báo cáo xử lý nhiệt từ dữ liệu Mài",
   },
   "/settings": {
     title: "Cài đặt",
@@ -44,7 +72,8 @@ function Topbar({ onMenuClick }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { updateAvailable, updateDownloaded, updateInfo } = useUpdate();
-  const pageMeta = PAGE_META[location.pathname] ?? PAGE_META["/dashboard"];
+  const cleanPath = location.pathname.replace(/\/$/, "") || "/";
+  const pageMeta = PAGE_META[cleanPath] || Object.entries(PAGE_META).find(([path]) => cleanPath.startsWith(path))?.[1] || PAGE_META["/dashboard"];
   const { title, subtitle, chipLabel } = pageMeta;
 
   return (

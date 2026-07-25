@@ -12,6 +12,7 @@ import FitScreenRoundedIcon from '@mui/icons-material/FitScreenRounded';
 import CropPortraitRoundedIcon from '@mui/icons-material/CropPortraitRounded';
 import RotateRightRoundedIcon from '@mui/icons-material/RotateRightRounded';
 import FullscreenRoundedIcon from '@mui/icons-material/FullscreenRounded';
+import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
 
 /**
  * PreviewToolbar – Command bar strictly for viewing operations
@@ -34,6 +35,7 @@ const PreviewToolbar = memo(function PreviewToolbar({
   onZoomFitPage,
   onRotate,
   onFullscreen,
+  onPrint,
 }) {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
@@ -116,6 +118,28 @@ const PreviewToolbar = memo(function PreviewToolbar({
           </IconButton>
         </Tooltip>
 
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
+
+        <Tooltip title="In biểu mẫu">
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<PrintRoundedIcon sx={{ fontSize: 16 }} />}
+            onClick={onPrint}
+            sx={{
+              height: 32,
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              borderRadius: 2,
+              minWidth: 84,
+              ml: 0.5,
+              boxShadow: 'none',
+              '&:hover': { boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)' },
+            }}
+          >
+            In biểu
+          </Button>
+        </Tooltip>
       </Paper>
     </Box>
   );

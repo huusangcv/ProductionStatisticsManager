@@ -41,6 +41,7 @@ function splitIntoPages(employees, rowsPerPage) {
  */
 const PreviewPanel = memo(function PreviewPanel({
   selArr, isSun, dateStr, deptName,
+  onPrint,
   otTimes, setEmployeeTime,
   notes, setNote,
   onZoomChange,
@@ -133,6 +134,7 @@ const PreviewPanel = memo(function PreviewPanel({
           onZoomFitPage={handleZoomFitPage}
           onRotate={handleRotate}
           onFullscreen={handleFullscreen}
+          onPrint={onPrint}
         />
       </Box>
 

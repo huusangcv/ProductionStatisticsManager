@@ -91,6 +91,7 @@ function DetailJointDataGrid({
     >
       <DataGrid
         localeText={viVNGridLocaleText}
+        density="compact"
         rows={safeData}
         columns={columns}
         checkboxSelection

@@ -108,6 +108,7 @@ function EmployeeDataGrid({
     >
       <DataGrid
         localeText={viVNGridLocaleText}
+        density="compact"
         rows={data}
         columns={columns}
         checkboxSelection

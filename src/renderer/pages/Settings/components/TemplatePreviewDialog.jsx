@@ -92,8 +92,8 @@ function SheetGrid({ sheetData }) {
 // ── TemplatePreviewDialog ─────────────────────────────────────────────────────
 
 export default function TemplatePreviewDialog({ open, module, onClose }) {
-  const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [previewData, setPreviewData] = useState(null); // { sheetNames, sheets }
   const [activeSheet, setActiveSheet] = useState(0);
 
