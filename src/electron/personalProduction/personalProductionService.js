@@ -57,9 +57,15 @@ async function generate(startDate, endDate) {
       return { ok: false, message: "Không tìm thấy file template gốc: " + templatePath };
     }
 
-    // Fetch data
-    const cuttingData = getCuttingDataByDateRange(startDate, endDate);
-    const grindingData = getGrindingDataByDateRange(startDate, endDate);
+    // Fetch data from personal_production table first, fallback to direct if empty
+    const managedData = personalProductionDAO.getByDateRange(startDate, endDate);
+    let cuttingData = managedData.filter(r => r.sheet_name === "CẮT" || r.source_type === "cutting");
+    let grindingData = managedData.filter(r => r.sheet_name === "MÀI" || r.source_type === "grinding");
+
+    if (managedData.length === 0) {
+      cuttingData = getCuttingDataByDateRange(startDate, endDate);
+      grindingData = getGrindingDataByDateRange(startDate, endDate);
+    }
 
     if (cuttingData.length === 0 && grindingData.length === 0) {
       return { ok: false, message: "Không có dữ liệu để xuất." };
@@ -102,7 +108,7 @@ async function generate(startDate, endDate) {
         const rowIdx = START_ROW + i;
         const wsRow = sheet.row(rowIdx);
 
-        const qty = Number(row.completed_quantity) || 0;
+        const qty = Number(row.quantity ?? row.completed_quantity) || 0;
         const joints = Number(row.joint_count) || 0;
 
         totalQty += qty;
@@ -111,12 +117,12 @@ async function generate(startDate, endDate) {
         // Bỏ qua cột 1 (STT), 10 (Chi tiết), 11 (Số xâu) vì template đã cài sẵn công thức (Formula).
         // Chỉ ghi các cột dữ liệu thật.
         wsRow.cell(2).value(row.customer_order_number || "");
-        wsRow.cell(3).value(row.work_order_number || "");
+        wsRow.cell(3).value(row.job_code || row.work_order_number || "");
         wsRow.cell(4).value(row.material_code || "");
-        wsRow.cell(5).value(row.item_name || "");
+        wsRow.cell(5).value(row.product_name || row.item_name || "");
         wsRow.cell(6).value(row.specification || "");
         wsRow.cell(7).value(qty);
-        wsRow.cell(8).value(row.representative_code || "");
+        wsRow.cell(8).value(row.employee_code || row.representative_code || "");
         wsRow.cell(9).value(row.remark || "");
       }
 
@@ -185,6 +191,22 @@ function openFolder(filePath) {
     return { ok: true };
   } catch (error) {
     logger.error("Error opening folder", error);
+    return { ok: false, message: error.message };
+  }
+}
+
+/**
+ * Open the exported file directly
+ */
+function openFile(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) {
+      return { ok: false, message: "Không tìm thấy file" };
+    }
+    shell.openPath(filePath);
+    return { ok: true };
+  } catch (error) {
+    logger.error("Error opening file", error);
     return { ok: false, message: error.message };
   }
 }
@@ -315,6 +337,7 @@ async function updateRecord(id, data) {
 module.exports = {
   generate,
   openFolder,
+  openFile,
   getByDate,
   checkExists,
   syncData,

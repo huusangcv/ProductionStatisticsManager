@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Box, Card, Snackbar, Alert } from "@mui/material";
+import { Box, Card, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Divider } from "@mui/material";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { DataGrid } from "@mui/x-data-grid";
 import { PERSONAL_PRODUCTION_COLUMNS } from "../../../constants/personalProductionColumns";
 import PersonalProductionToolbar from "./components/PersonalProductionToolbar";
@@ -49,6 +52,9 @@ export default function PersonalProductionPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportResult, setExportResult] = useState(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -104,11 +110,37 @@ export default function PersonalProductionPage() {
     showSnackbar("Lỗi chỉnh sửa: " + error.message, "error");
   };
 
+  const handleExport = async () => {
+    if (!filterDate) {
+      showSnackbar("Vui lòng chọn ngày để xuất Excel", "warning");
+      return;
+    }
+    setExporting(true);
+    try {
+      const res = await window.electronAPI.personalProduction.generate({
+        startDate: filterDate,
+        endDate: filterDate,
+      });
+      if (res.ok) {
+        setExportResult(res);
+        setExportDialogOpen(true);
+        showSnackbar("Xuất Excel thành công!", "success");
+      } else {
+        showSnackbar(res.message || "Lỗi xuất Excel", "error");
+      }
+    } catch (error) {
+      showSnackbar("Lỗi: " + error.message, "error");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const toolbar = useCallback(
     () => (
       <PersonalProductionToolbar
         onOpenSync={() => setSyncDialogOpen(true)}
         onRefresh={loadData}
+        onExport={handleExport}
         filterDate={filterDate}
         onFilterDateChange={setFilterDate}
       />
@@ -162,6 +194,62 @@ export default function PersonalProductionPage() {
         }}
         showSnackbar={showSnackbar}
       />
+
+      <Dialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
+          <FileDownloadOutlinedIcon color="success" />
+          Xuất Excel Sản lượng cá nhân thành công
+        </DialogTitle>
+        <DialogContent dividers>
+          {exportResult && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, py: 0.5 }}>
+              <Typography variant="body1">
+                <strong>Tên file:</strong> {exportResult.fileName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ wordBreak: "break-all" }}>
+                {exportResult.filePath}
+              </Typography>
+              <Divider sx={{ my: 0.5 }} />
+              <Box sx={{ display: "flex", gap: 3 }}>
+                <Typography variant="body2">
+                  Sản lượng Cắt: <strong>{exportResult.cuttingCount || 0} dòng</strong>
+                </Typography>
+                <Typography variant="body2">
+                  Sản lượng Mài: <strong>{exportResult.grindingCount || 0} dòng</strong>
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<FolderOpenIcon />}
+            onClick={() => {
+              if (exportResult?.filePath) {
+                window.electronAPI.personalProduction.openFolder(exportResult.filePath);
+              }
+            }}
+          >
+            Mở thư mục
+          </Button>
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<OpenInNewIcon />}
+            onClick={() => {
+              if (exportResult?.filePath) {
+                window.electronAPI.personalProduction.openFile(exportResult.filePath);
+              }
+            }}
+          >
+            Mở file Excel
+          </Button>
+          <Button onClick={() => setExportDialogOpen(false)} color="inherit">
+            Đóng
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snackbar.open}

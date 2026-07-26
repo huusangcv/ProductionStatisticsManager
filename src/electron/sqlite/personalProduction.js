@@ -54,12 +54,41 @@ function getByDate(workDate) {
   try {
     return db
       .prepare(`
-        SELECT *
-        FROM personal_production
-        WHERE work_date = ?
-        ORDER BY sheet_name ASC, id ASC
+        SELECT 
+          p.*,
+          COALESCE(e.employee_code, p.employee_code) AS employee_code,
+          COALESCE(e.full_name, p.employee_name) AS employee_name
+        FROM personal_production p
+        LEFT JOIN roles r ON r.code = CASE WHEN p.source_type = 'cutting' OR p.sheet_name = 'CẮT' THEN 'CUT' ELSE 'GRIND' END
+        LEFT JOIN employees e ON e.representative_code = p.representative_code AND e.role_id = r.id
+        WHERE p.work_date = ?
+        ORDER BY p.sheet_name ASC, p.id ASC
       `)
       .all(workDate);
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * Lấy danh sách sản lượng cá nhân theo khoảng thời gian
+ */
+function getByDateRange(startDate, endDate) {
+  const db = openDatabase();
+  try {
+    return db
+      .prepare(`
+        SELECT 
+          p.*,
+          COALESCE(e.employee_code, p.employee_code) AS employee_code,
+          COALESCE(e.full_name, p.employee_name) AS employee_name
+        FROM personal_production p
+        LEFT JOIN roles r ON r.code = CASE WHEN p.source_type = 'cutting' OR p.sheet_name = 'CẮT' THEN 'CUT' ELSE 'GRIND' END
+        LEFT JOIN employees e ON e.representative_code = p.representative_code AND e.role_id = r.id
+        WHERE p.work_date >= ? AND p.work_date <= ?
+        ORDER BY p.sheet_name ASC, p.id ASC
+      `)
+      .all(startDate, endDate);
   } finally {
     db.close();
   }
@@ -202,6 +231,7 @@ function updateRecord(id, data) {
 module.exports = {
   ensurePersonalProductionTable,
   getByDate,
+  getByDateRange,
   checkExists,
   deleteByDateAndSources,
   insertBatch,

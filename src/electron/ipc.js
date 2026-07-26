@@ -1076,6 +1076,9 @@ function registerIpcHandlers() {
   ipcMain.handle("personal-production:openFolder", async (event, filePath) => {
     return personalProductionService.openFolder(filePath);
   });
+  ipcMain.handle("personal-production:openFile", async (event, filePath) => {
+    return personalProductionService.openFile(filePath);
+  });
   ipcMain.handle("personal-production:getByDate", async (event, date) => {
     return await personalProductionService.getByDate(date);
   });

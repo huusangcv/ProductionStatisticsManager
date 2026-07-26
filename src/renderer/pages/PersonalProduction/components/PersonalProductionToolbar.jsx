@@ -48,17 +48,15 @@ const iconOnlyButtonSx = {
 export default function PersonalProductionToolbar({
   onOpenSync,
   onRefresh,
+  onExport,
   filterDate,
   onFilterDateChange,
 }) {
   const apiRef = useGridApiContext();
 
   const handleExport = () => {
-    if (apiRef.current && apiRef.current.exportDataAsCsv) {
-      apiRef.current.exportDataAsCsv({
-        fileName: `San_luong_ca_nhan_${filterDate || "tat_ca"}`,
-        utf8WithBom: true,
-      });
+    if (onExport) {
+      onExport();
     }
   };
 
