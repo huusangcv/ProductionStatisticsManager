@@ -67,7 +67,6 @@ function SheetGrid({ sheetData }) {
         rows={gridRows}
         columns={columns}
         localeText={viVNGridLocaleText}
-        disableRowSelectionOnClick
         disableColumnMenu
         density="compact"
         initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}

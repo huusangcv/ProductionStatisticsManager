@@ -201,6 +201,7 @@ function createProductionModule(tableName, columnSpec, roleCode) {
              WHERE dj.material_code = p.material_code 
              LIMIT 1) AS joint_detail,
             e.full_name   AS employee_full_name,
+            e.employee_code AS employee_code,
             r.name        AS role_name,
             pos.name      AS position_name
           FROM ${tableName} p
@@ -230,6 +231,7 @@ function createProductionModule(tableName, columnSpec, roleCode) {
              WHERE dj.material_code = p.material_code 
              LIMIT 1) AS joint_detail,
             e.full_name   AS employee_full_name,
+            e.employee_code AS employee_code,
             r.name        AS role_name,
             pos.name      AS position_name
           FROM ${tableName} p
@@ -279,6 +281,7 @@ function createProductionModule(tableName, columnSpec, roleCode) {
           SELECT 
             p.*,
             e.full_name   AS employee_full_name,
+            e.employee_code AS employee_code,
             r.name        AS role_name,
             pos.name      AS position_name
           FROM ${tableName} p

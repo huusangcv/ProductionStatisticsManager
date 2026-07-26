@@ -17,6 +17,13 @@ import {
 import { buildEmployeeSummary } from "../../utils/productionSummary";
 
 const getSummaryItems = (mode) => {
+  if (mode === "personal") {
+    return [
+      { key: "cuttingQuantity", label: "Tổng SL hoàn thành cắt", format: formatProductionQuantity },
+      { key: "grindingQuantity", label: "Tổng SL hoàn thành mài", format: formatProductionQuantity },
+      { key: "cuttingJointCount", label: "Tổng số xâu cắt", format: formatProductionQuantity },
+    ];
+  }
   const items = [
     { key: "completedQuantity", label: "Tổng SL hoàn thành", format: formatProductionQuantity },
     { key: "scrapQuantity", label: "Tổng SL báo phế", format: formatProductionQuantity },

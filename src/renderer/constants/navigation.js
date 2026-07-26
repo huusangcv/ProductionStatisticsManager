@@ -8,6 +8,7 @@ export const navigationItems = [
       { label: "Cắt", path: "/cutting", icon: "Cutting" },
       { label: "Xử lý nhiệt", path: "/heat-treatment", icon: "HeatTreatment" },
       { label: "Báo Phế Đúc", path: "/casting-defect", icon: "CastingDefect" },
+      { label: "Sản lượng cá nhân", path: "/personal-production" },
     ],
   },
   {
@@ -27,7 +28,6 @@ export const navigationItems = [
     label: "Báo cáo",
     icon: "Reports",
     children: [
-      { label: "Sản lượng cá nhân", path: "/personal-production" },
       { label: "Tổng hợp", path: "/reports" },
     ]
   },

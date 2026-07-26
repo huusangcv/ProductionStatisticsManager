@@ -6,6 +6,8 @@ const { app, shell } = require("electron");
 const { getAppDataRoot } = require("../sqlite/paths");
 const { getCuttingDataByDateRange } = require("../sqlite/cutting");
 const { getGrindingDataByDateRange } = require("../sqlite/grinding");
+const { getAllEmployees } = require("../sqlite/employees");
+const personalProductionDAO = require("../sqlite/personalProduction");
 const logger = require("../logger");
 
 /**
@@ -187,7 +189,134 @@ function openFolder(filePath) {
   }
 }
 
+async function getByDate(workDate) {
+  try {
+    const records = personalProductionDAO.getByDate(workDate);
+    return { ok: true, records };
+  } catch (error) {
+    logger.error("Lỗi getByDate Sản lượng cá nhân", error);
+    return { ok: false, message: error.message, records: [] };
+  }
+}
+
+async function checkExists(workDate, sources) {
+  try {
+    const exists = personalProductionDAO.checkExists(workDate, sources);
+    return { ok: true, exists };
+  } catch (error) {
+    logger.error("Lỗi checkExists Sản lượng cá nhân", error);
+    return { ok: false, message: error.message, exists: false };
+  }
+}
+
+async function syncData({ workDate, syncCutting = true, syncGrinding = true }) {
+  try {
+    if (!workDate) {
+      return { ok: false, message: "Vui lòng chọn ngày đồng bộ." };
+    }
+
+    const recordsToInsert = [];
+    const sourcesToDelete = [];
+
+    if (syncCutting) {
+      sourcesToDelete.push("cutting");
+      const cuttingData = getCuttingDataByDateRange(workDate, workDate);
+      for (const row of cuttingData) {
+        const qty = Number(row.completed_quantity) || 0;
+        const joints = Number(row.joint_count) || 0;
+        if (qty <= 0 && joints <= 0) {
+          continue; // Chỉ đồng bộ các dòng có Số lượng hoàn thành hoặc Số xâu > 0
+        }
+        const repCode = (row.representative_code || "").trim();
+        recordsToInsert.push({
+          work_date: workDate,
+          source_type: "cutting",
+          source_id: row.id,
+          employee_code: row.employee_code || repCode || null,
+          employee_name: row.employee_full_name || row.employee_name || repCode || null,
+          representative_code: repCode || null,
+          job_code: row.work_order_number || "",
+          material_code: row.material_code || "",
+          product_name: row.item_name || "",
+          specification: row.specification || "",
+          detail: row.joint_detail || "",
+          quantity: qty,
+          joint_count: joints,
+          sheet_name: "CẮT",
+        });
+      }
+    }
+
+    if (syncGrinding) {
+      sourcesToDelete.push("grinding");
+      const grindingData = getGrindingDataByDateRange(workDate, workDate);
+      for (const row of grindingData) {
+        const qty = Number(row.completed_quantity) || 0;
+        if (qty <= 0) {
+          continue; // Chỉ đồng bộ các dòng có Số lượng hoàn thành > 0
+        }
+        const repCode = (row.representative_code || "").trim();
+        recordsToInsert.push({
+          work_date: workDate,
+          source_type: "grinding",
+          source_id: row.id,
+          employee_code: row.employee_code || repCode || null,
+          employee_name: row.employee_full_name || row.employee_name || repCode || null,
+          representative_code: repCode || null,
+          job_code: row.work_order_number || "",
+          material_code: row.material_code || "",
+          product_name: row.item_name || "",
+          specification: row.specification || "",
+          detail: row.joint_detail || "",
+          quantity: qty,
+          joint_count: 0,
+          sheet_name: "MÀI",
+        });
+      }
+    }
+
+    if (sourcesToDelete.length > 0) {
+      personalProductionDAO.deleteByDateAndSources(workDate, sourcesToDelete);
+    }
+
+    const insertResult = personalProductionDAO.insertBatch(recordsToInsert);
+    if (!insertResult.ok) {
+      return insertResult;
+    }
+
+    logger.info("Đồng bộ Sản lượng cá nhân thành công", {
+      workDate,
+      syncCutting,
+      syncGrinding,
+      insertedCount: insertResult.insertedCount,
+    });
+
+    return {
+      ok: true,
+      insertedCount: insertResult.insertedCount,
+      unmappedCodes: [],
+    };
+  } catch (error) {
+    logger.error("Lỗi đồng bộ Sản lượng cá nhân", error);
+    return { ok: false, message: error.message };
+  }
+}
+
+async function updateRecord(id, data) {
+  try {
+    const result = personalProductionDAO.updateRecord(id, data);
+    return result;
+  } catch (error) {
+    logger.error("Lỗi updateRecord Sản lượng cá nhân", error);
+    return { ok: false, message: error.message };
+  }
+}
+
 module.exports = {
   generate,
   openFolder,
+  getByDate,
+  checkExists,
+  syncData,
+  updateRecord,
 };

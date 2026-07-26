@@ -160,7 +160,6 @@ function RolesPage() {
           rows={roles}
           columns={columns}
           loading={loading}
-          disableRowSelectionOnClick
           onRowDoubleClick={(p) => setDrawerItem(p.row)}
           slots={{
             toolbar: () => (

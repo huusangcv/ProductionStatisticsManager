@@ -181,6 +181,13 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
   const handleSave = async () => {
     if (!previewData || !previewMeta) return;
 
+    // Determine if user is currently viewing the latest date in savedData
+    const latestExistingDate = savedData.length > 0
+      ? savedData.reduce((max, r) => (r.report_date > max ? r.report_date : max), savedData[0].report_date)
+      : null;
+    const isViewingLatest = !latestExistingDate || filterDate === latestExistingDate;
+    const importedDate = previewMeta.reportDate;
+
     // Strip the temporary `id` field before sending to backend
     const records = previewData.map(({ id, ...rest }) => rest);
 
@@ -194,6 +201,11 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
       showSnackbar(`Đã lưu thành công ${result.insertedCount} dòng dữ liệu.`);
       setPreviewData(null);
       setPreviewMeta(null);
+      if (isViewingLatest || (importedDate && importedDate >= (latestExistingDate || ""))) {
+        isInitialLoad.current = false;
+        setFallbackNote("");
+        setFilterDate(importedDate);
+      }
       await loadData();
       // Show warning if some representative_codes weren't found in employees
       if (result.unmappedCodes && result.unmappedCodes.length > 0) {

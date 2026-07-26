@@ -225,7 +225,6 @@ export default function CastingDefectPage() {
           rows={previewRows}
           columns={DEFECT_COLUMNS}
           loading={loadingData}
-          disableRowSelectionOnClick
           hideFooterSelectedRowCount
           rowHeight={44}
           sx={{

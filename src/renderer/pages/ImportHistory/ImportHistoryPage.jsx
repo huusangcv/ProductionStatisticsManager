@@ -188,7 +188,6 @@ export default function ImportHistoryPage() {
           rows={sessions}
           columns={columns}
           loading={loading}
-          disableRowSelectionOnClick
           onRowClick={handleRowClick}
           slots={{
             toolbar: () => (

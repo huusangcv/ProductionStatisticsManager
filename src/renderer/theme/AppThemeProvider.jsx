@@ -48,6 +48,21 @@ function AppThemeProvider({ children }) {
                 },
               },
             },
+            MuiDataGrid: {
+              styleOverrides: {
+                root: {
+                  "& .MuiDataGrid-row.Mui-selected": {
+                    backgroundColor: "#e0f2fe !important",
+                    "&:hover": {
+                      backgroundColor: "#bae6fd !important",
+                    },
+                  },
+                  "& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within": {
+                    outline: "none !important",
+                  },
+                },
+              },
+            },
             MuiButton: {
               styleOverrides: {
                 root: {

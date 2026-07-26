@@ -937,79 +937,8 @@ function registerIpcHandlers() {
   );
 
   ipcMain.handle("heatTreatment:generate", async (_event, { reportDate }) => {
-    const startTime = Date.now();
-    try {
-      // 1. Load template metadata
-      const tmpl = getTemplate("heat-treatment");
-      if (!tmpl)
-        return {
-          ok: false,
-          message:
-            "Chưa cấu hình template. Vui lòng upload template trong Cài đặt.",
-        };
-      if (!fs.existsSync(tmpl.template_path)) {
-        return {
-          ok: false,
-          message: "File template không tồn tại. Vui lòng upload lại.",
-        };
-      }
-
-      // 2. Load grinding data for date
-      const { getDatabasePath } = require("./sqlite/paths");
-      const db = new Database(getDatabasePath());
-      let grindingRows;
-      try {
-        grindingRows = db
-          .prepare(
-            `SELECT * FROM grinding_production WHERE report_date = ? ORDER BY id ASC`,
-          )
-          .all(reportDate);
-      } finally {
-        db.close();
-      }
-
-      if (!grindingRows || grindingRows.length === 0) {
-        return {
-          ok: false,
-          message: `Không có dữ liệu Mài cho ngày ${reportDate}.`,
-        };
-      }
-
-      // 3. Apply business rules
-      const result = applyHeatTreatmentRules(grindingRows);
-
-      // 4. Resolve output path
-      const { filePath, folderPath, fileName } = resolveExportPath(reportDate);
-
-      // 5. Generate Excel
-      const genResult = await generateHeatTreatmentExcel({
-        templatePath: tmpl.template_path,
-        outputPath: filePath,
-        rows: result.rows,
-        sheetName: tmpl.sheet_name,
-        startRow: 6,
-        reportDate,
-      });
-
-      if (!genResult.ok) return genResult;
-
-      const durationMs = Date.now() - startTime;
-      return {
-        ok: true,
-        filePath,
-        folderPath,
-        fileName,
-        totalRows: result.totalRows,
-        xlnCount: result.xlnCount,
-        noCount: result.noCount,
-        totalCompletedQty: result.totalCompletedQty,
-        totalScrapQty: result.totalScrapQty,
-        totalWeight: result.totalWeight,
-        durationMs,
-      };
-    } catch (error) {
-      return { ok: false, message: "Lỗi xuất Excel: " + error.message };
-    }
+    const heatTreatmentExportService = require("./services/heatTreatmentExportService");
+    return heatTreatmentExportService.generateExport({ reportDate });
   });
 
   ipcMain.handle("heatTreatment:checkExportFile", (_event, reportDate) => {
@@ -1146,6 +1075,18 @@ function registerIpcHandlers() {
   });
   ipcMain.handle("personal-production:openFolder", async (event, filePath) => {
     return personalProductionService.openFolder(filePath);
+  });
+  ipcMain.handle("personal-production:getByDate", async (event, date) => {
+    return await personalProductionService.getByDate(date);
+  });
+  ipcMain.handle("personal-production:checkExists", async (event, { date, sources }) => {
+    return await personalProductionService.checkExists(date, sources);
+  });
+  ipcMain.handle("personal-production:sync", async (event, payload) => {
+    return await personalProductionService.syncData(payload);
+  });
+  ipcMain.handle("personal-production:update", async (event, { id, data }) => {
+    return await personalProductionService.updateRecord(id, data);
   });
 
   // ── Printer IPC handlers ──────────────────────────────────────────────────────────

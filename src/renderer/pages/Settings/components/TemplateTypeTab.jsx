@@ -171,7 +171,6 @@ const TemplateTypeTab = () => {
           rows={types}
           columns={columns}
           loading={loading}
-          disableRowSelectionOnClick
           hideFooterSelectedRowCount
           rowHeight={50}
           sx={{

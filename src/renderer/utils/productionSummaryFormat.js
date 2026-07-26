@@ -28,12 +28,23 @@ export function formatProductionPrice(value) {
 export function computeProductionSummaryTotals(rows) {
   return rows.reduce(
     (totals, row) => {
-      totals.completedQuantity += parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.completedQuantity]);
+      const qty = parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.completedQuantity] ?? row.quantity);
+      const joints = parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.jointCount]);
+      totals.completedQuantity += qty;
       totals.scrapQuantity += parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.scrapQuantity]);
       totals.unitWeight += parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.unitWeight]);
       totals.completedWeight += parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.completedWeight]);
-      totals.jointCount += parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.jointCount]);
+      totals.jointCount += joints;
       totals.totalPrice += parseProductionNumber(row[PRODUCTION_SUMMARY_FIELDS.totalPrice]);
+
+      const isCutting = row.source_type === "cutting" || row.sheet_name === "CẮT";
+      const isGrinding = row.source_type === "grinding" || row.sheet_name === "MÀI";
+      if (isCutting) {
+        totals.cuttingQuantity += qty;
+        totals.cuttingJointCount += joints;
+      } else if (isGrinding) {
+        totals.grindingQuantity += qty;
+      }
       return totals;
     },
     {
@@ -43,6 +54,9 @@ export function computeProductionSummaryTotals(rows) {
       completedWeight: 0,
       jointCount: 0,
       totalPrice: 0,
+      cuttingQuantity: 0,
+      grindingQuantity: 0,
+      cuttingJointCount: 0,
     },
   );
 }

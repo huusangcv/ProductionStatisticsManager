@@ -166,7 +166,7 @@ function applyHeatTreatmentRules(grindingRows) {
 
   const totalCompletedQty = xlnRows.reduce((sum, r) => sum + (r.completed_quantity || 0), 0);
   const totalScrapQty     = xlnRows.reduce((sum, r) => sum + (r.scrap_quantity || 0), 0);
-  const totalWeight       = xlnRows.reduce((sum, r) => sum + (r.completed_weight || 0), 0);
+  const weights           = calculateSummaryWeights(xlnRows);
 
   return {
     rows: xlnRows,
@@ -175,8 +175,94 @@ function applyHeatTreatmentRules(grindingRows) {
     totalRows: xlnRows.length,
     totalCompletedQty,
     totalScrapQty,
-    totalWeight: Math.round(totalWeight * 1000) / 1000,
+    totalWeight: weights.totalWeight,
+    wcbWeight: weights.wcbWeight,
+    otherWeight: weights.otherWeight,
   };
 }
 
-module.exports = { applyHeatTreatmentRules, classifyRow, mapRow, getHeatTreatmentType, getMaterialType };
+/**
+ * Calculates WCB weight, Other weight, and Total weight from exported rows.
+ * Complexity: O(n) where n is exported rows.
+ * @param {Array} rows 
+ * @returns {{ wcbWeight: number, otherWeight: number, totalWeight: number }}
+ */
+function calculateSummaryWeights(rows) {
+  let wcbWeightRaw = 0;
+  let otherWeightRaw = 0;
+  for (const r of (rows || [])) {
+    const w = Number(r.completed_weight || 0);
+    const matType = String(r.material_type || "").toUpperCase();
+    const spec = String(r.specification || "").toUpperCase();
+    if (matType === "WCB" || spec.includes("WCB")) {
+      wcbWeightRaw += w;
+    } else {
+      otherWeightRaw += w;
+    }
+  }
+  const wcbWeight = Number(wcbWeightRaw.toFixed(2));
+  const otherWeight = Number(otherWeightRaw.toFixed(2));
+  const totalWeight = Number((wcbWeight + otherWeight).toFixed(2));
+  return { wcbWeight, otherWeight, totalWeight };
+}
+
+/**
+ * Calculates the HangXuLyNhiet reporting period from a report date.
+ * Cutoff logic: day >= 26 belongs to the next month's period.
+ * @param {string} dateStr Date string in YYYY-MM-DD or DD/MM/YYYY format
+ * @returns {{ periodYear: number, periodMonth: number, periodStr: string, fullPeriodStr: string }}
+ */
+function getHeatTreatmentPeriod(dateStr) {
+  if (!dateStr || typeof dateStr !== "string") {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth() + 1;
+    const mStr = String(m).padStart(2, "0");
+    return { periodYear: y, periodMonth: m, periodStr: mStr, fullPeriodStr: `${y}-${mStr}` };
+  }
+
+  let yyyy, mm, dd;
+  if (dateStr.includes("-")) {
+    const parts = dateStr.split("-");
+    yyyy = parseInt(parts[0], 10);
+    mm = parseInt(parts[1], 10);
+    dd = parseInt(parts[2], 10);
+  } else if (dateStr.includes("/")) {
+    const parts = dateStr.split("/");
+    dd = parseInt(parts[0], 10);
+    mm = parseInt(parts[1], 10);
+    yyyy = parseInt(parts[2], 10);
+  } else {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth() + 1;
+    const mStr = String(m).padStart(2, "0");
+    return { periodYear: y, periodMonth: m, periodStr: mStr, fullPeriodStr: `${y}-${mStr}` };
+  }
+
+  let periodYear = yyyy;
+  let periodMonth = mm;
+
+  if (dd >= 26) {
+    periodMonth += 1;
+    if (periodMonth > 12) {
+      periodMonth = 1;
+      periodYear += 1;
+    }
+  }
+
+  const periodStr = String(periodMonth).padStart(2, "0");
+  const fullPeriodStr = `${periodYear}-${periodStr}`;
+
+  return { periodYear, periodMonth, periodStr, fullPeriodStr };
+}
+
+module.exports = {
+  applyHeatTreatmentRules,
+  classifyRow,
+  mapRow,
+  getHeatTreatmentType,
+  getMaterialType,
+  calculateSummaryWeights,
+  getHeatTreatmentPeriod,
+};

@@ -176,6 +176,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   personalProduction: {
     generate: (params) => ipcRenderer.invoke("personal-production:generate", params),
     openFolder: (filePath) => ipcRenderer.invoke("personal-production:openFolder", filePath),
+    getByDate: (date) => ipcRenderer.invoke("personal-production:getByDate", date),
+    checkExists: (date, sources) => ipcRenderer.invoke("personal-production:checkExists", { date, sources }),
+    sync: (payload) => ipcRenderer.invoke("personal-production:sync", payload),
+    update: (id, data) => ipcRenderer.invoke("personal-production:update", { id, data }),
   },
   db: {
     initialize: () => ipcRenderer.invoke("db:initialize"),

@@ -29,7 +29,16 @@ const productionDataGridSx = {
   },
   "& .MuiDataGrid-columnHeaderTitle": { fontWeight: 600 },
   "& .MuiDataGrid-cell": { borderColor: "#E2E8F0" },
+  "& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within": {
+    outline: "none !important",
+  },
   "& .MuiDataGrid-row:hover": { bgcolor: "#F8FAFC" },
+  "& .MuiDataGrid-row.Mui-selected": {
+    bgcolor: "#E0F2FE !important",
+    "&:hover": {
+      bgcolor: "#BAE6FD !important",
+    },
+  },
   "& .MuiDataGrid-footerContainer": {
     minHeight: "auto",
     flexDirection: "column",
@@ -149,7 +158,6 @@ function ProductionDataGrid({
         localeText={viVNGridLocaleText}
         rows={data}
         columns={columnSpec}
-        disableRowSelectionOnClick
         loading={isProcessing}
         density={density}
         ignoreDiacritics={true}
@@ -157,7 +165,7 @@ function ProductionDataGrid({
         slotProps={{
           footer: { summaryMode }
         }}
-        initialState={{ 
+        initialState={{
           pagination: { paginationModel: { pageSize: 50 } },
           columns: {
             columnVisibilityModel: defaultColumnVisibilityModel,

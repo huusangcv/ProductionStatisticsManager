@@ -112,7 +112,6 @@ function EmployeeDataGrid({
         rows={data}
         columns={columns}
         checkboxSelection
-        disableRowSelectionOnClick
         rowSelectionModel={selectedRowIds}
         onRowSelectionModelChange={onSelectionChange}
         onRowDoubleClick={handleRowDoubleClick}

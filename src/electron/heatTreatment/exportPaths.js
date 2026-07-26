@@ -8,7 +8,7 @@
  *   HT_YYYYMMDD_01.xlsx, HT_YYYYMMDD_02.xlsx, ...
  */
 
-const fs   = require("fs");
+const fs = require("fs");
 const path = require("path");
 const { getAppDataRoot } = require("../sqlite/paths");
 

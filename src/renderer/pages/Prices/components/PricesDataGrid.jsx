@@ -98,7 +98,6 @@ function PricesDataGrid({
         rows={safeData}
         columns={columns}
         checkboxSelection
-        disableRowSelectionOnClick
         rowSelectionModel={safeSelectedRowIds}
         onRowSelectionModelChange={onSelectionChange}
         onRowDoubleClick={onRowDoubleClick}
