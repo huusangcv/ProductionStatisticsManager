@@ -36,6 +36,12 @@ export const PERSONAL_PRODUCTION_COLUMNS = [
     editable: false,
   },
   {
+    field: "customer_order_number",
+    headerName: "Đơn đặt hàng",
+    width: 160,
+    editable: false,
+  },
+  {
     field: "job_code",
     headerName: "Mã công đơn",
     width: 150,

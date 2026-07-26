@@ -20,6 +20,7 @@ function ensurePersonalProductionTable() {
         employee_code       TEXT,
         employee_name       TEXT,
         representative_code TEXT,
+        customer_order_number TEXT,
         job_code            TEXT,
         material_code       TEXT,
         product_name        TEXT,
@@ -40,6 +41,9 @@ function ensurePersonalProductionTable() {
     const columns = db.prepare("PRAGMA table_info(personal_production)").all().map(c => c.name);
     if (!columns.includes("joint_count")) {
       db.exec("ALTER TABLE personal_production ADD COLUMN joint_count REAL DEFAULT 0");
+    }
+    if (!columns.includes("customer_order_number")) {
+      db.exec("ALTER TABLE personal_production ADD COLUMN customer_order_number TEXT");
     }
   } finally {
     db.close();
@@ -145,11 +149,11 @@ function insertBatch(records) {
     const stmt = db.prepare(`
       INSERT INTO personal_production (
         work_date, source_type, source_id, employee_code, employee_name,
-        representative_code, job_code, material_code, product_name,
+        representative_code, customer_order_number, job_code, material_code, product_name,
         specification, detail, quantity, joint_count, sheet_name, created_at, updated_at, is_edited
       ) VALUES (
         @work_date, @source_type, @source_id, @employee_code, @employee_name,
-        @representative_code, @job_code, @material_code, @product_name,
+        @representative_code, @customer_order_number, @job_code, @material_code, @product_name,
         @specification, @detail, @quantity, @joint_count, @sheet_name,
         datetime('now', 'localtime'), datetime('now', 'localtime'), 0
       )
@@ -165,6 +169,7 @@ function insertBatch(records) {
           employee_code: row.employee_code || null,
           employee_name: row.employee_name || null,
           representative_code: row.representative_code || null,
+          customer_order_number: row.customer_order_number || null,
           job_code: row.job_code || null,
           material_code: row.material_code || null,
           product_name: row.product_name || null,
@@ -200,6 +205,7 @@ function updateRecord(id, data) {
         SET employee_code = COALESCE(@employee_code, employee_code),
             employee_name = COALESCE(@employee_name, employee_name),
             representative_code = COALESCE(@representative_code, representative_code),
+            customer_order_number = COALESCE(@customer_order_number, customer_order_number),
             quantity = COALESCE(@quantity, quantity),
             joint_count = COALESCE(@joint_count, joint_count),
             detail = COALESCE(@detail, detail),
@@ -212,6 +218,7 @@ function updateRecord(id, data) {
         employee_code: data.employee_code ?? null,
         employee_name: data.employee_name ?? null,
         representative_code: data.representative_code ?? null,
+        customer_order_number: data.customer_order_number ?? null,
         quantity: data.quantity !== undefined && data.quantity !== null ? Number(data.quantity) : null,
         joint_count: data.joint_count !== undefined && data.joint_count !== null ? Number(data.joint_count) : null,
         detail: data.detail ?? null,
