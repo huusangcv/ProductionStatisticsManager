@@ -93,7 +93,7 @@ async function generate(startDate, endDate) {
 
 
     // Helper to write rows
-    const writeSheet = (sheet, data) => {
+    const writeSheet = (sheet, data, isCutting = false) => {
       // 1. Ghi ngày báo cáo vào B2
       sheet.cell("B2").value(uiDate);
 
@@ -114,8 +114,6 @@ async function generate(startDate, endDate) {
         totalQty += qty;
         totalJoints += joints;
 
-        // Bỏ qua cột 1 (STT), 10 (Chi tiết), 11 (Số xâu) vì template đã cài sẵn công thức (Formula).
-        // Chỉ ghi các cột dữ liệu thật.
         wsRow.cell(2).value(row.customer_order_number || "");
         wsRow.cell(3).value(row.job_code || row.work_order_number || "");
         wsRow.cell(4).value(row.material_code || "");
@@ -124,6 +122,11 @@ async function generate(startDate, endDate) {
         wsRow.cell(7).value(qty);
         wsRow.cell(8).value(row.employee_code || row.representative_code || "");
         wsRow.cell(9).value(row.remark || "");
+
+        if (isCutting) {
+          wsRow.cell(10).value(row.detail || row.joint_detail || "");
+          wsRow.cell(11).value(joints);
+        }
       }
 
       // Edge case: N === 0 (Xóa dữ liệu mẫu nhưng giữ style)
@@ -133,14 +136,10 @@ async function generate(startDate, endDate) {
           wsRow.cell(c).value("");
         }
       }
-
-      // 6. Ghi tổng số lượng và xâu vào G2 và K2
-      sheet.cell("G2").value(totalQty);
-      sheet.cell("K2").value(totalJoints);
     };
 
-    writeSheet(cuttingSheet, cuttingData);
-    writeSheet(grindingSheet, grindingData);
+    writeSheet(cuttingSheet, cuttingData, true);
+    writeSheet(grindingSheet, grindingData, false);
 
     // Save File
     const reportDateObj = new Date(startDate);

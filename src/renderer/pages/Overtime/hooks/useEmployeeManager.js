@@ -62,8 +62,10 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
       const mappedEmployees = activeEmployees.map(emp => {
         const rawCode = String(emp.employee_code || emp.id || '');
         const cleanCode = rawCode.replace(/^[vV]/, '');
+        const shortCode = cleanCode.length > 4 ? cleanCode.slice(-4) : cleanCode;
         return {
-          id: cleanCode,
+          id: shortCode,
+          fullId: cleanCode,
           employeeCode: rawCode,
           name: emp.full_name || emp.employee_name || 'Chưa đặt tên',
           role: mapToRole(emp),
@@ -137,8 +139,9 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
 
   // Derived
   const filteredEmployees = useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    return employees.filter(e => e.name.toLowerCase().includes(q) || e.id.includes(q));
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return employees;
+    return employees.filter(e => e.name.toLowerCase().includes(q) || e.id.includes(q) || (e.fullId && e.fullId.includes(q)) || (e.employeeCode && e.employeeCode.toLowerCase().includes(q)));
   }, [searchQuery, employees]);
 
   const isSun = otType === 'CHỦ NHẬT';
@@ -303,9 +306,20 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
     const role_id = dbRoles[0]?.id || null;
 
     const formatCodeForDb = (code, existingCode = '') => {
-      if (/^[vV]/i.test(code)) return code.toUpperCase();
-      if (existingCode && /^[vV]/i.test(existingCode)) return 'V' + code.replace(/^[vV]/i, '');
-      if (/^\d+$/.test(code)) return 'V' + code;
+      const clean = code.replace(/^[vV]/i, '').trim();
+      if (existingCode && existingCode.length >= 4) {
+        const cleanExisting = existingCode.replace(/^[vV]/i, '');
+        if (cleanExisting.endsWith(clean) || existingCode.endsWith(clean)) return existingCode;
+        if (clean.length === 4 && cleanExisting.length > 4) {
+          return existingCode.slice(0, -4) + clean;
+        }
+      }
+      if (/^[vV]/i.test(code)) {
+        const c = code.toUpperCase();
+        return c.length === 5 ? 'V2607' + c.slice(1) : c;
+      }
+      if (/^\d{4}$/.test(clean)) return 'V2607' + clean;
+      if (/^\d+$/.test(clean)) return 'V' + clean;
       return code;
     };
 

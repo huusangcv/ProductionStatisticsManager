@@ -66,7 +66,7 @@ function EmployeeDialog({ open, employee, roles = [], positions = [], onClose, o
         });
       } else {
         reset({
-          employee_code: `V${String(Math.floor(Math.random() * 9999)).padStart(4, "0")}`,
+          employee_code: `V2607${String(Math.floor(Math.random() * 9999)).padStart(4, "0")}`,
           representative_code: "",
           full_name: "",
           phone: "",

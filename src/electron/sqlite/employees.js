@@ -214,8 +214,8 @@ function migrateOldEmployees(db) {
 
 const SEED_EMPLOYEES = [
   {
-    code: "V1171",
-    rep_code: "V1171",
+    code: "V21111171",
+    rep_code: "V21111171",
     name: "Đinh Thế Trung Nguyên",
     role_code: "GRIND",
     position_code: "LEADER",
@@ -223,8 +223,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V1781",
-    rep_code: "V1781",
+    code: "V23021781",
+    rep_code: "V23021781",
     name: "Trang Quang Khánh",
     role_code: "GRIND",
     position_code: "SHIFT",
@@ -232,8 +232,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V3277",
-    rep_code: "V3277",
+    code: "V26063277",
+    rep_code: "V26063277",
     name: "Lê Hữu Sang",
     role_code: "CUT",
     position_code: "STAFF",
@@ -241,8 +241,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V1245",
-    rep_code: "V1245",
+    code: "V22021245",
+    rep_code: "V22021245",
     name: "Phan Văn Đợi",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -250,8 +250,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V1247",
-    rep_code: "V1247",
+    code: "V22021247",
+    rep_code: "V22021247",
     name: "Phạm Hoàng Lên",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -259,8 +259,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V1264",
-    rep_code: "V1264",
+    code: "V22021264",
+    rep_code: "V22021264",
     name: "Phạm Hoàng Xia",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -268,8 +268,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V3075",
-    rep_code: "V3075",
+    code: "V26013075",
+    rep_code: "V26013075",
     name: "Phạm Hoàng Sống",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -277,8 +277,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V1369",
-    rep_code: "V1369",
+    code: "V22031369",
+    rep_code: "V22031369",
     name: "Đinh Văn Khang",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -286,8 +286,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V1602",
-    rep_code: "V1602",
+    code: "V22061602",
+    rep_code: "V22061602",
     name: "Nguyễn Thanh Vân",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -295,8 +295,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V1209",
-    rep_code: "V1209",
+    code: "V21121209",
+    rep_code: "V21121209",
     name: "Huỳnh Văn Toàn",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -304,8 +304,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V0117",
-    rep_code: "V0117",
+    code: "V19090117",
+    rep_code: "V19090117",
     name: "Nguyễn Thanh Long",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -313,8 +313,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V3308",
-    rep_code: "V3308",
+    code: "V26063308",
+    rep_code: "V26063308",
     name: "Dương Văn Hoàng",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -322,8 +322,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V3274",
-    rep_code: "V3274",
+    code: "V26063274",
+    rep_code: "V26063274",
     name: "Châu Văn Điền",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -331,8 +331,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V3242",
-    rep_code: "V3242",
+    code: "V26053242",
+    rep_code: "V26053242",
     name: "Nguyễn Văn Rớt",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -340,8 +340,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V1729",
-    rep_code: "V1729",
+    code: "V22091729",
+    rep_code: "V22091729",
     name: "Phạm Hoàng Gập",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -349,8 +349,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V2973",
-    rep_code: "V2973",
+    code: "V25092973",
+    rep_code: "V25092973",
     name: "Phạm Văn Nầy",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -358,8 +358,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V2787",
-    rep_code: "V2787",
+    code: "V25052787",
+    rep_code: "V25052787",
     name: "Nguyễn Văn Hậu",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -367,8 +367,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V3149",
-    rep_code: "V3149",
+    code: "V26053149",
+    rep_code: "V26053149",
     name: "Nguyễn Minh Hải",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -376,8 +376,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V0554",
-    rep_code: "V0554",
+    code: "V20080554",
+    rep_code: "V20080554",
     name: "Trần Công Vương",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -385,8 +385,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V3176",
-    rep_code: "V3176",
+    code: "V26043176",
+    rep_code: "V26043176",
     name: "Nguyễn Văn Tiền",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -395,11 +395,58 @@ const SEED_EMPLOYEES = [
   },
 ];
 
+function migrateEmployeeCodesTo8Digits(db) {
+  try {
+    const mapping = [
+      { old: "V1171", new: "V21111171" },
+      { old: "V1781", new: "V23021781" },
+      { old: "V3277", new: "V26063277" },
+      { old: "V1245", new: "V22021245" },
+      { old: "V1247", new: "V22021247" },
+      { old: "V1264", new: "V22021264" },
+      { old: "V3075", new: "V26013075" },
+      { old: "V1369", new: "V22031369" },
+      { old: "V1602", new: "V22061602" },
+      { old: "V1209", new: "V21121209" },
+      { old: "V0117", new: "V19090117" },
+      { old: "V3308", new: "V26063308" },
+      { old: "V3274", new: "V26063274" },
+      { old: "V3242", new: "V26053242" },
+      { old: "V1729", new: "V22091729" },
+      { old: "V2973", new: "V25092973" },
+      { old: "V2787", new: "V25052787" },
+      { old: "V3149", new: "V26053149" },
+      { old: "V0554", new: "V20080554" },
+      { old: "V3176", new: "V26043176" },
+    ];
+    
+    db.pragma("foreign_keys = OFF");
+    const updateEmp = db.prepare("UPDATE employees SET employee_code = ?, representative_code = ? WHERE employee_code = ?");
+    const updateProd = db.prepare("UPDATE personal_production_records SET employee_code = ? WHERE employee_code = ?");
+    const updateOt = db.prepare("UPDATE overtime_records SET employee_code = ? WHERE employee_code = ?");
+    
+    const runMigration = db.transaction(() => {
+      for (const item of mapping) {
+        try { updateEmp.run(item.new, item.new, item.old); } catch(e) {}
+        try { updateProd.run(item.new, item.old); } catch(e) {}
+        try { updateOt.run(item.new, item.old); } catch(e) {}
+      }
+    });
+    runMigration();
+    db.pragma("foreign_keys = ON");
+  } catch (err) {
+    console.error("Error migrating employee codes to 8 digits:", err);
+  }
+}
+
 function seedEmployeesIfEmpty() {
   const db = openDatabase();
   try {
     const count = db.prepare("SELECT COUNT(*) as cnt FROM employees").get();
-    if (count.cnt > 0) return;
+    if (count.cnt > 0) {
+      migrateEmployeeCodesTo8Digits(db);
+      return;
+    }
 
     const roleMap = new Map();
     const roles = db.prepare("SELECT * FROM roles").all();
