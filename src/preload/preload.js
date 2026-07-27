@@ -215,4 +215,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
     setLoginMode: () => ipcRenderer.invoke("window:setLoginMode"),
     setApplicationMode: () => ipcRenderer.invoke("window:setApplicationMode"),
   },
+  notifications: {
+    getAll: (params) => ipcRenderer.invoke("notification:getAll", params),
+    getUnreadCount: () => ipcRenderer.invoke("notification:getUnreadCount"),
+    markAsRead: (id) => ipcRenderer.invoke("notification:markAsRead", id),
+    markAllAsRead: () => ipcRenderer.invoke("notification:markAllAsRead"),
+    delete: (id) => ipcRenderer.invoke("notification:delete", id),
+    deleteAll: () => ipcRenderer.invoke("notification:deleteAll"),
+    create: (data) => ipcRenderer.invoke("notification:create", data),
+    onNew: (callback) => ipcRenderer.on("notification:new", (_event, data) => callback(data)),
+    removeAllListeners: () => {
+      ipcRenderer.removeAllListeners("notification:new");
+    },
+  },
 });

@@ -22,6 +22,10 @@ export function AuthProvider({ children }) {
           localStorage.removeItem("savedUsername");
           setSavedUsername("");
         }
+        // Auto check for update silently in background after login
+        setTimeout(() => {
+          window.electronAPI?.update?.check?.().catch(() => {});
+        }, 3000);
         return { success: true };
       } else {
         return { success: false, message: result.message };

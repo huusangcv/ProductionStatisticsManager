@@ -11,6 +11,7 @@ export const navigationItems = [
       { label: "Sản lượng cá nhân", path: "/personal-production" },
     ],
   },
+  { label: "Đăng ký tăng ca", path: "/overtime", icon: "Overtime" },
   {
     label: "Danh mục",
     icon: "Employees",
@@ -23,13 +24,12 @@ export const navigationItems = [
     ],
   },
   { label: "Lịch sử Import", path: "/import-history", icon: "History" },
-  { label: "Đăng ký tăng ca", path: "/overtime", icon: "Overtime" },
-  {
-    label: "Báo cáo",
-    icon: "Reports",
-    children: [
-      { label: "Tổng hợp", path: "/reports" },
-    ]
-  },
+  // {
+  //   label: "Báo cáo",
+  //   icon: "Reports",
+  //   children: [
+  //     { label: "Tổng hợp", path: "/reports" },
+  //   ]
+  // },
   { label: "Cài đặt", path: "/settings", icon: "Settings" },
 ];

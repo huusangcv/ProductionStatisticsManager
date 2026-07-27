@@ -138,6 +138,17 @@ const backupDAO = require("./sqlite/backup");
 const printerService = require("./services/printerService");
 const templateService = require("./services/templateService");
 const personalProductionService = require("./personalProduction/personalProductionService");
+const {
+  getNotifications,
+  getUnreadCount,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+  deleteAllNotifications,
+  createNotification,
+} = require("./sqlite/notifications");
+const { createAndPushNotification } = require("./services/notification/notificationService");
+
 
 // ============================================================================
 // Shared Excel Parse Engine
@@ -1409,6 +1420,37 @@ function registerIpcHandlers() {
   ipcMain.handle("update:getLogs", () => {
     return getRecentUpdateLogs();
   });
+
+  // --- Notification Center Handlers ---
+  ipcMain.handle("notification:getAll", (_event, { limit = 50, offset = 0 } = {}) => {
+    return getNotifications({ limit, offset });
+  });
+
+  ipcMain.handle("notification:getUnreadCount", () => {
+    return getUnreadCount();
+  });
+
+  ipcMain.handle("notification:markAsRead", (_event, id) => {
+    return markAsRead(id);
+  });
+
+  ipcMain.handle("notification:markAllAsRead", () => {
+    return markAllAsRead();
+  });
+
+  ipcMain.handle("notification:delete", (_event, id) => {
+    return deleteNotification(id);
+  });
+
+  ipcMain.handle("notification:deleteAll", () => {
+    return deleteAllNotifications();
+  });
+
+  ipcMain.handle("notification:create", (_event, data) => {
+    const mainWindow = BrowserWindow.getAllWindows()[0];
+    return createAndPushNotification(data, mainWindow);
+  });
 }
 
 module.exports = { registerIpcHandlers };
+

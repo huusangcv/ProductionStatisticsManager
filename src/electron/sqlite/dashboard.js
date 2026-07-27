@@ -26,6 +26,53 @@ function getRoleCode(type) {
   return type === "Cắt" ? "CUT" : "GRIND";
 }
 
+function enrichDashboardRows(db, rows, roleCode) {
+  if (!rows || rows.length === 0) return rows;
+
+  const allEmps = db
+    .prepare(`
+      SELECT e.representative_code, e.employee_code, e.full_name, pos.name AS position_name
+      FROM employees e
+      LEFT JOIN roles r ON r.id = e.role_id
+      LEFT JOIN positions pos ON pos.id = e.position_id
+      WHERE r.code = ?
+    `)
+    .all(roleCode);
+
+  const empMap = new Map();
+  for (const emp of allEmps) {
+    const rep = String(emp.representative_code || "").trim();
+    if (!rep) continue;
+    if (!empMap.has(rep)) empMap.set(rep, []);
+    empMap.get(rep).push(emp);
+  }
+
+  const isGrind = roleCode === "GRIND" || roleCode === "MÀI" || String(roleCode).toLowerCase() === "mài";
+
+  for (const row of rows) {
+    const rep = String(row.representative_code || "").trim();
+    const emps = empMap.get(rep) || [];
+
+    if (isGrind) {
+      const cleanedCodes = emps
+        .map((e) => String(e.employee_code || "").trim().replace(/^[Vv]/, ""))
+        .filter(Boolean);
+      row.employee_code = cleanedCodes.length > 0 ? cleanedCodes.join(" ") : null;
+      row.employee_full_name = emps.map((e) => e.full_name).filter(Boolean).join(", ") || null;
+      row.position_name = emps.map((e) => e.position_name).filter(Boolean).join(", ") || null;
+      if (!row.role_name) row.role_name = "Mài";
+    } else {
+      const emp = emps[0];
+      row.employee_code = emp && emp.employee_code ? String(emp.employee_code).trim().replace(/^[Vv]/, "") : null;
+      row.employee_full_name = emp ? emp.full_name : null;
+      row.position_name = emp ? emp.position_name : null;
+      if (!row.role_name) row.role_name = "Cắt";
+    }
+  }
+
+  return rows;
+}
+
 function getDashboardKPIs(type, fromDate, toDate) {
   const db = openDatabase();
   try {
@@ -84,13 +131,9 @@ function getTopEmployees(type, fromDate, toDate) {
       SELECT 
         p.representative_code,
         SUM(p.completed_quantity) as total_quantity,
-        e.full_name as employee_full_name,
-        r.name as role_name,
-        pos.name as position_name
+        r.name as role_name
       FROM ${tableName} p
       LEFT JOIN roles r ON r.code = '${roleCode}'
-      LEFT JOIN employees e ON e.representative_code = p.representative_code AND e.role_id = r.id
-      LEFT JOIN positions pos ON pos.id = e.position_id
       WHERE 1=1 ${dateCond.sql}
       GROUP BY p.representative_code
       ORDER BY total_quantity DESC
@@ -98,6 +141,7 @@ function getTopEmployees(type, fromDate, toDate) {
     `;
     
     const rows = db.prepare(query).all(dateCond.params);
+    enrichDashboardRows(db, rows, roleCode);
     return { ok: true, data: rows };
   } catch (error) {
     return { ok: false, message: error.message };
@@ -167,18 +211,15 @@ function getDashboardGridData(type, fromDate, toDate) {
     const query = `
       SELECT 
         p.*,
-        e.full_name as employee_full_name,
-        r.name as role_name,
-        pos.name as position_name
+        r.name as role_name
       FROM ${tableName} p
       LEFT JOIN roles r ON r.code = '${roleCode}'
-      LEFT JOIN employees e ON e.representative_code = p.representative_code AND e.role_id = r.id
-      LEFT JOIN positions pos ON pos.id = e.position_id
       WHERE 1=1 ${dateCond.sql}
       ORDER BY p.report_date DESC, p.id DESC
     `;
     
     const rows = db.prepare(query).all(dateCond.params);
+    enrichDashboardRows(db, rows, roleCode);
     return { ok: true, data: rows };
   } catch (error) {
     return { ok: false, message: error.message };

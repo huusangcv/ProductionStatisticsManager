@@ -4,6 +4,8 @@ import { Box, Fade } from "@mui/material";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import styles from "./AppLayout.module.css";
+import { NotificationProvider } from "../context/NotificationContext";
+import NotificationDrawer from "../components/notifications/NotificationDrawer";
 
 function AppLayout() {
   const [desktopOpen, setDesktopOpen] = useState(true);
@@ -35,35 +37,38 @@ function AppLayout() {
   }, [location.pathname, dashboardReady]);
 
   return (
-    <Fade in={contentVisible} timeout={400}>
-      <Box
-        sx={{
-          display: "flex",
-          height: "100vh",
-          overflow: "hidden",
-          bgcolor: "var(--color-bg-body)",
-          opacity: contentVisible ? 1 : 0,
-        }}
-      >
-        <Sidebar desktopOpen={desktopOpen} />
-
+    <NotificationProvider>
+      <Fade in={contentVisible} timeout={400}>
         <Box
           sx={{
-            flex: 1,
             display: "flex",
-            flexDirection: "column",
-            minWidth: 0,
             height: "100vh",
             overflow: "hidden",
+            bgcolor: "var(--color-bg-body)",
+            opacity: contentVisible ? 1 : 0,
           }}
         >
-          <Topbar onMenuClick={handleToggleSidebar} />
-          <Box className={styles.pageContainer}>
-            <Outlet context={{ onDashboardReady: handleDashboardReady }} />
+          <Sidebar desktopOpen={desktopOpen} />
+
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
+              height: "100vh",
+              overflow: "hidden",
+            }}
+          >
+            <Topbar onMenuClick={handleToggleSidebar} />
+            <Box className={styles.pageContainer}>
+              <Outlet context={{ onDashboardReady: handleDashboardReady }} />
+            </Box>
           </Box>
         </Box>
-      </Box>
-    </Fade>
+      </Fade>
+      <NotificationDrawer />
+    </NotificationProvider>
   );
 }
 

@@ -18,6 +18,7 @@ const {
 const { ensureUpdateLogsTable } = require("./updateLogs");
 const { ensureHeatTreatmentSummaryTable } = require("./heatTreatmentSummary");
 const { ensurePersonalProductionTable } = require("./personalProduction");
+const { ensureNotificationsTable } = require("./notifications");
 const {
   getDatabasePath,
   ensureDirectories,
@@ -74,6 +75,7 @@ function initializeDatabase() {
   ensureUpdateLogsTable();
   ensureHeatTreatmentSummaryTable();
   ensurePersonalProductionTable();
+  ensureNotificationsTable();
 
   return databasePath;
 }

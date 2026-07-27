@@ -53,22 +53,76 @@ function ensurePersonalProductionTable() {
 /**
  * Lấy danh sách sản lượng cá nhân theo ngày
  */
+function enrichPersonalProductionRows(db, rows) {
+  if (!rows || rows.length === 0) return rows;
+
+  const allEmps = db
+    .prepare(`
+      SELECT e.representative_code, e.employee_code, e.full_name, r.code AS role_code
+      FROM employees e
+      JOIN roles r ON r.id = e.role_id
+      WHERE r.code IN ('CUT', 'GRIND')
+    `)
+    .all();
+
+  const cutMap = new Map();
+  const grindMap = new Map();
+
+  for (const emp of allEmps) {
+    const rep = String(emp.representative_code || "").trim();
+    if (!rep) continue;
+    const map = emp.role_code === "CUT" ? cutMap : grindMap;
+    if (!map.has(rep)) map.set(rep, []);
+    map.get(rep).push(emp);
+  }
+
+  for (const row of rows) {
+    const isGrind = row.source_type === "grinding" || row.sheet_name === "MÀI";
+    const rep = String(row.representative_code || "").trim();
+    const map = isGrind ? grindMap : cutMap;
+    const emps = map.get(rep) || [];
+
+    if (isGrind) {
+      if (emps.length > 0) {
+        const cleanedCodes = emps
+          .map((e) => String(e.employee_code || "").trim().replace(/^[Vv]/, ""))
+          .filter(Boolean);
+        row.employee_code = cleanedCodes.length > 0 ? cleanedCodes.join(" ") : (row.employee_code || rep || null);
+        row.employee_name = emps.map((e) => e.full_name).filter(Boolean).join(", ") || row.employee_name || null;
+      } else if (row.employee_code) {
+        row.employee_code = String(row.employee_code)
+          .trim()
+          .split(/\s+/)
+          .map((c) => c.replace(/^[Vv]/, ""))
+          .join(" ");
+      }
+    } else {
+      const emp = emps[0];
+      if (emp) {
+        row.employee_code = emp.employee_code || row.employee_code || null;
+        row.employee_name = emp.full_name || row.employee_name || null;
+      }
+      if (row.employee_code) {
+        row.employee_code = String(row.employee_code).trim().replace(/^[Vv]/, "");
+      }
+    }
+  }
+
+  return rows;
+}
+
 function getByDate(workDate) {
   const db = openDatabase();
   try {
-    return db
+    const rows = db
       .prepare(`
-        SELECT 
-          p.*,
-          COALESCE(e.employee_code, p.employee_code) AS employee_code,
-          COALESCE(e.full_name, p.employee_name) AS employee_name
+        SELECT p.*
         FROM personal_production p
-        LEFT JOIN roles r ON r.code = CASE WHEN p.source_type = 'cutting' OR p.sheet_name = 'CẮT' THEN 'CUT' ELSE 'GRIND' END
-        LEFT JOIN employees e ON e.representative_code = p.representative_code AND e.role_id = r.id
         WHERE p.work_date = ?
         ORDER BY p.sheet_name ASC, p.id ASC
       `)
       .all(workDate);
+    return enrichPersonalProductionRows(db, rows);
   } finally {
     db.close();
   }
@@ -80,19 +134,15 @@ function getByDate(workDate) {
 function getByDateRange(startDate, endDate) {
   const db = openDatabase();
   try {
-    return db
+    const rows = db
       .prepare(`
-        SELECT 
-          p.*,
-          COALESCE(e.employee_code, p.employee_code) AS employee_code,
-          COALESCE(e.full_name, p.employee_name) AS employee_name
+        SELECT p.*
         FROM personal_production p
-        LEFT JOIN roles r ON r.code = CASE WHEN p.source_type = 'cutting' OR p.sheet_name = 'CẮT' THEN 'CUT' ELSE 'GRIND' END
-        LEFT JOIN employees e ON e.representative_code = p.representative_code AND e.role_id = r.id
         WHERE p.work_date >= ? AND p.work_date <= ?
         ORDER BY p.sheet_name ASC, p.id ASC
       `)
       .all(startDate, endDate);
+    return enrichPersonalProductionRows(db, rows);
   } finally {
     db.close();
   }

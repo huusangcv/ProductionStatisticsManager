@@ -28,8 +28,7 @@ function ensureEmployeesTable() {
         created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
         updated_at          TEXT    NOT NULL DEFAULT (datetime('now')),
         FOREIGN KEY (role_id) REFERENCES roles(id),
-        FOREIGN KEY (position_id) REFERENCES positions(id),
-        UNIQUE(role_id, representative_code)
+        FOREIGN KEY (position_id) REFERENCES positions(id)
       )
     `);
 
@@ -51,15 +50,15 @@ function ensureEmployeesTable() {
 }
 
 function migrateRemoveUniqueRepresentativeCode(db) {
-  // Check if the current table has UNIQUE on representative_code without role_id
+  // Check if the current table has UNIQUE on representative_code or UNIQUE(role_id, representative_code)
   const indexList = db.prepare("PRAGMA index_list(employees)").all();
   let hasUniqueRepCode = false;
 
   for (const idx of indexList) {
     if (idx.unique === 1) {
       const idxInfo = db.prepare(`PRAGMA index_info('${idx.name}')`).all();
-      // If index is ONLY on representative_code
-      if (idxInfo.length === 1 && idxInfo[0].name === "representative_code") {
+      const cols = idxInfo.map((c) => c.name);
+      if (cols.includes("representative_code")) {
         hasUniqueRepCode = true;
       }
     }
@@ -67,7 +66,7 @@ function migrateRemoveUniqueRepresentativeCode(db) {
   
   // Alternatively, check sqlite_master for the CREATE TABLE statement
   const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='employees'").get();
-  if (tableInfo && tableInfo.sql.includes("representative_code TEXT    UNIQUE NOT NULL")) {
+  if (tableInfo && (tableInfo.sql.includes("UNIQUE(role_id, representative_code)") || tableInfo.sql.includes("representative_code TEXT    UNIQUE") || tableInfo.sql.includes("representative_code TEXT UNIQUE"))) {
     hasUniqueRepCode = true;
   }
 
@@ -75,7 +74,7 @@ function migrateRemoveUniqueRepresentativeCode(db) {
     // Create backup of old table
     db.exec("ALTER TABLE employees RENAME TO employees_unique_old");
 
-    // Create new table with composite unique index
+    // Create new table without unique index on representative_code
     db.exec(`
       CREATE TABLE employees (
         id                  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,8 +90,7 @@ function migrateRemoveUniqueRepresentativeCode(db) {
         created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
         updated_at          TEXT    NOT NULL DEFAULT (datetime('now')),
         FOREIGN KEY (role_id) REFERENCES roles(id),
-        FOREIGN KEY (position_id) REFERENCES positions(id),
-        UNIQUE(role_id, representative_code)
+        FOREIGN KEY (position_id) REFERENCES positions(id)
       )
     `);
 
@@ -137,8 +135,7 @@ function migrateOldEmployees(db) {
       created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
       updated_at          TEXT    NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (role_id) REFERENCES roles(id),
-      FOREIGN KEY (position_id) REFERENCES positions(id),
-      UNIQUE(role_id, representative_code)
+      FOREIGN KEY (position_id) REFERENCES positions(id)
     )
   `);
 
@@ -577,33 +574,39 @@ function getEmployeeByCode(employeeCode) {
 function getEmployeeByRepresentativeCodeAndRole(representativeCode, roleCode) {
   const db = openDatabase();
   try {
-    return (
-      db
-        .prepare(
-          `SELECT 
-            e.id, 
-            e.employee_code, 
-            e.representative_code,
-            e.full_name, 
-            e.role_id, 
-            r.name AS role_name,
-            r.code AS role_code,
-            e.position_id, 
-            p.name AS position_name,
-            p.code AS position_code,
-            e.phone, 
-            e.status, 
-            e.hire_date, 
-            e.note, 
-            e.created_at, 
-            e.updated_at
-           FROM employees e
-           JOIN roles r ON e.role_id = r.id
-           LEFT JOIN positions p ON e.position_id = p.id
-           WHERE e.representative_code = ? AND r.code = ?`,
-        )
-        .get(representativeCode, roleCode) ?? null
-    );
+    const rows = db
+      .prepare(
+        `SELECT 
+          e.id, 
+          e.employee_code, 
+          e.representative_code,
+          e.full_name, 
+          e.role_id, 
+          r.name AS role_name,
+          r.code AS role_code,
+          e.position_id, 
+          p.name AS position_name,
+          p.code AS position_code,
+          e.phone, 
+          e.status, 
+          e.hire_date, 
+          e.note, 
+          e.created_at, 
+          e.updated_at
+         FROM employees e
+         JOIN roles r ON e.role_id = r.id
+         LEFT JOIN positions p ON e.position_id = p.id
+         WHERE e.representative_code = ? AND r.code = ?`,
+      )
+      .all(representativeCode, roleCode);
+    if (!rows || rows.length === 0) return null;
+    if (rows.length === 1) return rows[0];
+    return {
+      ...rows[0],
+      employee_code: rows.map((r) => String(r.employee_code || "").trim().replace(/^[Vv]/, "")).filter(Boolean).join(" "),
+      full_name: rows.map((r) => r.full_name).filter(Boolean).join(", "),
+      position_name: rows.map((r) => r.position_name).filter(Boolean).join(", "),
+    };
   } finally {
     db.close();
   }
@@ -612,34 +615,39 @@ function getEmployeeByRepresentativeCodeAndRole(representativeCode, roleCode) {
 function getEmployeeByRepresentativeCode(representativeCode) {
   const db = openDatabase();
   try {
-    return (
-      db
-        .prepare(
-          `SELECT 
-            e.id, 
-            e.employee_code, 
-            e.representative_code,
-            e.full_name, 
-            e.role_id, 
-            r.name AS role_name,
-            r.code AS role_code,
-            e.position_id, 
-            p.name AS position_name,
-            p.code AS position_code,
-            e.phone, 
-            e.status, 
-            e.hire_date, 
-            e.note, 
-            e.created_at, 
-            e.updated_at
-           FROM employees e
-           LEFT JOIN roles r ON e.role_id = r.id
-           LEFT JOIN positions p ON e.position_id = p.id
-           WHERE e.representative_code = ?
-           LIMIT 1`,
-        )
-        .get(representativeCode) ?? null
-    );
+    const rows = db
+      .prepare(
+        `SELECT 
+          e.id, 
+          e.employee_code, 
+          e.representative_code,
+          e.full_name, 
+          e.role_id, 
+          r.name AS role_name,
+          r.code AS role_code,
+          e.position_id, 
+          p.name AS position_name,
+          p.code AS position_code,
+          e.phone, 
+          e.status, 
+          e.hire_date, 
+          e.note, 
+          e.created_at, 
+          e.updated_at
+         FROM employees e
+         LEFT JOIN roles r ON e.role_id = r.id
+         LEFT JOIN positions p ON e.position_id = p.id
+         WHERE e.representative_code = ?`,
+      )
+      .all(representativeCode);
+    if (!rows || rows.length === 0) return null;
+    if (rows.length === 1) return rows[0];
+    return {
+      ...rows[0],
+      employee_code: rows.map((r) => String(r.employee_code || "").trim().replace(/^[Vv]/, "")).filter(Boolean).join(" "),
+      full_name: rows.map((r) => r.full_name).filter(Boolean).join(", "),
+      position_name: rows.map((r) => r.position_name).filter(Boolean).join(", "),
+    };
   } finally {
     db.close();
   }
@@ -680,6 +688,36 @@ function getEmployeeById(id) {
   }
 }
 
+function validateRepresentativeCode(db, role_id, representative_code, excludeId = null) {
+  if (!representative_code) return { ok: true };
+
+  const role = db.prepare("SELECT code, name FROM roles WHERE id = ?").get(role_id);
+  if (!role) return { ok: true };
+
+  const roleCode = (role.code || "").toUpperCase();
+  const roleName = (role.name || "").trim().toLowerCase();
+
+  if (roleCode === "CUT" || roleName === "cắt" || roleName === "cat") {
+    let query = `SELECT id FROM employees WHERE representative_code = ? AND role_id = ?`;
+    const params = [String(representative_code).trim(), role_id];
+
+    if (excludeId !== null && excludeId !== undefined) {
+      query += ` AND id != ?`;
+      params.push(excludeId);
+    }
+
+    const existing = db.prepare(query).get(...params);
+    if (existing) {
+      return {
+        ok: false,
+        message: "Mã số đại diện đã được sử dụng cho nhân viên Cắt.",
+      };
+    }
+  }
+
+  return { ok: true };
+}
+
 function createEmployee({
   employee_code,
   representative_code,
@@ -693,6 +731,11 @@ function createEmployee({
 }) {
   const db = openDatabase();
   try {
+    const valRes = validateRepresentativeCode(db, role_id, representative_code);
+    if (!valRes.ok) {
+      return valRes;
+    }
+
     const result = db
       .prepare(
         `INSERT INTO employees (
@@ -734,11 +777,14 @@ function createEmployee({
     if (
       error.message.includes(
         "UNIQUE constraint failed: employees.role_id, employees.representative_code",
+      ) ||
+      error.message.includes(
+        "UNIQUE constraint failed: employees.representative_code",
       )
     ) {
       return {
         ok: false,
-        message: `Mã đại diện "${representative_code}" đã tồn tại trong vai trò này.`,
+        message: "Mã số đại diện đã được sử dụng cho nhân viên Cắt.",
       };
     }
     return { ok: false, message: error.message };
@@ -763,6 +809,18 @@ function updateEmployee(
 ) {
   const db = openDatabase();
   try {
+    const current = db.prepare("SELECT role_id, representative_code FROM employees WHERE id = ?").get(id);
+    if (!current) {
+      return { ok: false, message: `Không tìm thấy nhân viên với id ${id}.` };
+    }
+    const checkRoleId = role_id !== undefined ? role_id : current.role_id;
+    const checkRepCode = representative_code !== undefined ? representative_code : current.representative_code;
+
+    const valRes = validateRepresentativeCode(db, checkRoleId, checkRepCode, id);
+    if (!valRes.ok) {
+      return valRes;
+    }
+
     const result = db
       .prepare(
         `UPDATE employees
@@ -799,11 +857,14 @@ function updateEmployee(
     if (
       error.message.includes(
         "UNIQUE constraint failed: employees.role_id, employees.representative_code",
+      ) ||
+      error.message.includes(
+        "UNIQUE constraint failed: employees.representative_code",
       )
     ) {
       return {
         ok: false,
-        message: `Mã đại diện "${representative_code}" đã tồn tại trong vai trò này.`,
+        message: "Mã số đại diện đã được sử dụng cho nhân viên Cắt.",
       };
     }
     return { ok: false, message: error.message };

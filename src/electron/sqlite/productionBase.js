@@ -85,6 +85,57 @@ function calculateJointCount(db, record) {
   }
 }
 
+// Helper to enrich production rows with employee info without multiplying rows via SQL LEFT JOIN
+function enrichWithEmployeeData(db, rows, roleCode) {
+  if (!rows) return rows;
+  const isArray = Array.isArray(rows);
+  const list = isArray ? rows : [rows];
+  if (list.length === 0) return rows;
+
+  const allEmps = db
+    .prepare(`
+      SELECT e.representative_code, e.employee_code, e.full_name, pos.name AS position_name
+      FROM employees e
+      LEFT JOIN roles r ON r.id = e.role_id
+      LEFT JOIN positions pos ON pos.id = e.position_id
+      WHERE r.code = ?
+    `)
+    .all(roleCode);
+
+  const empMap = new Map();
+  for (const emp of allEmps) {
+    const rep = String(emp.representative_code || "").trim();
+    if (!rep) continue;
+    if (!empMap.has(rep)) empMap.set(rep, []);
+    empMap.get(rep).push(emp);
+  }
+
+  const isGrind = roleCode === "GRIND" || roleCode === "MÀI" || String(roleCode).toLowerCase() === "mài";
+
+  for (const row of list) {
+    const rep = String(row.representative_code || "").trim();
+    const emps = empMap.get(rep) || [];
+
+    if (isGrind) {
+      const cleanedCodes = emps
+        .map((e) => String(e.employee_code || "").trim().replace(/^[Vv]/, ""))
+        .filter(Boolean);
+      row.employee_code = cleanedCodes.length > 0 ? cleanedCodes.join(" ") : null;
+      row.employee_full_name = emps.map((e) => e.full_name).filter(Boolean).join(", ") || null;
+      row.position_name = emps.map((e) => e.position_name).filter(Boolean).join(", ") || null;
+      if (!row.role_name) row.role_name = "Mài";
+    } else {
+      const emp = emps[0];
+      row.employee_code = emp && emp.employee_code ? String(emp.employee_code).trim().replace(/^[Vv]/, "") : null;
+      row.employee_full_name = emp ? emp.full_name : null;
+      row.position_name = emp ? emp.position_name : null;
+      if (!row.role_name) row.role_name = "Cắt";
+    }
+  }
+
+  return rows;
+}
+
 /**
  * Creates a production DAO module for a given table and column specification.
  * @param {string} tableName - e.g. "grinding_production" or "cutting_production"
@@ -191,7 +242,7 @@ function createProductionModule(tableName, columnSpec, roleCode) {
   function getAll() {
     const db = openDatabase();
     try {
-      return db
+      const rows = db
         .prepare(
           `
           SELECT 
@@ -200,18 +251,14 @@ function createProductionModule(tableName, columnSpec, roleCode) {
              FROM detail_joint dj 
              WHERE dj.material_code = p.material_code 
              LIMIT 1) AS joint_detail,
-            e.full_name   AS employee_full_name,
-            e.employee_code AS employee_code,
-            r.name        AS role_name,
-            pos.name      AS position_name
+            r.name        AS role_name
           FROM ${tableName} p
           LEFT JOIN roles r       ON r.code = '${roleCode}'
-          LEFT JOIN employees e   ON e.representative_code = p.representative_code AND e.role_id = r.id
-          LEFT JOIN positions pos ON pos.id = e.position_id
           ORDER BY p.imported_at DESC
         `,
         )
         .all();
+      return enrichWithEmployeeData(db, rows, roleCode);
     } finally {
       db.close();
     }
@@ -221,7 +268,7 @@ function createProductionModule(tableName, columnSpec, roleCode) {
   function getByDateRange(startDate, endDate) {
     const db = openDatabase();
     try {
-      return db
+      const rows = db
         .prepare(
           `
           SELECT 
@@ -230,19 +277,15 @@ function createProductionModule(tableName, columnSpec, roleCode) {
              FROM detail_joint dj 
              WHERE dj.material_code = p.material_code 
              LIMIT 1) AS joint_detail,
-            e.full_name   AS employee_full_name,
-            e.employee_code AS employee_code,
-            r.name        AS role_name,
-            pos.name      AS position_name
+            r.name        AS role_name
           FROM ${tableName} p
           LEFT JOIN roles r       ON r.code = '${roleCode}'
-          LEFT JOIN employees e   ON e.representative_code = p.representative_code AND e.role_id = r.id
-          LEFT JOIN positions pos ON pos.id = e.position_id
           WHERE p.report_date >= ? AND p.report_date <= ?
           ORDER BY p.report_date ASC, p.imported_at ASC
         `
         )
         .all(startDate, endDate);
+      return enrichWithEmployeeData(db, rows, roleCode);
     } finally {
       db.close();
     }
@@ -275,23 +318,19 @@ function createProductionModule(tableName, columnSpec, roleCode) {
   function getById(id) {
     const db = openDatabase();
     try {
-      return db
+      const row = db
         .prepare(
           `
           SELECT 
             p.*,
-            e.full_name   AS employee_full_name,
-            e.employee_code AS employee_code,
-            r.name        AS role_name,
-            pos.name      AS position_name
+            r.name        AS role_name
           FROM ${tableName} p
           LEFT JOIN roles r       ON r.code = '${roleCode}'
-          LEFT JOIN employees e   ON e.representative_code = p.representative_code AND e.role_id = r.id
-          LEFT JOIN positions pos ON pos.id = e.position_id
           WHERE p.id = ?
         `,
         )
         .get(id);
+      return enrichWithEmployeeData(db, row, roleCode);
     } finally {
       db.close();
     }

@@ -120,7 +120,16 @@ async function generate(startDate, endDate) {
         wsRow.cell(5).value(row.product_name || row.item_name || "");
         wsRow.cell(6).value(row.specification || "");
         wsRow.cell(7).value(qty);
-        wsRow.cell(8).value(row.employee_code || row.representative_code || "");
+        let empCodeVal = row.employee_code || row.representative_code || "";
+        if (empCodeVal) {
+          empCodeVal = String(empCodeVal)
+            .trim()
+            .split(/[\s,;]+/)
+            .map((c) => c.trim().replace(/^[Vv]/, ""))
+            .filter(Boolean)
+            .join(" ");
+        }
+        wsRow.cell(8).value(empCodeVal);
         wsRow.cell(9).value(row.remark || "");
 
         if (isCutting) {
@@ -149,7 +158,7 @@ async function generate(startDate, endDate) {
       ? startDate.replace(/-/g, "")
       : `${startDate.replace(/-/g, "")}_to_${endDate.replace(/-/g, "")}`;
 
-    const fileName = `SanLuong_${dateStr}.xlsx`;
+    const fileName = `SanLuongTXL_${dateStr}.xlsx`;
     const exportDir = ensureExportDir(yyyy, mm);
     const filePath = path.join(exportDir, fileName);
 

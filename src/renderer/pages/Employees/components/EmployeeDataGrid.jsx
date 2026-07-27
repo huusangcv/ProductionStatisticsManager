@@ -93,8 +93,6 @@ function EmployeeDataGrid({
     onDoubleClick(params.row);
   };
 
-  const hasSelection = selectedRowIds?.length > 0;
-
   return (
     <Box
       sx={{
@@ -111,9 +109,6 @@ function EmployeeDataGrid({
         density="compact"
         rows={data}
         columns={columns}
-        checkboxSelection
-        rowSelectionModel={selectedRowIds}
-        onRowSelectionModelChange={onSelectionChange}
         onRowDoubleClick={handleRowDoubleClick}
         slots={{
           toolbar: () => (
@@ -121,22 +116,12 @@ function EmployeeDataGrid({
               hasExport={true}
               rightActions={
                 <>
-                  {hasSelection ? (
-                    <StandardButton
-                      primary={true}
-                      icon={<DeleteOutlineOutlinedIcon />}
-                      label="Xóa đã chọn"
-                      onClick={onDeleteSelected}
-                      color="error"
-                    />
-                  ) : (
-                    <StandardButton
-                      primary={true}
-                      icon={<AddIcon />}
-                      label="Thêm nhân viên"
-                      onClick={onAddEmployee}
-                    />
-                  )}
+                  <StandardButton
+                    primary={true}
+                    icon={<AddIcon />}
+                    label="Thêm nhân viên"
+                    onClick={onAddEmployee}
+                  />
                   <StandardButton
                     primary={false}
                     icon={<FileUploadOutlinedIcon />}
