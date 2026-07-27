@@ -218,6 +218,7 @@ const PreviewPanel = memo(function PreviewPanel({
               >
                 {/* Tờ A4 — phần tử được scale + rotate */}
                 <Box
+                  className="print-page-box"
                   sx={{
                     width: A4_WIDTH,
                     height: A4_HEIGHT,
@@ -239,6 +240,8 @@ const PreviewPanel = memo(function PreviewPanel({
                       position:     'static !important',
                       boxShadow:    'none !important',
                       borderRadius: '0 !important',
+                      margin:       '0 !important',
+                      padding:      '0 !important',
                     },
                   }}
                 >

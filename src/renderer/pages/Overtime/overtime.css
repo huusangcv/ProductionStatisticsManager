@@ -328,11 +328,18 @@
    ============================================================ */
 @media print {
 
+  @page {
+    size: A4 portrait;
+    margin: 0.5cm;
+  }
+
   body,
   html {
-    margin: 0;
-    padding: 0;
-    background: #fff;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    width: 100% !important;
+    height: auto !important;
   }
 
   /* Ẩn tất cả giao diện — chỉ giữ lại tài liệu */
@@ -345,7 +352,6 @@
 
   /*
     .print-area: container bao toàn bộ các trang.
-    Dùng position:absolute để thoát khỏi các ràng buộc flex/overflow của layout.
   */
   .print-area {
     position: absolute !important;
@@ -356,58 +362,174 @@
     margin: 0 !important;
     background: #fff !important;
     overflow: visible !important;
-    width: 100vw !important;
+    width: 100% !important;
     height: auto !important;
   }
 
   /*
     .print-page: mỗi trang PDF.
-    page-break-after: always → trình duyệt ngắt trang sau mỗi phần tử.
-    Trang cuối dùng avoid để không tạo trang trắng thừa.
   */
   .print-page {
     display: block !important;
-    page-break-after: always;
-    break-after: page;
     width: 100% !important;
     height: auto !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .print-page:last-child {
-    page-break-after: avoid;
-    break-after: avoid;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
 
   /*
     .print-scale-wrapper: reset scale wrapper về trạng thái tự nhiên.
-    Trong preview nó có width/height theo zoom, khi in phải là 100%/auto.
   */
   .print-scale-wrapper {
     position: static !important;
     width: 100% !important;
     height: auto !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    transform: none !important;
   }
 
   .sheet-wrap {
-    box-shadow: none !important;
-    border: none !important;
     width: 100% !important;
     height: auto !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
     padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #fff !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
   .xl-table {
     width: 100% !important;
     max-width: 100% !important;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    table-layout: fixed !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-family: 'Times New Roman', Times, serif !important;
   }
 
-  .xl-table td {
+  .xl-table td,
+  .xl-table th {
     border-color: #000 !important;
+    color: #000 !important;
+  }
+
+  /* Row 1: Company name */
+  .row1 {
+    height: 56px !important;
+  }
+
+  .xl-table td.r1-cell {
+    border: none !important;
+    padding: 4px 6px !important;
+  }
+
+  .r1-inner {
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  /* Row 2: Title block */
+  .row2 {
+    height: 189px !important;
+  }
+
+  .xl-table td.r2-cell {
+    border: none !important;
+    padding: 6px 10px !important;
+  }
+
+  /* Row 3: Dept + Date */
+  .row3 {
+    height: 19px !important;
+  }
+
+  .xl-table td.r3-dept {
+    border: none !important;
+    text-align: left !important;
+    padding-left: 0 !important;
+  }
+
+  .xl-table td.r3-mid {
+    border: none !important;
+  }
+
+  .xl-table td.r3-date {
+    border: none !important;
+    text-align: right !important;
+    padding-right: 0 !important;
+  }
+
+  /* Row 4: Header row */
+  .row4 {
+    height: 63px !important;
+  }
+
+  .hdr {
+    background: #fff !important;
+    background-color: #fff !important;
+    border: 1px solid #000 !important;
+    border-color: #000 !important;
+    color: #000 !important;
+  }
+
+  /* Data rows */
+  .drow {
+    height: 29px !important;
+    max-height: 29px !important;
+  }
+
+  .d-stt,
+  .d-id,
+  .d-name,
+  .d-role,
+  .d-time,
+  .d-sign,
+  .d-note {
+    border: 1px solid #000 !important;
+    border-color: #000 !important;
+    height: 29px !important;
+    vertical-align: middle !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+
+  /* Row 24: Gồm */
+  .row24 {
+    height: 39px !important;
   }
 
   .xl-table td.r24-cell {
+    border: 2px solid #000 !important;
     border-color: #000 !important;
+    padding: 0 8px !important;
+  }
+
+  /* Row 25: Signatures */
+  .row25-tca {
+    height: 109px !important;
+  }
+
+  .row25-sun {
+    height: 84px !important;
+  }
+
+  .xl-table .sig-cell,
+  .xl-table .sig-cell:last-child {
+    border: none !important;
   }
 
   .time-input::placeholder {
@@ -418,11 +540,6 @@
     color: transparent !important;
   }
 
-  @page {
-    margin: 0.5cm;
-    size: A4 portrait;
-  }
-  
   /* Hide select dropdown arrow on print */
   .time-input {
     appearance: none;
