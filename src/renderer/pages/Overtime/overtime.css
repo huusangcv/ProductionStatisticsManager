@@ -324,7 +324,16 @@
 }
 
 /* ============================================================
-   PRINT STYLES
+   PRINT STYLES  –  Portal-based approach for Electron
+   ============================================================
+   Root cause of Electron print bug:
+     The preview Box has position:absolute + transform:scale() inside a
+     relative container. When @media print resets transform to none, the
+     stacking context is already corrupted → Chromium collapses columns.
+   Fix:
+     PrintPortal renders a clean flat DOM directly under <body>.
+     @media print hides EVERYTHING except #overtime-print-portal.
+     No transform, no flex, no overflow — just plain block layout.
    ============================================================ */
 @media print {
 
@@ -333,92 +342,54 @@
     margin: 0.5cm;
   }
 
-  body,
-  html {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #fff !important;
-    width: 100% !important;
-    height: auto !important;
-  }
-
-  /* Ẩn tất cả giao diện — chỉ giữ lại tài liệu */
-  .no-print,
-  header,
-  aside,
-  nav {
+  /* ── 1. Hide ALL screen UI ─────────────────────────────────── */
+  body > *:not(#overtime-print-portal) {
     display: none !important;
   }
 
-  /*
-    .print-area: container bao toàn bộ các trang.
-  */
-  .print-area {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
+  /* ── 2. Show ONLY the portal ───────────────────────────────── */
+  #overtime-print-portal {
     display: block !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    background: #fff !important;
-    overflow: visible !important;
-    width: 100% !important;
-    height: auto !important;
-  }
-
-  /*
-    .print-page: mỗi trang PDF.
-  */
-  .print-page {
-    display: block !important;
-    width: 100% !important;
-    height: auto !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-    page-break-after: always !important;
-    break-after: page !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  .print-page:last-child {
-    page-break-after: avoid !important;
-    break-after: avoid !important;
-  }
-
-  /*
-    .print-scale-wrapper: reset scale wrapper về trạng thái tự nhiên.
-  */
-  .print-scale-wrapper {
     position: static !important;
-    width: 100% !important;
+    width: auto !important;
     height: auto !important;
-    margin: 0 auto !important;
+    top: auto !important;
+    left: auto !important;
+    z-index: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
     padding: 0 !important;
-    transform: none !important;
+    background: #fff !important;
   }
 
+  /* ── 3. Each page in portal ────────────────────────────────── */
+  #overtime-print-portal > div > div {
+    display: block !important;
+    width: 794px !important;
+    height: 1123px !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* ── 4. sheet-wrap inside portal ──────────────────────────── */
   .sheet-wrap {
-    width: 100% !important;
-    height: auto !important;
-    margin: 0 auto !important;
+    width: 794px !important;
+    height: 1123px !important;
+    margin: 0 !important;
     padding: 0 !important;
     box-shadow: none !important;
     border: none !important;
     background: #fff !important;
-    display: flex !important;
-    flex-direction: column !important;
+    overflow: hidden !important;
   }
 
+  /* ── 5. Table ──────────────────────────────────────────────── */
   .xl-table {
-    width: 100% !important;
-    max-width: 100% !important;
+    width: 794px !important;
+    max-width: 794px !important;
     border-collapse: collapse !important;
-    border-spacing: 0 !important;
     table-layout: fixed !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    font-family: 'Times New Roman', Times, serif !important;
   }
 
   .xl-table td,
@@ -427,120 +398,28 @@
     color: #000 !important;
   }
 
-  /* Row 1: Company name */
-  .row1 {
-    height: 56px !important;
+  .xl-table td.r24-cell {
+    border-color: #000 !important;
   }
 
-  .xl-table td.r1-cell {
-    border: none !important;
-    padding: 4px 6px !important;
-  }
-
-  .r1-inner {
-    display: flex !important;
-    align-items: center !important;
-  }
-
-  /* Row 2: Title block */
-  .row2 {
-    height: 189px !important;
-  }
-
-  .xl-table td.r2-cell {
-    border: none !important;
-    padding: 6px 10px !important;
-  }
-
-  /* Row 3: Dept + Date */
-  .row3 {
-    height: 19px !important;
-  }
-
-  .xl-table td.r3-dept {
-    border: none !important;
-    text-align: left !important;
-    padding-left: 0 !important;
-  }
-
-  .xl-table td.r3-mid {
-    border: none !important;
-  }
-
-  .xl-table td.r3-date {
-    border: none !important;
-    text-align: right !important;
-    padding-right: 0 !important;
-  }
-
-  /* Row 4: Header row */
-  .row4 {
-    height: 63px !important;
+  .d-stt, .d-id, .d-name, .d-role, .d-time, .d-sign, .d-note {
+    border-color: #000 !important;
   }
 
   .hdr {
     background: #fff !important;
-    background-color: #fff !important;
-    border: 1px solid #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
     border-color: #000 !important;
     color: #000 !important;
   }
 
-  /* Data rows */
-  .drow {
-    height: 29px !important;
-    max-height: 29px !important;
-  }
-
-  .d-stt,
-  .d-id,
-  .d-name,
-  .d-role,
-  .d-time,
-  .d-sign,
-  .d-note {
-    border: 1px solid #000 !important;
-    border-color: #000 !important;
-    height: 29px !important;
-    vertical-align: middle !important;
-    overflow: hidden !important;
-    white-space: nowrap !important;
-  }
-
-  /* Row 24: Gồm */
-  .row24 {
-    height: 39px !important;
-  }
-
-  .xl-table td.r24-cell {
-    border: 2px solid #000 !important;
-    border-color: #000 !important;
-    padding: 0 8px !important;
-  }
-
-  /* Row 25: Signatures */
-  .row25-tca {
-    height: 109px !important;
-  }
-
-  .row25-sun {
-    height: 84px !important;
-  }
-
-  .xl-table .sig-cell,
-  .xl-table .sig-cell:last-child {
-    border: none !important;
-  }
-
-  .time-input::placeholder {
-    color: transparent !important;
-  }
-
+  /* ── 6. Hide inputs placeholder & dropdown arrow ───────────── */
+  .time-input::placeholder,
   .note-input::placeholder {
     color: transparent !important;
   }
 
-  /* Hide select dropdown arrow on print */
   .time-input {
     appearance: none;
     -webkit-appearance: none;
