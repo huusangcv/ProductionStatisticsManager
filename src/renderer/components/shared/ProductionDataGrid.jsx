@@ -76,6 +76,7 @@ function ProductionDataGrid({
   filterDate,
   onFilterDateChange,
   fallbackNote,
+  customActions,
 }) {
   const { isDragging, dragProps } = useDragDropImport({
     onDropFile: onFileDrop,
@@ -123,6 +124,7 @@ function ProductionDataGrid({
         filterDate={filterDate}
         onFilterDateChange={onFilterDateChange}
         fallbackNote={fallbackNote}
+        customActions={customActions}
       />
     );
   };

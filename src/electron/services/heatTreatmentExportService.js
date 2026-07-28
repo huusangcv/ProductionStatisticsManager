@@ -72,7 +72,7 @@ async function generateExport({ reportDate }) {
     const { filePath, folderPath, fileName } = resolveExportPath(reportDate);
     summary.exportedFile = filePath;
 
-    // 6. Generate Excel & Write File & Save Summary (summary saved only AFTER file written successfully)
+    // 6. Generate Excel & Write File (engine only writes file, no DB access)
     const genResult = await generateHeatTreatmentExcel({
       templatePath: tmpl.template_path,
       outputPath: filePath,
@@ -80,10 +80,24 @@ async function generateExport({ reportDate }) {
       sheetName: tmpl.sheet_name,
       startRow: 6,
       reportDate,
-      summary,
     });
 
     if (!genResult.ok) return genResult;
+
+    // 7. Auto-save summary to heat_treatment_summary (upsert by period — one record per kỳ)
+    const heatTreatmentSummaryService = require("./heatTreatmentSummaryService");
+    const saveRes = heatTreatmentSummaryService.upsertByPeriod(summary);
+    if (!saveRes || !saveRes.ok) {
+      // Log warning but don't fail the export — file was already written successfully
+      const logger = require("../logger");
+      logger.warn("Heat Treatment Export: Failed to save summary to DB", { message: saveRes?.message });
+    } else {
+      const logger = require("../logger");
+      const pStr = `${summary.periodYear}-${String(summary.periodMonth).padStart(2, "0")}`;
+      logger.info(
+        `Heat Treatment Summary Saved\nReport Date: ${summary.reportDate}\nPeriod: ${pStr}\nWCB: ${summary.wcbWeight} Kg\nOther: ${summary.otherWeight} Kg\nTotal: ${summary.totalWeight} Kg\nExport File: ${summary.exportedFile}\nAction: ${saveRes.action}`
+      );
+    }
 
     const durationMs = Date.now() - startTime;
     return {

@@ -36,14 +36,14 @@ function ensureEmployeesTable() {
     const columns = db.prepare("PRAGMA table_info(employees)").all();
     const hasEmployeeName = columns.some((c) => c.name === "employee_name");
     const hasRoleCode = columns.some((c) => c.name === "role_code");
-    
+
     if (hasEmployeeName || hasRoleCode) {
       migrateOldEmployees(db);
     }
 
     // Migration: Change representative_code UNIQUE to UNIQUE(role_id, representative_code)
     migrateRemoveUniqueRepresentativeCode(db);
-    
+
   } finally {
     db.close();
   }
@@ -63,7 +63,7 @@ function migrateRemoveUniqueRepresentativeCode(db) {
       }
     }
   }
-  
+
   // Alternatively, check sqlite_master for the CREATE TABLE statement
   const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='employees'").get();
   if (tableInfo && (tableInfo.sql.includes("UNIQUE(role_id, representative_code)") || tableInfo.sql.includes("representative_code TEXT    UNIQUE") || tableInfo.sql.includes("representative_code TEXT UNIQUE"))) {
@@ -416,17 +416,26 @@ function migrateEmployeeCodesTo8Digits(db) {
       { old: "V0554", new: "V20080554" },
       { old: "V3176", new: "V26043176" },
     ];
-    
+
     db.pragma("foreign_keys = OFF");
+
+    // Helper: check if a table exists before running statements against it
+    const tableExists = (name) =>
+      !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name);
+
     const updateEmp = db.prepare("UPDATE employees SET employee_code = ?, representative_code = ? WHERE employee_code = ?");
-    const updateProd = db.prepare("UPDATE personal_production_records SET employee_code = ? WHERE employee_code = ?");
-    const updateOt = db.prepare("UPDATE overtime_records SET employee_code = ? WHERE employee_code = ?");
-    
+    const updateProd = tableExists("personal_production_records")
+      ? db.prepare("UPDATE personal_production_records SET employee_code = ? WHERE employee_code = ?")
+      : null;
+    const updateOt = tableExists("overtime_records")
+      ? db.prepare("UPDATE overtime_records SET employee_code = ? WHERE employee_code = ?")
+      : null;
+
     const runMigration = db.transaction(() => {
       for (const item of mapping) {
-        try { updateEmp.run(item.new, item.new, item.old); } catch(e) {}
-        try { updateProd.run(item.new, item.old); } catch(e) {}
-        try { updateOt.run(item.new, item.old); } catch(e) {}
+        try { updateEmp.run(item.new, item.new, item.old); } catch (e) { }
+        try { if (updateProd) updateProd.run(item.new, item.old); } catch (e) { }
+        try { if (updateOt) updateOt.run(item.new, item.old); } catch (e) { }
       }
     });
     runMigration();

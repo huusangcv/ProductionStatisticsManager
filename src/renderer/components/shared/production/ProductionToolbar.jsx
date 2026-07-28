@@ -63,6 +63,7 @@ export default function ProductionToolbar({
   filterDate,
   onFilterDateChange,
   fallbackNote,
+  customActions,
 }) {
   const apiRef = useGridApiContext();
   const [anchorEl, setAnchorEl] = useState(null);
@@ -160,77 +161,83 @@ export default function ProductionToolbar({
 
       {/* ── Right Section ────────────────────────────────────────────────── */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <Button
-          variant="outlined"
-          color="primary"
-          onClick={(e) => setAnchorEl(e.currentTarget)}
-          endIcon={<KeyboardArrowDownRoundedIcon />}
-          sx={{
-            height: 36,
-            borderRadius: "8px",
-            fontWeight: 600,
-            textTransform: "none",
-            px: 2,
-            bgcolor: "#fff",
-            borderColor: "#E2E8F0",
-            color: "#1E293B",
-            "&:hover": {
-              bgcolor: "#F8FAFC",
-              borderColor: "#CBD5E1",
-            },
-          }}
-        >
-          Xuất/Nhập
-        </Button>
-        <Menu
-          anchorEl={anchorEl}
-          open={open}
-          onClose={() => setAnchorEl(null)}
-          slotProps={{
-            paper: {
-              elevation: 2,
-              sx: {
-                borderRadius: "10px",
-                mt: 0.5,
-                minWidth: 150,
-                border: "1px solid #E2E8F0",
-                boxShadow: "0 4px 12px rgba(15, 23, 42, 0.08)",
-              },
-            },
-          }}
-        >
-          <MenuItem
-            onClick={() => {
-              setAnchorEl(null);
-              if (onImport) onImport();
-            }}
-            sx={{
-              py: 1,
-              gap: 1.5,
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              color: "#1E293B",
-            }}
-          >
-            <UploadFileRoundedIcon sx={{ fontSize: 18, color: "primary.main" }} />
-            Nhập Excel
-          </MenuItem>
-          <MenuItem
-            onClick={handleExport}
-            sx={{
-              py: 1,
-              gap: 1.5,
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              color: "#1E293B",
-            }}
-          >
-            <FileDownloadOutlinedIcon
-              sx={{ fontSize: 18, color: "success.main" }}
-            />
-            Xuất file
-          </MenuItem>
-        </Menu>
+        {customActions !== undefined ? (
+          customActions
+        ) : (
+          <>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={(e) => setAnchorEl(e.currentTarget)}
+              endIcon={<KeyboardArrowDownRoundedIcon />}
+              sx={{
+                height: 36,
+                borderRadius: "8px",
+                fontWeight: 600,
+                textTransform: "none",
+                px: 2,
+                bgcolor: "#fff",
+                borderColor: "#E2E8F0",
+                color: "#1E293B",
+                "&:hover": {
+                  bgcolor: "#F8FAFC",
+                  borderColor: "#CBD5E1",
+                },
+              }}
+            >
+              Xuất/Nhập
+            </Button>
+            <Menu
+              anchorEl={anchorEl}
+              open={open}
+              onClose={() => setAnchorEl(null)}
+              slotProps={{
+                paper: {
+                  elevation: 2,
+                  sx: {
+                    borderRadius: "10px",
+                    mt: 0.5,
+                    minWidth: 150,
+                    border: "1px solid #E2E8F0",
+                    boxShadow: "0 4px 12px rgba(15, 23, 42, 0.08)",
+                  },
+                },
+              }}
+            >
+              <MenuItem
+                onClick={() => {
+                  setAnchorEl(null);
+                  if (onImport) onImport();
+                }}
+                sx={{
+                  py: 1,
+                  gap: 1.5,
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                  color: "#1E293B",
+                }}
+              >
+                <UploadFileRoundedIcon sx={{ fontSize: 18, color: "primary.main" }} />
+                Nhập Excel
+              </MenuItem>
+              <MenuItem
+                onClick={handleExport}
+                sx={{
+                  py: 1,
+                  gap: 1.5,
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                  color: "#1E293B",
+                }}
+              >
+                <FileDownloadOutlinedIcon
+                  sx={{ fontSize: 18, color: "success.main" }}
+                />
+                Xuất file
+              </MenuItem>
+            </Menu>
+          </>
+        )}
 
         <Tooltip title="Làm mới" arrow placement="top">
           <IconButton

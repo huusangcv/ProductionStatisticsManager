@@ -22,8 +22,8 @@ const PAGE_META = {
     subtitle: "Xuất báo cáo xử lý nhiệt từ dữ liệu Mài",
   },
   "/casting-defect": {
-    title: "Báo Phế Đúc",
-    subtitle: "Quản lý và thống kê báo phế đúc",
+    title: "Báo Phế — Xưởng Đúc",
+    subtitle: "P-029-06.01 A3 — 铸造车间不良品回炉申请单",
   },
   "/employees": {
     title: "Quản lý nhân viên",

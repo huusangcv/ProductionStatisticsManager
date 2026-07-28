@@ -51,7 +51,7 @@ function getDefectRowsByDate(reportDate) {
 }
 
 const KNOWN_MATERIALS = [
-  "CF3M", "CF8M", "WCB", "CW12MW", "CX2MW", "CD3MN", "CD3MWCuN", "CN7M", 
+  "CF3M", "CF8M", "WCB", "CW12MW", "CX2MW", "CD3MN", "CD3MWCuN", "CN7M",
   "LCC", "M35", "CF8", "316", "304"
 ];
 
@@ -62,6 +62,8 @@ function getScrapMaterial(specification) {
   const sortedMaterials = [...KNOWN_MATERIALS].sort((a, b) => b.length - a.length);
   for (const mat of sortedMaterials) {
     if (specUpper.includes(mat.toUpperCase())) {
+      if (mat === "304") return "CF8";
+      if (mat === "316") return "CF8M";
       return mat;
     }
   }
@@ -95,16 +97,10 @@ function mapRowToExcel(row) {
 
   return {
     B: row.work_order_number || "",
-    C: row.item_name         || "",
-    D: row.specification     || "",
+    C: row.item_name || "",
+    D: row.specification || "",
     E: material,
-    F: material,
-    V: scrapQty,
-    W: scrapQty,
-    Y: unitWeight,
-    Z: type,
-    AA: totalWeight,
-    AB: material,
+    V: scrapQty, // Khác
   };
 }
 

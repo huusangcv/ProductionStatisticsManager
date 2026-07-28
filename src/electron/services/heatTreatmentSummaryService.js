@@ -71,7 +71,73 @@ function upsert(summary) {
   return saveExportSummary(summary);
 }
 
+/**
+ * Upserts by period (year+month). One record per kỳ xử lý nhiệt.
+ * Validates and delegates to repository.upsertByPeriod.
+ * @param {object} summary - { reportDate, periodYear, periodMonth, wcbWeight, otherWeight, totalWeight, exportedFile }
+ * @returns {object}
+ */
+function upsertByPeriod(summary) {
+  if (!summary || typeof summary !== "object") {
+    return { ok: false, message: "Dữ liệu summary không hợp lệ." };
+  }
+  if (!summary.reportDate) {
+    return { ok: false, message: "Thiếu ngày báo cáo (reportDate)." };
+  }
+  if (!summary.periodYear || !summary.periodMonth) {
+    return { ok: false, message: "Thiếu thông tin kỳ (periodYear, periodMonth)." };
+  }
+  if (!summary.exportedFile) {
+    return { ok: false, message: "Thiếu đường dẫn file xuất (exportedFile)." };
+  }
+
+  const wcbWeight = Number(summary.wcbWeight) || 0;
+  const otherWeight = Number(summary.otherWeight) || 0;
+  let totalWeight =
+    summary.totalWeight !== undefined && summary.totalWeight !== null
+      ? Number(summary.totalWeight)
+      : Number((wcbWeight + otherWeight).toFixed(2));
+  if (isNaN(totalWeight)) totalWeight = Number((wcbWeight + otherWeight).toFixed(2));
+
+  const now = new Date();
+  const validatedSummary = {
+    reportDate: String(summary.reportDate),
+    periodYear: Number(summary.periodYear) || now.getFullYear(),
+    periodMonth: Number(summary.periodMonth) || now.getMonth() + 1,
+    wcbWeight: Number(wcbWeight.toFixed(2)),
+    otherWeight: Number(otherWeight.toFixed(2)),
+    totalWeight: Number(totalWeight.toFixed(2)),
+    exportedFile: String(summary.exportedFile),
+  };
+
+  const res = heatTreatmentSummaryRepository.upsertByPeriod(validatedSummary);
+  if (!res || !res.ok) {
+    return { ok: false, message: res?.message || "Lỗi lưu summary theo kỳ." };
+  }
+  return {
+    ok: true,
+    action: res.action,
+    id: res.id,
+    summary: res.summary || validatedSummary,
+  };
+}
+
+/**
+ * Returns all daily summary records for a given period.
+ * @param {number} periodYear
+ * @param {number} periodMonth
+ * @returns {object[]}
+ */
+function getSummaryByPeriod(periodYear, periodMonth) {
+  return heatTreatmentSummaryRepository.getSummaryByPeriod(
+    Number(periodYear),
+    Number(periodMonth)
+  );
+}
+
 module.exports = {
   saveExportSummary,
   upsert,
+  upsertByPeriod,
+  getSummaryByPeriod,
 };

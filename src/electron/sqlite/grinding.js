@@ -5,7 +5,13 @@
  * since grindingColumns.js is an ES Module used by the renderer).
  */
 
-const { createProductionModule } = require("./productionBase");
+const { createProductionModule, enrichWithEmployeeData } = require("./productionBase");
+const Database = require("better-sqlite3");
+const { getDatabasePath } = require("./paths");
+
+function openDatabase() {
+  return new Database(getDatabasePath());
+}
 
 const GRINDING_COLUMN_SPEC = [
   { databaseField: "report_date",           type: "text"    },
@@ -25,6 +31,21 @@ const GRINDING_COLUMN_SPEC = [
 
 const grindingDAO = createProductionModule("grinding_production", GRINDING_COLUMN_SPEC, "GRIND");
 
+function getDefectsByDate(date) {
+  const db = openDatabase();
+  try {
+    const rows = db
+      .prepare(`SELECT * FROM grinding_production WHERE completed_quantity = 0 AND report_date = ?`)
+      .all(date);
+    return enrichWithEmployeeData(db, rows, "GRIND");
+  } catch (error) {
+    console.error("Error in getDefectsByDate:", error);
+    return [];
+  } finally {
+    db.close();
+  }
+}
+
 module.exports = {
   ensureGrindingTable:            grindingDAO.ensureTable,
   getAllGrindingData:              grindingDAO.getAll,
@@ -36,4 +57,5 @@ module.exports = {
   deleteGrindingDataByDate:       grindingDAO.deleteByDate,
   importGrindingData:             grindingDAO.importData,
   getLatestGrindingDate:          grindingDAO.getLatestDate,
+  getDefectsByDate,
 };

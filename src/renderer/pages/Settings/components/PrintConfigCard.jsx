@@ -5,7 +5,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Box, Typography, Select, MenuItem, FormControl, InputLabel, Button,
-  Alert, Divider, Paper, Tooltip, Grid
+  Alert, Divider, Paper, Tooltip, Grid, TextField
 } from "@mui/material";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
@@ -70,7 +70,8 @@ function PrintPreviewBar({ startColumn, endColumn }) {
 
 export default function PrintConfigCard({ template, onSave, loading = false }) {
   const [config, setConfig] = useState({
-    startColumn: "A", endColumn: "Z"
+    startColumn: "A", endColumn: "Z",
+    orientation: "landscape", startRow: 6
   });
 
   const [saving, setSaving] = useState(false);
@@ -82,6 +83,8 @@ export default function PrintConfigCard({ template, onSave, loading = false }) {
       setConfig({
         startColumn: (template.print_start_column || "A").toUpperCase(),
         endColumn: (template.print_end_column || "Z").toUpperCase(),
+        orientation: template.orientation || "landscape",
+        startRow: template.start_row || 6
       });
       setError(""); setSuccessMsg("");
     }
@@ -97,8 +100,9 @@ export default function PrintConfigCard({ template, onSave, loading = false }) {
     const ei = columnToIndex(config.endColumn);
     if (!si || !ei) return { valid: false, msg: "Cột không hợp lệ" };
     if (si > ei) return { valid: false, msg: `Cột bắt đầu (${config.startColumn}) phải ≤ cột kết thúc (${config.endColumn})` };
+    if (!config.startRow || isNaN(config.startRow) || Number(config.startRow) < 1) return { valid: false, msg: "Hàng bắt đầu không hợp lệ" };
     return { valid: true, msg: "" };
-  }, [config.startColumn, config.endColumn]);
+  }, [config.startColumn, config.endColumn, config.startRow]);
 
   const handleSave = async () => {
     if (!validation.valid) return;
@@ -145,6 +149,29 @@ export default function PrintConfigCard({ template, onSave, loading = false }) {
             </Select>
           </FormControl>
         </Grid>
+
+        {/* HƯỚNG IN VÀ DÒNG BẮT ĐẦU */}
+        <Grid item xs={12} sm={6}>
+          <FormControl size="small" fullWidth>
+            <InputLabel>Hướng in</InputLabel>
+            <Select value={config.orientation} label="Hướng in" onChange={handleChange("orientation")}>
+              <MenuItem value="landscape">Ngang (Landscape)</MenuItem>
+              <MenuItem value="portrait">Dọc (Portrait)</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            size="small"
+            fullWidth
+            type="number"
+            label="Hàng bắt đầu (Data Row)"
+            value={config.startRow}
+            onChange={handleChange("startRow")}
+            InputProps={{ inputProps: { min: 1 } }}
+          />
+        </Grid>
+
         <Grid item xs={12}>
           <PrintPreviewBar startColumn={config.startColumn} endColumn={config.endColumn} />
         </Grid>

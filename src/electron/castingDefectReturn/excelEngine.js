@@ -47,32 +47,12 @@ async function generateCastingDefectExcel({ templatePath, outputPath, rows, repo
       worksheet.duplicateRow(startRow, rows.length - 1, true);
     }
     
-    // Clear the formulas from data rows to prevent ExcelJS issues
-    for (let i = 0; i < N; i++) {
-      const wsRow = worksheet.getRow(startRow + i);
-      wsRow.eachCell({ includeEmpty: true }, (cell) => {
-        if (cell.type === ExcelJS.ValueType.Formula) {
-          cell.value = cell.result ?? null;
-        }
-      });
-    }
-
-    // ── Fill Data ───────────────────────────────────────────────────────────────
-    let totalScrapPCS = 0;
+    // Remove autoFilter to prevent some corruption issues
+    worksheet.autoFilter = undefined;
     
-    // Accumulators for Footer
-    const footerSums = {
-      VAN: { "CF8M": 0, "CF8": 0, "CF3M": 0, "WCB": 0, "total": 0 },
-      ỐNG: { "CF8M": 0, "CF8": 0, "total": 0 }
-    };
-    
-    // For 316 and 304, map them to CF8M and CF8 for the footer
-    const mapMaterial = (mat) => {
-      if (mat === "316") return "CF8M";
-      if (mat === "304") return "CF8";
-      return mat;
-    };
-
+    // We rely entirely on the Excel template's formulas.
+    // The user's template contains a footer with formulas that will automatically calculate totals.
+    // We only duplicate rows to expand the data area, and ExcelJS will shift the footer down.
     if (rows.length > 0) {
       for (let i = 0; i < N; i++) {
         const rowNum = startRow + i;
@@ -82,29 +62,13 @@ async function generateCastingDefectExcel({ templatePath, outputPath, rows, repo
         // A (STT)
         wsRow.getCell(1).value = i + 1;
         
-        // Data columns
+        // Data columns (B -> U)
         Object.entries(rowData).forEach(([colKey, val]) => {
           const colIdx = getColNumber(colKey);
           if (val !== undefined && val !== null) {
             wsRow.getCell(colIdx).value = val;
           }
         });
-
-        // Accumulate for footer
-        const type = rowData.Z; // VAN / ỐNG
-        const mat = mapMaterial(rowData.E); // Material
-        const totalWeight = rowData.AA || 0; // Total weight
-        const totalScrap = rowData.W || 0; // Total PCS
-
-        totalScrapPCS += totalScrap;
-
-        if (type === "VAN") {
-          footerSums.VAN.total += totalWeight;
-          if (footerSums.VAN[mat] !== undefined) footerSums.VAN[mat] += totalWeight;
-        } else if (type === "ỐNG") {
-          footerSums.ỐNG.total += totalWeight;
-          if (footerSums.ỐNG[mat] !== undefined) footerSums.ỐNG[mat] += totalWeight;
-        }
 
         wsRow.commit();
       }
@@ -115,52 +79,12 @@ async function generateCastingDefectExcel({ templatePath, outputPath, rows, repo
       wsRow.commit();
     }
 
-    // ── Update Footer ─────────────────────────────────────────────────────────
-    const footerRow = startRow + N;
-    
-    // Row 7: Total PCS
-    const r7 = worksheet.getRow(footerRow);
-    r7.getCell(22).value = totalScrapPCS > 0 ? totalScrapPCS : ""; // V
-    r7.getCell(23).value = totalScrapPCS > 0 ? totalScrapPCS : ""; // W
-    for (let c = 7; c <= 23; c++) {
-       if (c !== 22 && c !== 23) {
-         r7.getCell(c).value = { formula: `""`, result: "" }; // preserve cell structure if needed, or just clear
-         r7.getCell(c).value = ""; 
-       }
-    }
-    r7.commit();
-
-    // Row 9: Overall Total Weight
-    const r9 = worksheet.getRow(footerRow + 2);
-    r9.getCell(19).value = footerSums.ỐNG.total + footerSums.VAN.total;
-    r9.commit();
-
-    // Row 10: Breakdowns
-    const r10 = worksheet.getRow(footerRow + 3);
-    
-    // Clear formula tags to avoid corruptions before setting static values
-    r10.eachCell({ includeEmpty: true }, (c) => {
-      if (c.type === ExcelJS.ValueType.Formula) {
-         c.value = c.result ?? null;
-      }
-    });
-
-    r10.getCell(3).value = footerSums.ỐNG["CF8M"];
-    r10.getCell(4).value = footerSums.ỐNG["CF8"];
-    r10.getCell(5).value = footerSums.ỐNG.total - footerSums.ỐNG["CF8M"] - footerSums.ỐNG["CF8"];
-    
-    r10.getCell(7).value = footerSums.VAN["CF8M"];
-    r10.getCell(9).value = footerSums.VAN["CF8"];
-    r10.getCell(11).value = footerSums.VAN["CF3M"];
-    r10.getCell(13).value = footerSums.VAN["WCB"];
-    r10.getCell(15).value = footerSums.VAN.total - footerSums.VAN["CF8M"] - footerSums.VAN["CF8"] - footerSums.VAN["CF3M"] - footerSums.VAN["WCB"];
-    
-    r10.commit();
-
     // ── Update Print Area ───────────────────────────────────────────────────
+    const footerRow = startRow + N;
+    const printEndRow = footerRow + 7;
+    
     const { getTemplate } = require("../sqlite/excelTemplates");
     const tplConfig = getTemplate("casting-defect-return");
-    const printEndRow = footerRow + 7;
     
     if (tplConfig && tplConfig.print_start_column && tplConfig.print_end_column) {
       worksheet.pageSetup.printArea = `${tplConfig.print_start_column}1:${tplConfig.print_end_column}${printEndRow}`;

@@ -302,23 +302,6 @@ async function generateHeatTreatmentExcel({ templatePath, outputPath, rows, shee
     // ── Save ──────────────────────────────────────────────────────────────────
     await workbook.xlsx.writeFile(outputPath);
 
-    // ── Save Summary to SQLite ────────────────────────────────────────────────
-    if (summary) {
-      const heatTreatmentSummaryService = require("../services/heatTreatmentSummaryService");
-      const saveRes = heatTreatmentSummaryService.upsert(summary);
-      if (!saveRes || !saveRes.ok) {
-        return {
-          ok: false,
-          message: "Lỗi lưu summary vào database: " + (saveRes?.message || "Unknown error"),
-        };
-      }
-      const logger = require("../logger");
-      const pStr = `${summary.periodYear}-${String(summary.periodMonth).padStart(2, "0")}`;
-      logger.info(
-        `Heat Treatment Summary Saved\nReport Date: ${summary.reportDate}\nPeriod: ${pStr}\nWCB: ${summary.wcbWeight} Kg\nOther: ${summary.otherWeight} Kg\nTotal: ${summary.totalWeight} Kg\nExport File: ${summary.exportedFile}`
-      );
-    }
-
     return { ok: true };
 
   } catch (error) {

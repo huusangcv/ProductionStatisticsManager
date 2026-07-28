@@ -280,7 +280,7 @@ export function useTemplates() {
           // Refresh list and update the selected template in-place
           await fetchTemplates();
           setSelectedTemplate((prev) =>
-            prev ? { ...prev, ...config, print_start_column: config.startColumn, print_end_column: config.endColumn } : prev
+            prev ? { ...prev, ...config, print_start_column: config.startColumn, print_end_column: config.endColumn, start_row: config.startRow } : prev
           );
           return { success: true, message: `Đã lưu cấu hình in` };
         } else {

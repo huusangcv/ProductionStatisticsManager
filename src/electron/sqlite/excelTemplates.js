@@ -294,6 +294,7 @@ function updatePrintConfig(module, config) {
              margin_bottom_cm = ?,
              header_margin_cm = ?,
              footer_margin_cm = ?,
+             start_row = ?,
              updated_at = ?
          WHERE module = ?`
       )
@@ -311,6 +312,7 @@ function updatePrintConfig(module, config) {
         config.marginBottom !== '' ? config.marginBottom : 1.5,
         config.headerMargin !== '' ? config.headerMargin : 0.8,
         config.footerMargin !== '' ? config.footerMargin : 0.8,
+        config.startRow !== undefined ? config.startRow : 3,
         now,
         module
       );

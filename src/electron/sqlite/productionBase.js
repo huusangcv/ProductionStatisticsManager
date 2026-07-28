@@ -30,7 +30,6 @@ function buildCreateTableSql(tableName, columnSpec) {
         CREATE TABLE ${tableName} (
           id                            INTEGER PRIMARY KEY AUTOINCREMENT,
 ${colDefs},
-          representative_code           TEXT,
           import_session_id             INTEGER,
           imported_at                   TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
         )
@@ -523,4 +522,4 @@ function createProductionModule(tableName, columnSpec, roleCode) {
   };
 }
 
-module.exports = { createProductionModule };
+module.exports = { createProductionModule, enrichWithEmployeeData };

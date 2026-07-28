@@ -47,6 +47,7 @@ const {
   checkGrindingDataExistsByDate,
   deleteGrindingDataByDate,
   getLatestGrindingDate,
+  getDefectsByDate,
 } = require("./sqlite/grinding");
 const {
   getAllCuttingData,
@@ -787,6 +788,9 @@ function registerIpcHandlers() {
     updateGrindingData(id, data),
   );
   ipcMain.handle("grinding:delete", (_event, id) => deleteGrindingDataById(id));
+  ipcMain.handle("grinding:getDefectsByDate", (_event, date) =>
+    getDefectsByDate(date),
+  );
 
   ipcMain.handle("grinding:selectFile", (event) =>
     selectProductionFile(event, "Chọn file Excel sản lượng Mài"),
@@ -950,6 +954,11 @@ function registerIpcHandlers() {
   ipcMain.handle("heatTreatment:generate", async (_event, { reportDate }) => {
     const heatTreatmentExportService = require("./services/heatTreatmentExportService");
     return heatTreatmentExportService.generateExport({ reportDate });
+  });
+
+  ipcMain.handle("heatTreatment:generatePeriodSummary", async (_event, { periodYear, periodMonth }) => {
+    const heatTreatmentSummaryExportService = require("./services/heatTreatmentSummaryExportService");
+    return heatTreatmentSummaryExportService.generatePeriodSummaryExport({ periodYear, periodMonth });
   });
 
   ipcMain.handle("heatTreatment:checkExportFile", (_event, reportDate) => {

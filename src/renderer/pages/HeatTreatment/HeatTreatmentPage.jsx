@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Alert,
   Box,
+  Button,
   Card,
   Snackbar,
   TextField,
@@ -13,9 +14,11 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import PrintIcon from "@mui/icons-material/Print";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import SummarizeIcon from "@mui/icons-material/Summarize";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
 import ExportDialogs from "./components/ExportDialogs";
+import PeriodSummaryDialog from "./components/PeriodSummaryDialog";
 import PrintErrorDialog from "../../components/shared/PrintErrorDialog";
 import ProductionDataGrid from "../../components/shared/ProductionDataGrid";
 import ReportToolbar from "../../components/shared/ReportToolbar";
@@ -41,6 +44,7 @@ export default function HeatTreatmentPage() {
     severity: "success",
   });
   const [printErrorResult, setPrintErrorResult] = useState(null);
+  const [showPeriodSummaryDialog, setShowPeriodSummaryDialog] = useState(false);
 
   const { printExcel, printing } = usePrinters();
 
@@ -245,6 +249,34 @@ export default function HeatTreatmentPage() {
               </Box>
             </Tooltip>
           )}
+          {/* Nút xuất file tổng hợp kỳ */}
+          <Tooltip title="Xuất file tổng hợp kỳ Hàng Xử lý Nhiệt" arrow placement="top">
+            <Button
+              id="btn-period-summary"
+              variant="outlined"
+              size="small"
+              startIcon={<SummarizeIcon />}
+              onClick={() => setShowPeriodSummaryDialog(true)}
+              sx={{
+                height: 36,
+                borderRadius: "8px",
+                fontWeight: 600,
+                textTransform: "none",
+                px: 1.5,
+                bgcolor: "#fff",
+                borderColor: "#E2E8F0",
+                color: "#475569",
+                fontSize: "0.8rem",
+                "&:hover": {
+                  bgcolor: "#F0F4FF",
+                  borderColor: "primary.main",
+                  color: "primary.main",
+                },
+              }}
+            >
+              Tổng hợp kỳ
+            </Button>
+          </Tooltip>
         </Box>
       }
       onGenerate={handleGenerate}
@@ -280,6 +312,11 @@ export default function HeatTreatmentPage() {
         onOpenFile={handleOpenFile}
         onOpenFolder={handleOpenFolder}
         onPrint={handlePrint}
+      />
+
+      <PeriodSummaryDialog
+        open={showPeriodSummaryDialog}
+        onClose={() => setShowPeriodSummaryDialog(false)}
       />
 
       <PrintErrorDialog 

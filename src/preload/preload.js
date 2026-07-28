@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("grinding:parseExcel", filePath),
     save: (payload) => ipcRenderer.invoke("grinding:save", payload),
     getLatestDate: (date) => ipcRenderer.invoke("grinding:getLatestDate", date),
+    getDefectsByDate: (date) => ipcRenderer.invoke("grinding:getDefectsByDate", date),
   },
   cutting: {
     getAll: () => ipcRenderer.invoke("cutting:getAll"),
@@ -95,6 +96,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getLatestDate: (date) =>
       ipcRenderer.invoke("heatTreatment:getLatestDate", date),
     generate: (params) => ipcRenderer.invoke("heatTreatment:generate", params),
+    generatePeriodSummary: (params) =>
+      ipcRenderer.invoke("heatTreatment:generatePeriodSummary", params),
     checkExportFile: (date) =>
       ipcRenderer.invoke("heatTreatment:checkExportFile", date),
     openFolder: (filePath) =>
