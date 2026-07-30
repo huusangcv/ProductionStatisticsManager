@@ -48,6 +48,8 @@ const {
   deleteGrindingDataByDate,
   getLatestGrindingDate,
   getDefectsByDate,
+  getAllDefectCandidatesByDate,
+  getScrapSummaryByDate,
 } = require("./sqlite/grinding");
 const {
   getAllCuttingData,
@@ -85,6 +87,7 @@ const { resolveExportPath } = require("./heatTreatment/exportPaths");
 const { generateCastingDefectExcel } = require("./castingDefectReturn/excelEngine");
 const { resolveExportPath: resolveCastingExportPath } = require("./castingDefectReturn/exportPaths");
 const { getDefectRowsByDate, mapRowToExcel } = require("./castingDefectReturn/defectRules");
+const { exportBaoPhe } = require("./castingDefectReturn/export-bao-phe");
 const {
   getAllPrinters,
   getDefaultPrinter,
@@ -1087,6 +1090,77 @@ function registerIpcHandlers() {
 
   ipcMain.handle("castingDefect:print", async (_event, filePath) => {
     return await printerService.printExcel(filePath, null, "casting-defect-return");
+  });
+
+  // ── Báo Phế (Grid nhập liệu) handlers ────────────────────────────────────────
+
+  // Lấy danh sách candidates (completed_quantity=0) cho grid nhập liệu
+  ipcMain.handle("bao-phe:getCandidates", (_event, date) => {
+    try {
+      return { ok: true, rows: getAllDefectCandidatesByDate(date) };
+    } catch (error) {
+      return { ok: false, message: error.message, rows: [] };
+    }
+  });
+
+  // Lấy tóm tắt số liệu phế trong ngày cho băng đối soát
+  ipcMain.handle("bao-phe:getSummary", (_event, date) => {
+    try {
+      return { ok: true, ...getScrapSummaryByDate(date) };
+    } catch (error) {
+      return { ok: false, message: error.message, totalRows: 0, totalScrap: 0 };
+    }
+  });
+
+  // Xuất 2 file Excel từ grid data
+  ipcMain.handle("bao-phe:export", async (_event, { candidates, dateLabel }) => {
+    try {
+      // Lấy template
+      const tmpl = getTemplate("casting-defect-return");
+      if (!tmpl) {
+        return {
+          ok: false,
+          message: "Chưa cấu hình template. Vui lòng upload template P-029-06.01 trong Cài đặt.",
+        };
+      }
+      if (!fs.existsSync(tmpl.template_path)) {
+        return { ok: false, message: "File template không tồn tại. Vui lòng upload lại." };
+      }
+      if (!candidates || candidates.length === 0) {
+        return { ok: false, message: "Không có dữ liệu để xuất file." };
+      }
+
+      // Thư mục output riêng cho chức năng mới
+      const { getAppDataRoot } = require("./sqlite/paths");
+      const outputDir = path.join(getAppDataRoot(), "exports", "BaoPheGrid");
+
+      const result = await exportBaoPhe({
+        templatePath: tmpl.template_path,
+        allCandidates: candidates,
+        outputDir,
+        dateLabel,
+      });
+
+      return {
+        ok: true,
+        full: result.full,
+        qc:   result.qc,
+        folderPath: result.folderPath,
+      };
+    } catch (error) {
+      console.error("[bao-phe:export] Error:", error);
+      return { ok: false, message: "Lỗi xuất file: " + error.message };
+    }
+  });
+
+  ipcMain.handle("bao-phe:openFolder", (_event, folderPath) => {
+    shell.openPath(folderPath);
+    return { ok: true };
+  });
+
+  ipcMain.handle("bao-phe:openFile", (_event, filePath) => {
+    shell.openPath(filePath);
+    return { ok: true };
   });
 
   // ── Personal Production (Sản lượng Cá nhân) ─────────────────────────────

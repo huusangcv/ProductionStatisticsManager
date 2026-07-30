@@ -171,6 +171,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
     openFile:   (filePath) => ipcRenderer.invoke("castingDefect:openFile", filePath),
     print:      (filePath) => ipcRenderer.invoke("castingDefect:print", filePath),
   },
+  baoPhe: {
+    getCandidates: (date)          => ipcRenderer.invoke("bao-phe:getCandidates", date),
+    getSummary:    (date)          => ipcRenderer.invoke("bao-phe:getSummary", date),
+    export:        (params)        => ipcRenderer.invoke("bao-phe:export", params),
+    openFolder:    (folderPath)    => ipcRenderer.invoke("bao-phe:openFolder", folderPath),
+    openFile:      (filePath)      => ipcRenderer.invoke("bao-phe:openFile", filePath),
+  },
   castingDefectReturn: {
     generate: (params) => ipcRenderer.invoke("casting-defect-return:generate", params),
     openFolder: (filePath) => ipcRenderer.invoke("casting-defect-return:openFolder", filePath),

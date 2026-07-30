@@ -1,0 +1,312 @@
+// export-bao-phe.js
+// Chạy trong main process của Electron (cần fs, nên KHÔNG import trong renderer).
+//
+// Dùng xlsx-populate thay ExcelJS để tránh lỗi "Shared Formula master must
+// exist above and or left of clone" — xlsx-populate được thiết kế cho use-case
+// "fill values vào template có sẵn", không tự tạo shared formula khi ghi file,
+// và giữ nguyên 100% merge cells / ảnh / print area / công thức của template.
+
+const XlsxPopulate = require('xlsx-populate');
+const path = require('path');
+const fs = require('fs');
+
+// ---------------------------------------------------------------------------
+// 1. HẰNG SỐ VỊ TRÍ — khớp với template P-029-06.01 đã chèn đủ dòng trống
+//    Nếu template thay đổi, chỉ cần sửa 4 dòng này.
+// ---------------------------------------------------------------------------
+const SHEET_NAME = 'ĐÚC P-029-06.01 A0)';
+const DATA_START_ROW = 6;
+const DATA_MAX_ROW = 99;               // dòng dữ liệu cuối cùng có sẵn trong template
+const ROW_SUM = DATA_MAX_ROW + 1; // 95 — dòng "合计 Tổng"
+const ROW_MATERIAL_HEADER = DATA_MAX_ROW + 2; // 96 — dòng header bảng chất liệu
+const ROW_MATERIAL_SUM = DATA_MAX_ROW + 3; // 97 — dòng tổng theo ỐNG/VAN x chất liệu
+
+// Cột nguyên nhân không đạt, đúng thứ tự G → V trong template
+const DEFECT_COLUMNS = [
+  { key: 'catPham', col: 'G' }, // Cắt phạm
+  { key: 'maiPham', col: 'H' }, // Mài phạm
+  { key: 'xiHo', col: 'I' }, // Xì hồ
+  { key: 'ducThieu', col: 'J' }, // Đúc thiếu
+  { key: 'loCat', col: 'K' }, // Lổ cát
+  { key: 'loKhi', col: 'L' }, // Lổ khí
+  { key: 'lungLo', col: 'M' }, // Lủng lổ
+  { key: 'bienDang', col: 'N' }, // Biến dạng
+  { key: 'matNet', col: 'O' }, // Mất nét
+  { key: 'kepCat', col: 'P' }, // Kẹp cát
+  { key: 'vetNut', col: 'Q' }, // Vết nứt
+  { key: 'saiKichThuoc', col: 'R' }, // Sai kích thước
+  { key: 'kepSat', col: 'S' }, // Kẹp sắt
+  { key: 'lanhNgat', col: 'T' }, // Lạnh ngắt
+  { key: 'loXi', col: 'U' }, // Lỗ xỉ
+  { key: 'khac', col: 'V' }, // Khác
+];
+
+// Danh sách ưu tiên tra chất liệu — mã dài/đặc thù trước, mã ngắn/dễ trùng substring sau
+const MATERIAL_PRIORITY = [
+  'CF3M', 'CF8M', 'WCB', 'CW12MW', 'CX2MW', 'CD3MN',
+  'CD3MWCuN', 'CN7M', 'LCC', 'M35', 'CF8', '316', '304',
+];
+
+// ---------------------------------------------------------------------------
+// 2. LOGIC TÍNH TOÁN
+// ---------------------------------------------------------------------------
+
+/**
+ * Tra chất liệu từ chuỗi quy_cach theo thứ tự ưu tiên.
+ * @param {string} quyCach
+ * @returns {string}
+ */
+function getChatLieu(quyCach) {
+  const s = String(quyCach || '');
+  for (const m of MATERIAL_PRIORITY) {
+    if (s.includes(m)) return m;
+  }
+  return '';
+}
+
+/**
+ * Xác định loại sản phẩm: "ỐNG" hoặc "VAN".
+ * @param {string} tenSanPham
+ * @param {string} quyCach
+ * @returns {'ỐNG'|'VAN'}
+ */
+function getLoai(tenSanPham, quyCach) {
+  const ten = String(tenSanPham || '');
+  const qc = String(quyCach || '');
+  if (ten.includes('OM-06')) return 'ỐNG';
+  if (qc.startsWith('DN') || qc.startsWith('NPS') || ten.includes('LADISH')) return 'VAN';
+  return 'ỐNG';
+}
+
+/**
+ * Tính đầy đủ một dòng từ candidate.
+ * @param {object} candidate - { maCongDon, tenSanPham, quyCach, trongLuongDonVi, defects: {...} }
+ * @returns {object} candidate mở rộng với chatLieu, loai, tongCong, tongTrongLuong
+ */
+function computeRow(candidate) {
+  const chatLieu = getChatLieu(candidate.quyCach);
+  const loai = getLoai(candidate.tenSanPham, candidate.quyCach);
+  const tongCong = DEFECT_COLUMNS.reduce(
+    (sum, d) => sum + (Number(candidate.defects[d.key]) || 0), 0
+  );
+  const tongTrongLuong = Math.round(tongCong * (candidate.trongLuongDonVi || 0) * 100) / 100;
+  return { ...candidate, chatLieu, loai, tongCong, tongTrongLuong };
+}
+
+// ---------------------------------------------------------------------------
+// 3. GHI DỮ LIỆU VÀO SHEET (xlsx-populate API)
+//    - Chỉ set giá trị, không insert/delete dòng
+//    - Dùng ws.cell(addr).value(val) thay vì ws.getCell(addr).value = val
+// ---------------------------------------------------------------------------
+
+/**
+ * Ghi các dòng dữ liệu vào worksheet đã có sẵn đủ dòng trong template.
+ * Dòng dư (không có data) sẽ được xóa giá trị và ẩn đi.
+ * @param {XlsxPopulate.Sheet} ws
+ * @param {object[]} rows - mảng đã qua computeRow()
+ */
+function writeDataRows(ws, rows) {
+  const capacity = DATA_MAX_ROW - DATA_START_ROW + 1;
+  if (rows.length > capacity) {
+    throw new Error(
+      `Số dòng (${rows.length}) vượt quá sức chứa template (${capacity}). ` +
+      `Cần mở rộng template hoặc tách trang.`
+    );
+  }
+
+  for (let i = 0; i < capacity; i++) {
+    const r = DATA_START_ROW + i;
+    const row = rows[i]; // undefined nếu vượt số dòng thực tế → xóa trắng + ẩn
+
+    // Cột B–E, AB
+    ws.cell(`B${r}`).value(row ? row.maCongDon : undefined);
+    ws.cell(`C${r}`).value(row ? row.tenSanPham : undefined);
+    ws.cell(`D${r}`).value(row ? row.quyCach : undefined);
+    ws.cell(`E${r}`).value(row ? row.chatLieu : undefined);
+    ws.cell(`AB${r}`).value(row ? row.chatLieu : undefined); // cột phụ cho SUMIFS
+
+    // 16 cột nguyên nhân G–V
+    DEFECT_COLUMNS.forEach(({ key, col }) => {
+      const v = row ? (Number(row.defects[key]) || 0) : 0;
+      // Ghi undefined (xóa ô) thay vì 0 để giữ ô trống — không hiển thị số 0
+      ws.cell(`${col}${r}`).value((v > 0) ? v : undefined);
+    });
+
+    // Tổng cộng, TL đơn vị, Loại, Tổng TL
+    ws.cell(`W${r}`).value(row ? (row.tongCong > 0 ? row.tongCong : undefined) : undefined);
+    ws.cell(`Y${r}`).value(row ? row.trongLuongDonVi : undefined);
+    ws.cell(`Z${r}`).value(row ? row.loai : undefined);
+    ws.cell(`AA${r}`).value(row ? (row.tongTrongLuong > 0 ? row.tongTrongLuong : undefined) : undefined);
+
+    // Cột A (STT): giữ nguyên công thức =ROW()-5 có sẵn trong template, không đụng vào.
+
+    // Ẩn dòng dư — không xóa, không dịch chuyển, chỉ ẩn khi xem/in
+    const wsRow = ws.row(r);
+    if (!row) {
+      wsRow.hidden(true);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 4. GHI KHỐI TỔNG KẾT
+// ---------------------------------------------------------------------------
+
+/**
+ * Ghi dòng "合计 Tổng" (cộng dọc từng cột nguyên nhân) và
+ * bảng ỐNG/VAN × chất liệu ở cuối template.
+ * @param {XlsxPopulate.Sheet} ws
+ * @param {object[]} rows - mảng đã qua computeRow()
+ */
+function writeFooterSummary(ws, rows) {
+  // 4a. Dòng "合计 Tổng" — cộng dọc từng cột nguyên nhân
+  DEFECT_COLUMNS.forEach(({ key, col }) => {
+    const total = rows.reduce((s, r) => s + (Number(r.defects[key]) || 0), 0);
+    ws.cell(`${col}${ROW_SUM}`).value(total > 0 ? total : undefined);
+  });
+
+  // 4b. Tổng TL theo Loại và Chất liệu — SUMIFS làm bằng JS
+  const sumBy = (loai, chatLieu) =>
+    rows
+      .filter(r => r.loai === loai && (!chatLieu || r.chatLieu === chatLieu))
+      .reduce((s, r) => s + (r.tongTrongLuong || 0), 0);
+
+  const round2 = n => Math.round(n * 100) / 100;
+
+  // ỐNG
+  const ongCF8M316 = round2(sumBy('ỐNG', 'CF8M') + sumBy('ỐNG', '316'));
+  const ongCF8_304 = round2(sumBy('ỐNG', 'CF8') + sumBy('ỐNG', '304'));
+  const ongTotal = round2(rows.filter(r => r.loai === 'ỐNG').reduce((s, r) => s + (r.tongTrongLuong || 0), 0));
+  const ongKhac = round2(ongTotal - ongCF8M316 - ongCF8_304);
+
+  // VAN
+  const vanCF8M = round2(sumBy('VAN', 'CF8M'));
+  const vanCF8 = round2(sumBy('VAN', 'CF8'));
+  const vanCF3M = round2(sumBy('VAN', 'CF3M'));
+  const vanWCB = round2(sumBy('VAN', 'WCB'));
+  const vanTotal = round2(rows.filter(r => r.loai === 'VAN').reduce((s, r) => s + (r.tongTrongLuong || 0), 0));
+  const vanKhac = round2(vanTotal - vanCF8M - vanCF8 - vanCF3M - vanWCB);
+
+  const r = ROW_MATERIAL_SUM;
+  ws.cell(`C${r}`).value(ongCF8M316 || undefined);
+  ws.cell(`D${r}`).value(ongCF8_304 || undefined);
+  ws.cell(`E${r}`).value(ongKhac || undefined);
+  ws.cell(`G${r}`).value(vanCF8M || undefined);
+  ws.cell(`I${r}`).value(vanCF8 || undefined);
+  ws.cell(`K${r}`).value(vanCF3M || undefined);
+  ws.cell(`M${r}`).value(vanWCB || undefined);
+  ws.cell(`O${r}`).value(vanKhac || undefined);
+  ws.cell(`S${ROW_MATERIAL_HEADER}`).value(round2(ongTotal + vanTotal) || undefined);
+}
+
+// ---------------------------------------------------------------------------
+// 5. RESOLVE ĐƯỜNG DẪN OUTPUT
+// ---------------------------------------------------------------------------
+
+/**
+ * Đảm bảo thư mục tồn tại.
+ * @param {string} dir
+ */
+function ensureDir(dir) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+/**
+ * Sinh đường dẫn output cho 2 file theo ngày.
+ * Thư mục: <outputDir>/YYYY/MM/
+ * @param {string} outputDir - thư mục gốc xuất file
+ * @param {string} dateLabel - nhãn ngày, vd "30.07.2026"
+ * @returns {{ fullPath: string, qcPath: string, folderPath: string }}
+ */
+function resolveOutputPaths(outputDir, dateLabel) {
+  let yyyy = '', mm = '';
+  const parts = dateLabel.split('.');
+  if (parts.length === 3) {
+    yyyy = parts[2];
+    mm = parts[1];
+  } else {
+    const now = new Date();
+    yyyy = String(now.getFullYear());
+    mm = String(now.getMonth() + 1).padStart(2, '0');
+  }
+
+  const folderPath = path.join(outputDir, yyyy, mm);
+  ensureDir(folderPath);
+
+  return {
+    fullPath: path.join(folderPath, `File_bao_cao_${dateLabel}.xlsx`),
+    qcPath: path.join(folderPath, `Hang_phe_giao_qc_${dateLabel}.xlsx`),
+    folderPath,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 6. HÀM CHÍNH — xuất 2 file từ cùng một bộ dữ liệu grid
+// ---------------------------------------------------------------------------
+
+/**
+ * Xuất 2 file Excel báo phế từ cùng 1 template, 1 bộ dữ liệu.
+ *
+ * Dùng xlsx-populate để đảm bảo:
+ *   - Giữ nguyên toàn bộ merge cells, ảnh logo, print area, công thức gốc
+ *   - Không có lỗi "Shared Formula master" (vốn là bug của ExcelJS)
+ *   - Không insert/delete dòng — chỉ ghi giá trị vào ô cố định
+ *
+ * @param {object} params
+ * @param {string} params.templatePath   - Đường dẫn tới file template gốc
+ * @param {object[]} params.allCandidates - Mảng candidate từ grid renderer
+ * @param {string} params.outputDir      - Thư mục gốc để lưu file
+ * @param {string} params.dateLabel      - Nhãn ngày dùng trong tên file, vd "30.07.2026"
+ *
+ * @returns {Promise<{ full: string, qc: string, folderPath: string }>}
+ */
+async function exportBaoPhe({ templatePath, allCandidates, outputDir, dateLabel }) {
+  // Kiểm tra template
+  if (!fs.existsSync(templatePath)) {
+    throw new Error(`Không tìm thấy file template tại: ${templatePath}`);
+  }
+
+  // Tính toán toàn bộ dòng
+  const computedRows = allCandidates.map(computeRow);
+
+  // File QC chỉ giữ dòng có ít nhất 1 nguyên nhân được nhập
+  const qcRows = computedRows.filter(r => r.tongCong > 0);
+
+  const { fullPath, qcPath, folderPath } = resolveOutputPaths(outputDir, dateLabel);
+
+  // Xuất 2 file — đọc lại template gốc mỗi lần để tránh dùng chung workbook đã bị sửa
+  for (const [filePath, rows] of [[fullPath, computedRows], [qcPath, qcRows]]) {
+    // xlsx-populate đọc file theo kiểu passthrough: giữ nguyên XML bên trong,
+    // chỉ thay thế giá trị ô được chỉ định — merge cells / ảnh / công thức không bị đụng.
+    const wb = await XlsxPopulate.fromFileAsync(templatePath);
+
+    // Tìm sheet theo tên, fallback sang sheet đầu tiên
+    const ws = wb.sheet(SHEET_NAME) ?? wb.sheet(0);
+    if (!ws) {
+      throw new Error(
+        `Không tìm thấy worksheet "${SHEET_NAME}" trong template. ` +
+        `Kiểm tra tên sheet trong file template.`
+      );
+    }
+
+    writeDataRows(ws, rows);
+    writeFooterSummary(ws, rows);
+
+    await wb.toFileAsync(filePath);
+  }
+
+  return { full: fullPath, qc: qcPath, folderPath };
+}
+
+module.exports = {
+  exportBaoPhe,
+  computeRow,
+  getChatLieu,
+  getLoai,
+  DEFECT_COLUMNS,
+  DATA_START_ROW,
+  DATA_MAX_ROW,
+  ROW_SUM,
+  ROW_MATERIAL_HEADER,
+  ROW_MATERIAL_SUM,
+};

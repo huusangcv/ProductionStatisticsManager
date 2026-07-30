@@ -46,6 +46,74 @@ function getDefectsByDate(date) {
   }
 }
 
+/**
+ * Lấy tất cả các dòng phế (completed_quantity = 0) trong ngày để hiển thị
+ * trên grid nhập liệu Báo Phế. Kết quả giống getDefectsByDate nhưng trả về
+ * thêm trường cần thiết cho grid (work_order_number, item_name, specification,
+ * unit_weight, scrap_quantity).
+ *
+ * @param {string} date - "YYYY-MM-DD"
+ * @returns {object[]}
+ */
+function getAllDefectCandidatesByDate(date) {
+  const db = openDatabase();
+  try {
+    const rows = db
+      .prepare(`
+        SELECT
+          id,
+          work_order_number,
+          item_name,
+          specification,
+          unit_weight,
+          scrap_quantity,
+          completed_quantity,
+          report_date
+        FROM grinding_production
+        WHERE completed_quantity = 0
+          AND report_date = ?
+        ORDER BY imported_at ASC
+      `)
+      .all(date);
+    return rows;
+  } catch (error) {
+    console.error("Error in getAllDefectCandidatesByDate:", error);
+    return [];
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * Tóm tắt số liệu phế trong ngày cho băng đối soát:
+ * - totalRows: số dòng có completed_quantity = 0
+ * - totalScrap: tổng scrap_quantity của các dòng đó
+ *
+ * @param {string} date - "YYYY-MM-DD"
+ * @returns {{ totalRows: number, totalScrap: number }}
+ */
+function getScrapSummaryByDate(date) {
+  const db = openDatabase();
+  try {
+    const result = db
+      .prepare(`
+        SELECT
+          COUNT(*) AS totalRows,
+          COALESCE(SUM(scrap_quantity), 0) AS totalScrap
+        FROM grinding_production
+        WHERE completed_quantity = 0
+          AND report_date = ?
+      `)
+      .get(date);
+    return result || { totalRows: 0, totalScrap: 0 };
+  } catch (error) {
+    console.error("Error in getScrapSummaryByDate:", error);
+    return { totalRows: 0, totalScrap: 0 };
+  } finally {
+    db.close();
+  }
+}
+
 module.exports = {
   ensureGrindingTable:            grindingDAO.ensureTable,
   getAllGrindingData:              grindingDAO.getAll,
@@ -58,4 +126,6 @@ module.exports = {
   importGrindingData:             grindingDAO.importData,
   getLatestGrindingDate:          grindingDAO.getLatestDate,
   getDefectsByDate,
+  getAllDefectCandidatesByDate,
+  getScrapSummaryByDate,
 };
