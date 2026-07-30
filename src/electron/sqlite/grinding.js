@@ -114,6 +114,26 @@ function getScrapSummaryByDate(date) {
   }
 }
 
+/**
+ * Lấy ngày gần nhất có dữ liệu phế (completed_quantity = 0)
+ */
+function getLatestDefectDate() {
+  const db = openDatabase();
+  try {
+    const result = db.prepare(`
+      SELECT MAX(report_date) AS maxDate
+      FROM grinding_production
+      WHERE completed_quantity = 0
+    `).get();
+    return result && result.maxDate ? result.maxDate : null;
+  } catch (error) {
+    console.error("Error in getLatestDefectDate:", error);
+    return null;
+  } finally {
+    db.close();
+  }
+}
+
 module.exports = {
   ensureGrindingTable:            grindingDAO.ensureTable,
   getAllGrindingData:              grindingDAO.getAll,
@@ -128,4 +148,5 @@ module.exports = {
   getDefectsByDate,
   getAllDefectCandidatesByDate,
   getScrapSummaryByDate,
+  getLatestDefectDate,
 };

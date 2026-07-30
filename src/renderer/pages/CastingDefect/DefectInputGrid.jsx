@@ -1,7 +1,8 @@
-import { useRef, useCallback, useMemo, useEffect } from "react";
-import { Box, Typography } from "@mui/material";
+import { useRef, useCallback, useMemo, useEffect, useState } from "react";
+import { Box, Typography, Popover, TextField, Checkbox, FormControlLabel, IconButton, Button, Divider } from "@mui/material";
+import FilterAltIcon from "@mui/icons-material/FilterAlt";
+import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import PropTypes from "prop-types";
-
 // ── HẰNG SỐ ──────────────────────────────────────────────────────────────────
 
 /**
@@ -110,12 +111,102 @@ const COL_WIDTHS = {
   tongCong:     52,
   trongLuong:   52,
   tongTL:       60,
+  soPhe:        56,
 };
 
 // ── SUB-COMPONENTS ────────────────────────────────────────────────────────────
 
+/** Component Bộ Lọc Cột (giống Excel) */
+function ColumnFilter({ anchorEl, onClose, options, selected, onApply, title }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [localSelected, setLocalSelected] = useState(new Set(selected));
+
+  useEffect(() => {
+    if (anchorEl) {
+      setLocalSelected(new Set(selected));
+      setSearchTerm("");
+    }
+  }, [anchorEl, selected]);
+
+  const filteredOptions = useMemo(() => {
+    const lower = searchTerm.toLowerCase();
+    return options.filter(opt => (opt || "(Trống)").toLowerCase().includes(lower));
+  }, [options, searchTerm]);
+
+  const isAllSelected = localSelected.size === options.length;
+
+  const handleToggleAll = () => {
+    if (isAllSelected) {
+      setLocalSelected(new Set());
+    } else {
+      setLocalSelected(new Set(options));
+    }
+  };
+
+  const handleToggleOne = (val) => {
+    const next = new Set(localSelected);
+    if (next.has(val)) next.delete(val);
+    else next.add(val);
+    setLocalSelected(next);
+  };
+
+  return (
+    <Popover
+      open={Boolean(anchorEl)}
+      anchorEl={anchorEl}
+      onClose={onClose}
+      anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      transformOrigin={{ vertical: "top", horizontal: "left" }}
+      PaperProps={{ sx: { width: 220, p: 1, fontSize: "13px" } }}
+    >
+      <Typography variant="subtitle2" sx={{ mb: 1, fontSize: "12px", fontWeight: "bold" }}>Lọc: {title}</Typography>
+      <TextField
+        size="small"
+        fullWidth
+        placeholder="Tìm kiếm..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        sx={{ mb: 1, "& .MuiInputBase-root": { fontSize: "12px" } }}
+      />
+      <Box sx={{ maxHeight: 200, overflow: "auto", display: "flex", flexDirection: "column" }}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              size="small"
+              checked={isAllSelected}
+              indeterminate={localSelected.size > 0 && localSelected.size < options.length}
+              onChange={handleToggleAll}
+            />
+          }
+          label="(Select All)"
+          sx={{ "& .MuiFormControlLabel-label": { fontSize: "12px" } }}
+        />
+        {filteredOptions.map((opt, i) => (
+          <FormControlLabel
+            key={i}
+            control={
+              <Checkbox
+                size="small"
+                checked={localSelected.has(opt)}
+                onChange={() => handleToggleOne(opt)}
+              />
+            }
+            label={opt || "(Trống)"}
+            sx={{ "& .MuiFormControlLabel-label": { fontSize: "12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }}
+          />
+        ))}
+      </Box>
+      <Divider sx={{ my: 1 }} />
+      <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
+        <Button size="small" onClick={onClose} color="inherit" sx={{ fontSize: "11px" }}>Hủy</Button>
+        <Button size="small" onClick={() => onApply(localSelected)} variant="contained" disableElevation sx={{ fontSize: "11px" }}>OK</Button>
+      </Box>
+    </Popover>
+  );
+}
+
 /** Ô header */
-function Th({ children, width, align = "center", sticky = false, stickyLeft = 0 }) {
+function Th({ children, width, align = "center", sticky = false, stickyLeft = 0, filterActive, onFilterClick }) {
   return (
     <th
       style={{
@@ -138,7 +229,23 @@ function Th({ children, width, align = "center", sticky = false, stickyLeft = 0 
         userSelect: "none",
       }}
     >
-      {children}
+      <div style={{
+        display: onFilterClick ? "flex" : "block",
+        alignItems: "center",
+        justifyContent: align === "center" ? "center" : align === "right" ? "flex-end" : "space-between",
+        width: "100%"
+      }}>
+        <span>{children}</span>
+        {onFilterClick && (
+          <IconButton
+            size="small"
+            onClick={onFilterClick}
+            sx={{ ml: 0.5, p: 0.2, color: filterActive ? "#3b82f6" : "inherit" }}
+          >
+            {filterActive ? <FilterAltIcon sx={{ fontSize: 14 }} /> : <FilterAltOutlinedIcon sx={{ fontSize: 14 }} />}
+          </IconButton>
+        )}
+      </div>
     </th>
   );
 }
@@ -232,8 +339,12 @@ function NumCell({ rowIdx, colKey, value, onChange, onKeyDown, inputRef, width }
  *  - onRowChange(idx, defects) : callback khi defects của dòng idx thay đổi
  */
 export default function DefectInputGrid({ rows, onRowChange }) {
-  // ref[rowIdx][colKey] → input element
+  // ref[originalIndex][colKey] → input element
   const inputRefs = useRef([]);
+
+  // State cho filter
+  const [filters, setFilters] = useState({});
+  const [filterPopover, setFilterPopover] = useState({ anchorEl: null, column: null });
 
   // Khởi tạo ref array khi rows thay đổi độ dài
   useEffect(() => {
@@ -250,6 +361,41 @@ export default function DefectInputGrid({ rows, onRowChange }) {
     inputRefs.current[ri][key] = el;
   }, []);
 
+  // Tính toán data đã lọc
+  const visibleRows = useMemo(() => {
+    return rows.map((row, index) => ({ row, originalIndex: index })).filter(({ row }) => {
+      const chatLieu = getChatLieu(row.specification);
+      const loai = getLoai(row.item_name, row.specification);
+      const values = {
+        maCongDon: row.work_order_number || "",
+        tenHang: row.item_name || "",
+        quyCach: row.specification || "",
+        chatLieu: chatLieu || "",
+        loai: loai || "",
+      };
+
+      for (const [col, allowed] of Object.entries(filters)) {
+        if (!allowed.has(values[col])) return false;
+      }
+      return true;
+    });
+  }, [rows, filters]);
+
+  // Trích xuất các options filter cho 1 cột
+  const getFilterOptions = (column) => {
+    const opts = new Set();
+    rows.forEach(row => {
+      let val = "";
+      if (column === "maCongDon") val = row.work_order_number;
+      else if (column === "tenHang") val = row.item_name;
+      else if (column === "quyCach") val = row.specification;
+      else if (column === "chatLieu") val = getChatLieu(row.specification);
+      else if (column === "loai") val = getLoai(row.item_name, row.specification);
+      opts.add(val || "");
+    });
+    return Array.from(opts).sort();
+  };
+
   /** Xử lý thay đổi giá trị một ô */
   const handleChange = useCallback((rowIdx, colKey, numVal) => {
     const newDefects = { ...rows[rowIdx].defects, [colKey]: numVal };
@@ -257,9 +403,9 @@ export default function DefectInputGrid({ rows, onRowChange }) {
   }, [rows, onRowChange]);
 
   /** Tab / Enter / Arrow keys để di chuyển giữa các ô */
-  const handleKeyDown = useCallback((e, rowIdx, colKey) => {
+  const handleKeyDown = useCallback((e, visibleIdx, colKey) => {
     const colIdx = DEFECT_COLS.findIndex((c) => c.key === colKey);
-    let nextRow = rowIdx, nextCol = colIdx;
+    let nextRow = visibleIdx, nextCol = colIdx;
 
     if (e.key === "Tab" || e.key === "Enter") {
       e.preventDefault();
@@ -291,11 +437,14 @@ export default function DefectInputGrid({ rows, onRowChange }) {
       return;
     }
 
-    nextRow = Math.max(0, Math.min(nextRow, rows.length - 1));
+    nextRow = Math.max(0, Math.min(nextRow, visibleRows.length - 1));
     nextCol = Math.max(0, Math.min(nextCol, DEFECT_COLS.length - 1));
     const nextKey = DEFECT_COLS[nextCol].key;
-    inputRefs.current[nextRow]?.[nextKey]?.focus();
-  }, [rows.length]);
+    const targetOriginalIdx = visibleRows[nextRow]?.originalIndex;
+    if (targetOriginalIdx !== undefined) {
+      inputRefs.current[targetOriginalIdx]?.[nextKey]?.focus();
+    }
+  }, [visibleRows, DEFECT_COLS.length]);
 
   // Tính sticky left offsets (STT + maCongDon + tenHang + quyCach đều sticky)
   const stickyOffsets = useMemo(() => {
@@ -364,30 +513,37 @@ export default function DefectInputGrid({ rows, onRowChange }) {
           <col style={{ width: COL_WIDTHS.tongCong }} />
           <col style={{ width: COL_WIDTHS.trongLuong }} />
           <col style={{ width: COL_WIDTHS.tongTL }} />
+          <col style={{ width: COL_WIDTHS.soPhe }} />
         </colgroup>
 
         {/* ── THEAD ── */}
         <thead style={{ position: "sticky", top: 0, zIndex: 5 }}>
           <tr>
             <Th width={COL_WIDTHS.stt}        sticky stickyLeft={stickyOffsets.stt}      >STT</Th>
-            <Th width={COL_WIDTHS.maCongDon}  sticky stickyLeft={stickyOffsets.maCongDon} align="left">Mã công đơn</Th>
-            <Th width={COL_WIDTHS.tenHang}    sticky stickyLeft={stickyOffsets.tenHang}   align="left">Tên hàng</Th>
-            <Th width={COL_WIDTHS.quyCach}    sticky stickyLeft={stickyOffsets.quyCach}   align="left">Quy cách</Th>
-            <Th width={COL_WIDTHS.chatLieu}   sticky stickyLeft={stickyOffsets.chatLieu}  >Chất liệu</Th>
-            <Th width={COL_WIDTHS.loai}                                                   >Loại</Th>
+            <Th width={COL_WIDTHS.maCongDon}  sticky stickyLeft={stickyOffsets.maCongDon} align="left"
+                filterActive={!!filters["maCongDon"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "maCongDon", title: "Mã công đơn" })}>Mã công đơn</Th>
+            <Th width={COL_WIDTHS.tenHang}    sticky stickyLeft={stickyOffsets.tenHang}   align="left"
+                filterActive={!!filters["tenHang"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "tenHang", title: "Tên hàng" })}>Tên hàng</Th>
+            <Th width={COL_WIDTHS.quyCach}    sticky stickyLeft={stickyOffsets.quyCach}   align="left"
+                filterActive={!!filters["quyCach"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "quyCach", title: "Quy cách" })}>Quy cách</Th>
+            <Th width={COL_WIDTHS.chatLieu}   sticky stickyLeft={stickyOffsets.chatLieu}  
+                filterActive={!!filters["chatLieu"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "chatLieu", title: "Chất liệu" })}>Chất liệu</Th>
+            <Th width={COL_WIDTHS.loai}       
+                filterActive={!!filters["loai"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "loai", title: "Loại" })}>Loại</Th>
             {DEFECT_COLS.map(({ key, label }) => (
               <Th key={key} width={COL_WIDTHS.defect}>{label}</Th>
             ))}
             <Th width={COL_WIDTHS.tongCong}  >Tổng{"\n"}cộng</Th>
             <Th width={COL_WIDTHS.trongLuong}>TL{"\n"}đơn vị</Th>
             <Th width={COL_WIDTHS.tongTL}    >Tổng{"\n"}TL (kg)</Th>
+            <Th width={COL_WIDTHS.soPhe}     >Số phế{"\n"}gốc</Th>
           </tr>
         </thead>
 
         {/* ── TBODY ── */}
         <tbody>
-          {rows.map((row, ri) => {
-            const isOdd      = ri % 2 === 1;
+          {visibleRows.map(({ row, originalIndex: ri }, visibleIdx) => {
+            const isOdd      = visibleIdx % 2 === 1;
             const rowBg      = isOdd ? ROW_ODD : ROW_EVEN;
             const tongCong   = calcTongCong(row.defects);
             const tongTL     = calcTongTrongLuong(tongCong, row.unit_weight);
@@ -469,7 +625,7 @@ export default function DefectInputGrid({ rows, onRowChange }) {
                     colKey={key}
                     value={row.defects[key] || 0}
                     onChange={handleChange}
-                    onKeyDown={handleKeyDown}
+                    onKeyDown={(e, rIdx, cKey) => handleKeyDown(e, visibleIdx, cKey)}
                     inputRef={(el) => setRef(ri, key, el)}
                     width={COL_WIDTHS.defect}
                   />
@@ -507,11 +663,52 @@ export default function DefectInputGrid({ rows, onRowChange }) {
                     {tongTL > 0 ? tongTL.toFixed(2) : ""}
                   </Typography>
                 </ReadCell>
+
+                {/* Số phế gốc */}
+                <ReadCell width={COL_WIDTHS.soPhe} align="center" bg={rowBg}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontSize: "11.5px",
+                      fontWeight: 700,
+                      color: "#334155",
+                      bgcolor: "#f1f5f9",
+                      px: 1,
+                      py: 0.2,
+                      borderRadius: "4px",
+                      border: "1px solid #e2e8f0"
+                    }}
+                  >
+                    {row.scrap_quantity || ""}
+                  </Typography>
+                </ReadCell>
               </tr>
             );
           })}
         </tbody>
       </table>
+      {filterPopover.column && (
+        <ColumnFilter
+          anchorEl={filterPopover.anchorEl}
+          title={filterPopover.title}
+          options={getFilterOptions(filterPopover.column)}
+          selected={filters[filterPopover.column] || new Set(getFilterOptions(filterPopover.column))}
+          onClose={() => setFilterPopover({ anchorEl: null, column: null })}
+          onApply={(newSelected) => {
+            setFilters(prev => {
+              const next = { ...prev };
+              // Nếu chọn tất cả thì xóa filter cho cột đó
+              if (newSelected.size === getFilterOptions(filterPopover.column).length) {
+                delete next[filterPopover.column];
+              } else {
+                next[filterPopover.column] = newSelected;
+              }
+              return next;
+            });
+            setFilterPopover({ anchorEl: null, column: null });
+          }}
+        />
+      )}
     </Box>
   );
 }

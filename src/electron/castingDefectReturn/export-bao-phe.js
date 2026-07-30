@@ -86,9 +86,18 @@ function getLoai(tenSanPham, quyCach) {
 function computeRow(candidate) {
   const chatLieu = getChatLieu(candidate.quyCach);
   const loai = getLoai(candidate.tenSanPham, candidate.quyCach);
-  const tongCong = DEFECT_COLUMNS.reduce(
+  let tongCong = DEFECT_COLUMNS.reduce(
     (sum, d) => sum + (Number(candidate.defects[d.key]) || 0), 0
   );
+
+  // Tự động bù phần phế còn thiếu vào cột Khác
+  const refScrap = Number(candidate.scrapQuantity) || 0;
+  if (tongCong < refScrap) {
+    const remaining = refScrap - tongCong;
+    candidate.defects.khac = (Number(candidate.defects.khac) || 0) + remaining;
+    tongCong = refScrap; // Cập nhật lại tổng
+  }
+
   const tongTrongLuong = Math.round(tongCong * (candidate.trongLuongDonVi || 0) * 100) / 100;
   return { ...candidate, chatLieu, loai, tongCong, tongTrongLuong };
 }
@@ -174,29 +183,29 @@ function writeFooterSummary(ws, rows) {
   const round2 = n => Math.round(n * 100) / 100;
 
   // ỐNG
-  const ongCF8M316 = round2(sumBy('ỐNG', 'CF8M') + sumBy('ỐNG', '316'));
-  const ongCF8_304 = round2(sumBy('ỐNG', 'CF8') + sumBy('ỐNG', '304'));
-  const ongTotal = round2(rows.filter(r => r.loai === 'ỐNG').reduce((s, r) => s + (r.tongTrongLuong || 0), 0));
-  const ongKhac = round2(ongTotal - ongCF8M316 - ongCF8_304);
+  // const ongCF8M316 = round2(sumBy('ỐNG', 'CF8M') + sumBy('ỐNG', '316'));
+  // const ongCF8_304 = round2(sumBy('ỐNG', 'CF8') + sumBy('ỐNG', '304'));
+  // const ongTotal = round2(rows.filter(r => r.loai === 'ỐNG').reduce((s, r) => s + (r.tongTrongLuong || 0), 0));
+  // const ongKhac = round2(ongTotal - ongCF8M316 - ongCF8_304);
 
   // VAN
-  const vanCF8M = round2(sumBy('VAN', 'CF8M'));
-  const vanCF8 = round2(sumBy('VAN', 'CF8'));
-  const vanCF3M = round2(sumBy('VAN', 'CF3M'));
-  const vanWCB = round2(sumBy('VAN', 'WCB'));
-  const vanTotal = round2(rows.filter(r => r.loai === 'VAN').reduce((s, r) => s + (r.tongTrongLuong || 0), 0));
-  const vanKhac = round2(vanTotal - vanCF8M - vanCF8 - vanCF3M - vanWCB);
+  // const vanCF8M = round2(sumBy('VAN', 'CF8M'));
+  // const vanCF8 = round2(sumBy('VAN', 'CF8'));
+  // const vanCF3M = round2(sumBy('VAN', 'CF3M'));
+  // const vanWCB = round2(sumBy('VAN', 'WCB'));
+  // const vanTotal = round2(rows.filter(r => r.loai === 'VAN').reduce((s, r) => s + (r.tongTrongLuong || 0), 0));
+  // const vanKhac = round2(vanTotal - vanCF8M - vanCF8 - vanCF3M - vanWCB);
 
-  const r = ROW_MATERIAL_SUM;
-  ws.cell(`C${r}`).value(ongCF8M316 || undefined);
-  ws.cell(`D${r}`).value(ongCF8_304 || undefined);
-  ws.cell(`E${r}`).value(ongKhac || undefined);
-  ws.cell(`G${r}`).value(vanCF8M || undefined);
-  ws.cell(`I${r}`).value(vanCF8 || undefined);
-  ws.cell(`K${r}`).value(vanCF3M || undefined);
-  ws.cell(`M${r}`).value(vanWCB || undefined);
-  ws.cell(`O${r}`).value(vanKhac || undefined);
-  ws.cell(`S${ROW_MATERIAL_HEADER}`).value(round2(ongTotal + vanTotal) || undefined);
+  // const r = ROW_MATERIAL_SUM;
+  // ws.cell(`C${r}`).value(ongCF8M316 || undefined);
+  // ws.cell(`D${r}`).value(ongCF8_304 || undefined);
+  // ws.cell(`E${r}`).value(ongKhac || undefined);
+  // ws.cell(`G${r}`).value(vanCF8M || undefined);
+  // ws.cell(`I${r}`).value(vanCF8 || undefined);
+  // ws.cell(`K${r}`).value(vanCF3M || undefined);
+  // ws.cell(`M${r}`).value(vanWCB || undefined);
+  // ws.cell(`O${r}`).value(vanKhac || undefined);
+  // ws.cell(`S${ROW_MATERIAL_HEADER}`).value(round2(ongTotal + vanTotal) || undefined);
 }
 
 // ---------------------------------------------------------------------------
@@ -218,7 +227,7 @@ function ensureDir(dir) {
  * @param {string} dateLabel - nhãn ngày, vd "30.07.2026"
  * @returns {{ fullPath: string, qcPath: string, folderPath: string }}
  */
-function resolveOutputPaths(outputDir, dateLabel) {
+function resolveOutputPaths(outputDir, dateLabel, isDraft = false) {
   let yyyy = '', mm = '';
   const parts = dateLabel.split('.');
   if (parts.length === 3) {
@@ -233,9 +242,11 @@ function resolveOutputPaths(outputDir, dateLabel) {
   const folderPath = path.join(outputDir, yyyy, mm);
   ensureDir(folderPath);
 
+  const prefix = isDraft ? "P-029-06.01_Nhap_Bao_Phe_" : "P-029-06.01_";
+
   return {
-    fullPath: path.join(folderPath, `File_bao_cao_${dateLabel}.xlsx`),
-    qcPath: path.join(folderPath, `Hang_phe_giao_qc_${dateLabel}.xlsx`),
+    fullPath: path.join(folderPath, `${prefix}${dateLabel}铸造车间不良品回炉申请单A3.xlsx`),
+    qcPath: path.join(folderPath, `P-029-06.02_QC_Giao_Phe_${dateLabel}铸造车间废料发QC表A3.xlsx`),
     folderPath,
   };
 }
@@ -257,10 +268,11 @@ function resolveOutputPaths(outputDir, dateLabel) {
  * @param {object[]} params.allCandidates - Mảng candidate từ grid renderer
  * @param {string} params.outputDir      - Thư mục gốc để lưu file
  * @param {string} params.dateLabel      - Nhãn ngày dùng trong tên file, vd "30.07.2026"
+ * @param {boolean} params.isDraft     - True nếu xuất phiếu nháp
  *
  * @returns {Promise<{ full: string, qc: string, folderPath: string }>}
  */
-async function exportBaoPhe({ templatePath, allCandidates, outputDir, dateLabel }) {
+async function exportBaoPhe({ templatePath, allCandidates, outputDir, dateLabel, isDraft = false }) {
   // Kiểm tra template
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Không tìm thấy file template tại: ${templatePath}`);
@@ -272,28 +284,28 @@ async function exportBaoPhe({ templatePath, allCandidates, outputDir, dateLabel 
   // File QC chỉ giữ dòng có ít nhất 1 nguyên nhân được nhập
   const qcRows = computedRows.filter(r => r.tongCong > 0);
 
-  const { fullPath, qcPath, folderPath } = resolveOutputPaths(outputDir, dateLabel);
+  // Tính toán paths
+  const { fullPath, qcPath, folderPath } = resolveOutputPaths(outputDir, dateLabel, isDraft);
 
-  // Xuất 2 file — đọc lại template gốc mỗi lần để tránh dùng chung workbook đã bị sửa
-  for (const [filePath, rows] of [[fullPath, computedRows], [qcPath, qcRows]]) {
-    // xlsx-populate đọc file theo kiểu passthrough: giữ nguyên XML bên trong,
-    // chỉ thay thế giá trị ô được chỉ định — merge cells / ảnh / công thức không bị đụng.
-    const wb = await XlsxPopulate.fromFileAsync(templatePath);
+  // --- BƯỚC 1: GHI FILE FULL (TẤT CẢ CÁC DÒNG) ---
+  const wbFull = await XlsxPopulate.fromFileAsync(templatePath);
+  const wsFull = wbFull.sheet(SHEET_NAME) ?? wbFull.sheet(0);
+  if (!wsFull) throw new Error(`Không tìm thấy worksheet "${SHEET_NAME}"`);
+  writeDataRows(wsFull, computedRows);
+  writeFooterSummary(wsFull, computedRows);
+  await wbFull.toFileAsync(fullPath);
 
-    // Tìm sheet theo tên, fallback sang sheet đầu tiên
-    const ws = wb.sheet(SHEET_NAME) ?? wb.sheet(0);
-    if (!ws) {
-      throw new Error(
-        `Không tìm thấy worksheet "${SHEET_NAME}" trong template. ` +
-        `Kiểm tra tên sheet trong file template.`
-      );
-    }
-
-    writeDataRows(ws, rows);
-    writeFooterSummary(ws, rows);
-
-    await wb.toFileAsync(filePath);
+  // Nếu là phiếu nháp thì không cần xuất file QC, trả về luôn
+  if (isDraft) {
+    return { full: fullPath, qc: null, folderPath };
   }
+
+  // --- BƯỚC 3: GHI FILE QC (Chỉ các dòng có nguyên nhân phế > 0) ---
+  const wbQC = await XlsxPopulate.fromFileAsync(templatePath);
+  const wsQC = wbQC.sheet(SHEET_NAME) ?? wbQC.sheet(0);
+  writeDataRows(wsQC, qcRows);
+  writeFooterSummary(wsQC, qcRows);
+  await wbQC.toFileAsync(qcPath);
 
   return { full: fullPath, qc: qcPath, folderPath };
 }

@@ -449,20 +449,20 @@ function makeSaveHandler(
           const priceRec = getPriceByMaterialCode(record.material_code);
           if (priceRec) {
             if (roleCode === "CUT") {
-               record.cutting_price = priceRec.cutting_price || 0;
-               record.total_price = (record.completed_quantity || 0) * record.cutting_price;
+              record.cutting_price = priceRec.cutting_price || 0;
+              record.total_price = (record.completed_quantity || 0) * record.cutting_price;
             } else if (roleCode === "GRIND") {
-               record.grinding_price = priceRec.grinding_price || 0;
-               record.total_price = (record.completed_quantity || 0) * record.grinding_price;
+              record.grinding_price = priceRec.grinding_price || 0;
+              record.total_price = (record.completed_quantity || 0) * record.grinding_price;
             }
           } else {
-             if (roleCode === "CUT") {
-               record.cutting_price = 0;
-               record.total_price = 0;
-             } else if (roleCode === "GRIND") {
-               record.grinding_price = 0;
-               record.total_price = 0;
-             }
+            if (roleCode === "CUT") {
+              record.cutting_price = 0;
+              record.total_price = 0;
+            } else if (roleCode === "GRIND") {
+              record.grinding_price = 0;
+              record.total_price = 0;
+            }
           }
         }
       }
@@ -1112,8 +1112,18 @@ function registerIpcHandlers() {
     }
   });
 
+  // Lấy ngày gần nhất có dữ liệu phế
+  ipcMain.handle("bao-phe:getLatestDate", () => {
+    try {
+      const { getLatestDefectDate } = require("./sqlite/grinding");
+      return { ok: true, date: getLatestDefectDate() };
+    } catch (error) {
+      return { ok: false, message: error.message };
+    }
+  });
+
   // Xuất 2 file Excel từ grid data
-  ipcMain.handle("bao-phe:export", async (_event, { candidates, dateLabel }) => {
+  ipcMain.handle("bao-phe:export", async (_event, { candidates, dateLabel, isDraft }) => {
     try {
       // Lấy template
       const tmpl = getTemplate("casting-defect-return");
@@ -1132,19 +1142,20 @@ function registerIpcHandlers() {
 
       // Thư mục output riêng cho chức năng mới
       const { getAppDataRoot } = require("./sqlite/paths");
-      const outputDir = path.join(getAppDataRoot(), "exports", "BaoPheGrid");
+      const outputDir = path.join(getAppDataRoot(), "exports", "BaoPhe");
 
       const result = await exportBaoPhe({
         templatePath: tmpl.template_path,
         allCandidates: candidates,
         outputDir,
         dateLabel,
+        isDraft,
       });
 
       return {
         ok: true,
         full: result.full,
-        qc:   result.qc,
+        qc: result.qc,
         folderPath: result.folderPath,
       };
     } catch (error) {
@@ -1158,9 +1169,51 @@ function registerIpcHandlers() {
     return { ok: true };
   });
 
+  ipcMain.handle("bao-phe:openFolderByDate", (_event, dateStr) => {
+    const { getAppDataRoot } = require("./sqlite/paths");
+    const [yyyy, mm] = dateStr.split("-");
+    const folderPath = path.join(getAppDataRoot(), "exports", "BaoPhe", yyyy, mm);
+    if (fs.existsSync(folderPath)) {
+      shell.openPath(folderPath);
+      return { ok: true };
+    } else {
+      return { ok: false, message: "Thư mục chưa tồn tại (chưa có file nào được xuất trong tháng này)." };
+    }
+  });
+
   ipcMain.handle("bao-phe:openFile", (_event, filePath) => {
     shell.openPath(filePath);
     return { ok: true };
+  });
+
+  ipcMain.handle("bao-phe:printFile", async (_event, filePath) => {
+    if (!fs.existsSync(filePath)) {
+      return { ok: false, message: "File không tồn tại." };
+    }
+    const { exec } = require("child_process");
+
+    // Sử dụng COM Object để điều khiển Excel chạy ngầm hoàn toàn
+    const psCommand = `
+      $excel = New-Object -ComObject Excel.Application;
+      $excel.Visible = $false;
+      $excel.DisplayAlerts = $false;
+      $workbook = $excel.Workbooks.Open('${filePath}');
+      $workbook.Worksheets.Item(1).PrintOut();
+      $workbook.Close($false);
+      $excel.Quit();
+      [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null;
+    `.replace(/\n/g, ' ');
+
+    return new Promise((resolve) => {
+      exec(`powershell -Command "${psCommand}"`, (error) => {
+        if (error) {
+          console.error("Print error:", error);
+          resolve({ ok: false, message: error.message });
+        } else {
+          resolve({ ok: true });
+        }
+      });
+    });
   });
 
   // ── Personal Production (Sản lượng Cá nhân) ─────────────────────────────
@@ -1490,11 +1543,11 @@ function registerIpcHandlers() {
   ipcMain.handle("update:check", async () => {
     return await checkForUpdates();
   });
-  
+
   ipcMain.handle("update:download", async () => {
     return await downloadUpdate();
   });
-  
+
   ipcMain.handle("update:install", () => {
     quitAndInstall();
     return { ok: true };

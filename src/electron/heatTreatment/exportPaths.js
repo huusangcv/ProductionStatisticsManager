@@ -65,7 +65,7 @@ function resolveExportPath(dateStr) {
   const folderPath = path.join(
     getAppDataRoot(),
     "exports",
-    "HeatTreatment",
+    "HangXuLyNhiet",
     yyyy,
     mm
   );
