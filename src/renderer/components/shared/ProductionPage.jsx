@@ -22,7 +22,7 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [unmappedDialog, setUnmappedDialog] = useState({ open: false, codes: [] });
+  const [absentDialog, setAbsentDialog] = useState({ open: false, employees: [] });
 
   const [filterDate, setFilterDate] = useState(() => {
     const d = new Date();
@@ -207,9 +207,9 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
         setFilterDate(importedDate);
       }
       await loadData();
-      // Show warning if some representative_codes weren't found in employees
-      if (result.unmappedCodes && result.unmappedCodes.length > 0) {
-        setUnmappedDialog({ open: true, codes: result.unmappedCodes });
+      // Show warning if some employees are not present
+      if (result.absentEmployees && result.absentEmployees.length > 0) {
+        setAbsentDialog({ open: true, employees: result.absentEmployees });
       }
     } else {
       showSnackbar(result.message, "error");
@@ -295,32 +295,31 @@ function ProductionPage({ moduleName, ipcKey, columnSpec }) {
         </Alert>
       </Snackbar>
 
-      {/* Unmapped Representative Codes Dialog */}
+      {/* Absent Employees Dialog */}
       <Dialog
-        open={unmappedDialog.open}
-        onClose={() => setUnmappedDialog({ open: false, codes: [] })}
+        open={absentDialog.open}
+        onClose={() => setAbsentDialog({ open: false, employees: [] })}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>⚠ Mã đại diện chưa khai báo</DialogTitle>
+        <DialogTitle sx={{ color: "warning.dark", fontWeight: 600 }}>⚠ Cảnh báo: Nhân viên nghỉ việc có sản lượng</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 1 }}>
-            Các mã đại diện sau <b>không tìm thấy</b> trong danh sách nhân viên.
-            Dữ liệu đã được lưu nhưng không có thông tin nhân viên.
+            Các nhân viên sau <b>không có mặt (nghỉ)</b> trong ngày {filterDate} nhưng lại có báo sản lượng.
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Vui lòng vào <b>Danh mục → Nhân viên</b> để khai báo mã đại diện cho các nhân viên này.
+            Dữ liệu sản lượng <b>vẫn được lưu</b>, nhưng vui lòng kiểm tra lại điểm danh hoặc báo cáo sản lượng!
           </Typography>
           <List dense sx={{ bgcolor: "#fff8f0", borderRadius: 1, border: "1px solid #fde68a", maxHeight: 240, overflow: "auto" }}>
-            {unmappedDialog.codes.map((code, i) => (
+            {absentDialog.employees.map((emp, i) => (
               <ListItem key={i}>
-                <ListItemText primary={code} />
+                <ListItemText primary={emp} />
               </ListItem>
             ))}
           </List>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setUnmappedDialog({ open: false, codes: [] })} variant="contained">
+          <Button onClick={() => setAbsentDialog({ open: false, employees: [] })} variant="contained">
             Đã hiểu
           </Button>
         </DialogActions>

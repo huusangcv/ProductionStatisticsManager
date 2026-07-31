@@ -243,4 +243,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.removeAllListeners("notification:new");
     },
   },
+  attendance: {
+    getByDate: (date) => ipcRenderer.invoke("attendance:getByDate", date),
+    upsertBatch: (date, records) => ipcRenderer.invoke("attendance:upsertBatch", date, records),
+    checkMissing: (date) => ipcRenderer.invoke("attendance:checkMissing", date),
+  },
 });

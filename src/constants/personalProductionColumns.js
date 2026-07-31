@@ -105,7 +105,22 @@ export const PERSONAL_PRODUCTION_COLUMNS = [
   {
     field: "employee_name",
     headerName: "Tên nhân viên",
-    width: 180,
+    width: 240,
     editable: true,
+    renderCell: (params) => {
+      const att = params.row.attendance_status;
+      // Nếu có status điểm danh và không phải có mặt / chưa điểm danh
+      if (att && att !== "PRESENT" && att !== "NOT_CHECKED") {
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span>{params.value}</span>
+            <span title="Người nghỉ" style={{ color: "#d97706", fontSize: "12px", fontWeight: 600 }}>
+              ⚠️ Người nghỉ
+            </span>
+          </div>
+        );
+      }
+      return params.value;
+    }
   },
 ];

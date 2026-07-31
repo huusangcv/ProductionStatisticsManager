@@ -74,11 +74,29 @@ export default function PersonalProductionPage() {
     if (!filterDate) return;
     setLoading(true);
     try {
-      const res = await window.electronAPI.personalProduction.getByDate(filterDate);
-      if (res.ok) {
-        setData(res.records || []);
+      const [prodRes, attRes] = await Promise.all([
+        window.electronAPI.personalProduction.getByDate(filterDate),
+        window.electronAPI.attendance?.getByDate(filterDate)
+      ]);
+      
+      if (prodRes.ok) {
+        let records = prodRes.records || [];
+        
+        if (attRes?.ok && attRes.records) {
+          const attMap = {};
+          attRes.records.forEach(r => {
+            attMap[r.employee_code] = r.status;
+          });
+          
+          records = records.map(r => ({
+            ...r,
+            attendance_status: attMap[r.employee_code] || 'NOT_CHECKED'
+          }));
+        }
+        
+        setData(records);
       } else {
-        showSnackbar(res.message || "Lỗi tải dữ liệu", "error");
+        showSnackbar(prodRes.message || "Lỗi tải dữ liệu", "error");
       }
     } catch (err) {
       showSnackbar("Lỗi hệ thống: " + err.message, "error");

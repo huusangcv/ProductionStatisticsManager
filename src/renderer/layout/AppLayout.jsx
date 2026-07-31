@@ -4,8 +4,40 @@ import { Box, Fade } from "@mui/material";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import styles from "./AppLayout.module.css";
-import { NotificationProvider } from "../context/NotificationContext";
+import { NotificationProvider, useNotification } from "../context/NotificationContext";
 import NotificationDrawer from "../components/notifications/NotificationDrawer";
+
+function StartupTasks() {
+  const startupChecked = useRef(false);
+  
+  useEffect(() => {
+    if (startupChecked.current) return;
+    startupChecked.current = true;
+    
+    const checkAttendance = async () => {
+      try {
+        const d = new Date();
+        const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const res = await window.electronAPI.attendance?.checkMissing(today);
+        if (res && res.ok && res.missingCount > 0) {
+          // If there are missing check-ins, create a notification via IPC
+          await window.electronAPI.notifications?.create({
+            title: "Cảnh báo điểm danh",
+            message: `Hôm nay (${today}) còn ${res.missingCount} nhân viên chưa được điểm danh. Vui lòng cập nhật điểm danh.`,
+            type: "warning",
+            link: "/attendance"
+          });
+        }
+      } catch (e) {
+        console.error("Lỗi khi kiểm tra điểm danh lúc khởi động", e);
+      }
+    };
+    
+    checkAttendance();
+  }, []);
+  
+  return null;
+}
 
 function AppLayout() {
   const [desktopOpen, setDesktopOpen] = useState(true);
@@ -38,6 +70,7 @@ function AppLayout() {
 
   return (
     <NotificationProvider>
+      <StartupTasks />
       <Fade in={contentVisible} timeout={400}>
         <Box
           sx={{

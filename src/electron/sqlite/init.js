@@ -20,6 +20,7 @@ const { ensureUpdateLogsTable } = require("./updateLogs");
 const { ensureHeatTreatmentSummaryTable } = require("./heatTreatmentSummary");
 const { ensurePersonalProductionTable } = require("./personalProduction");
 const { ensureNotificationsTable } = require("./notifications");
+const { ensureAttendanceTable } = require("./attendance");
 const {
   getDatabasePath,
   ensureDirectories,
@@ -78,6 +79,7 @@ function initializeDatabase() {
   ensureHeatTreatmentSummaryTable();
   ensurePersonalProductionTable();
   ensureNotificationsTable();
+  ensureAttendanceTable();
 
   return databasePath;
 }

@@ -14,6 +14,7 @@ import HistoryRoundedIcon            from "@mui/icons-material/HistoryRounded";
 import AccessTimeFilledRoundedIcon   from "@mui/icons-material/AccessTimeFilledRounded";
 import AssessmentRoundedIcon         from "@mui/icons-material/AssessmentRounded";
 import SettingsRoundedIcon           from "@mui/icons-material/SettingsRounded";
+import FactCheckRoundedIcon          from "@mui/icons-material/FactCheckRounded";
 import ExpandLessRoundedIcon         from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon         from "@mui/icons-material/ExpandMoreRounded";
 import ReportProblemRoundedIcon      from "@mui/icons-material/ReportProblemRounded";
@@ -32,6 +33,7 @@ const NAV_PADDING       = 16;
 const ICON_MAP = {
   Dashboard:    <DashboardRoundedIcon          sx={{ fontSize: ICON_SIZE }} />,
   Production:   <Inventory2RoundedIcon         sx={{ fontSize: ICON_SIZE }} />,
+  Attendance:   <FactCheckRoundedIcon          sx={{ fontSize: ICON_SIZE }} />,
   Grinding:     <PrecisionManufacturingRounded sx={{ fontSize: ICON_SIZE }} />,
   Cutting:      <ContentCutRoundedIcon         sx={{ fontSize: ICON_SIZE }} />,
   HeatTreatment:<LocalFireDepartmentRounded    sx={{ fontSize: ICON_SIZE }} />,

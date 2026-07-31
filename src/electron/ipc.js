@@ -152,6 +152,11 @@ const {
   createNotification,
 } = require("./sqlite/notifications");
 const { createAndPushNotification } = require("./services/notification/notificationService");
+const {
+  getAttendanceByDate,
+  upsertAttendanceBatch,
+  checkMissingAttendance
+} = require("./sqlite/attendance");
 
 
 // ============================================================================
@@ -374,23 +379,42 @@ function parseExcelFile(filePath, columnSpec) {
 
 /**
  * Collect unique representative codes from records that don't exist in employees table for a given role.
+ * Also checks if any mapped employees are marked as NOT PRESENT on the reportDate.
  */
-function collectUnmappedCodes(db, records, roleCode) {
+function checkImportValidation(db, records, roleCode, reportDate) {
   const codes = [...new Set(records.map((r) => r.representative_code).filter(Boolean))];
   const unmapped = [];
+  const absent = [];
+  
   for (const code of codes) {
     const emp = db
       .prepare(`
-        SELECT e.id 
+        SELECT e.id, e.employee_code, e.full_name
         FROM employees e
         JOIN roles r ON e.role_id = r.id
         WHERE e.representative_code = ? AND r.code = ?
         LIMIT 1
       `)
       .get(code, roleCode);
-    if (!emp) unmapped.push(code);
+      
+    if (!emp) {
+      unmapped.push(code);
+    } else {
+      // Check attendance
+      const att = db
+        .prepare(`
+          SELECT status
+          FROM attendance
+          WHERE employee_id = ? AND date = ?
+        `)
+        .get(emp.id, reportDate);
+        
+      if (att && att.status && att.status !== 'PRESENT' && att.status !== 'NOT_CHECKED') {
+        absent.push(`${emp.employee_code} - ${emp.full_name}`);
+      }
+    }
   }
-  return unmapped;
+  return { unmappedCodes: unmapped, absentEmployees: absent };
 }
 
 function makeSaveHandler(
@@ -437,10 +461,20 @@ function makeSaveHandler(
       const { getDatabasePath } = require("./sqlite/paths");
       const dbCheck = new Database(getDatabasePath());
       let unmappedCodes = [];
+      let absentEmployees = [];
       try {
-        unmappedCodes = collectUnmappedCodes(dbCheck, records, roleCode);
+        const validation = checkImportValidation(dbCheck, records, roleCode, reportDate);
+        unmappedCodes = validation.unmappedCodes;
+        absentEmployees = validation.absentEmployees;
       } finally {
         dbCheck.close();
+      }
+
+      if (unmappedCodes.length > 0) {
+        return {
+          ok: false,
+          message: "Không mapping được nhân viên. Các mã đại diện sau chưa được khai báo: " + unmappedCodes.join(", ")
+        };
       }
 
       // Populate prices from price_list
@@ -489,7 +523,7 @@ function makeSaveHandler(
         });
       }
 
-      return { ...result, unmappedCodes };
+      return { ...result, unmappedCodes, absentEmployees };
     } catch (error) {
       return { ok: false, message: "Lỗi khi lưu dữ liệu: " + error.message };
     }
@@ -1615,6 +1649,21 @@ function registerIpcHandlers() {
   ipcMain.handle("notification:create", (_event, data) => {
     const mainWindow = BrowserWindow.getAllWindows()[0];
     return createAndPushNotification(data, mainWindow);
+  });
+
+  // --- Attendance Handlers ---
+  ipcMain.handle("attendance:getByDate", (_event, date) => {
+    return { ok: true, records: getAttendanceByDate(date) };
+  });
+
+  ipcMain.handle("attendance:upsertBatch", (_event, date, records) => {
+    upsertAttendanceBatch(date, records);
+    return { ok: true };
+  });
+
+  ipcMain.handle("attendance:checkMissing", (_event, date) => {
+    const missingCount = checkMissingAttendance(date);
+    return { ok: true, missingCount };
   });
 }
 

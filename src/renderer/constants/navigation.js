@@ -1,5 +1,6 @@
 export const navigationItems = [
   { label: "Dashboard", path: "/dashboard", icon: "Dashboard" },
+  { label: "Điểm danh", path: "/attendance", icon: "Attendance" },
   {
     label: "Sản lượng",
     icon: "Production",

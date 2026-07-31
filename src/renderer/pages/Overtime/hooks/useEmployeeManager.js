@@ -43,7 +43,16 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
         console.error("window.electronAPI.employees.getAll is not available");
         return;
       }
-      const allEmployees = await window.electronAPI.employees.getAll();
+      
+      const [allEmployees, attendanceRes] = await Promise.all([
+        window.electronAPI.employees.getAll(),
+        window.electronAPI.attendance?.getByDate(otDate)
+      ]);
+      
+      const attendanceRecords = attendanceRes?.records || [];
+      const presentEmployeeIds = new Set(
+        attendanceRecords.filter(r => r.status === 'PRESENT').map(r => String(r.employee_id))
+      );
       
       const mapToRole = (emp) => {
         const posCode = String(emp.position_code || '').toUpperCase();
@@ -57,7 +66,9 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
         return 'CN';
       };
 
-      const activeEmployees = (allEmployees || []).filter(emp => emp.status !== 'Nghỉ việc');
+      const activeEmployees = (allEmployees || []).filter(emp => 
+        emp.status !== 'Nghỉ việc' && presentEmployeeIds.has(String(emp.id))
+      );
 
       const mappedEmployees = activeEmployees.map(emp => {
         const rawCode = String(emp.employee_code || emp.id || '');
@@ -97,7 +108,7 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
     } catch (error) {
       console.error("Lỗi khi tải danh sách nhân viên:", error);
     }
-  }, []);
+  }, [otDate]);
 
   useEffect(() => {
     fetchEmployees();
