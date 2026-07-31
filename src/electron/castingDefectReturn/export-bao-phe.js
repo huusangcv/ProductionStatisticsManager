@@ -83,23 +83,29 @@ function getLoai(tenSanPham, quyCach) {
  * @param {object} candidate - { maCongDon, tenSanPham, quyCach, trongLuongDonVi, defects: {...} }
  * @returns {object} candidate mở rộng với chatLieu, loai, tongCong, tongTrongLuong
  */
-function computeRow(candidate) {
+function computeRow(candidate, autoFillKhac = false) {
   const chatLieu = getChatLieu(candidate.quyCach);
   const loai = getLoai(candidate.tenSanPham, candidate.quyCach);
+
+  // Clone defects để không thay đổi object gốc của candidate
+  const defects = { ...candidate.defects };
+
   let tongCong = DEFECT_COLUMNS.reduce(
-    (sum, d) => sum + (Number(candidate.defects[d.key]) || 0), 0
+    (sum, d) => sum + (Number(defects[d.key]) || 0), 0
   );
 
-  // Tự động bù phần phế còn thiếu vào cột Khác
-  const refScrap = Number(candidate.scrapQuantity) || 0;
-  if (tongCong < refScrap) {
-    const remaining = refScrap - tongCong;
-    candidate.defects.khac = (Number(candidate.defects.khac) || 0) + remaining;
-    tongCong = refScrap; // Cập nhật lại tổng
+  if (autoFillKhac) {
+    // Tự động bù phần phế còn thiếu vào cột Khác
+    const refScrap = Number(candidate.scrapQuantity) || 0;
+    if (tongCong < refScrap) {
+      const remaining = refScrap - tongCong;
+      defects.khac = (Number(defects.khac) || 0) + remaining;
+      tongCong = refScrap; // Cập nhật lại tổng
+    }
   }
 
   const tongTrongLuong = Math.round(tongCong * (candidate.trongLuongDonVi || 0) * 100) / 100;
-  return { ...candidate, chatLieu, loai, tongCong, tongTrongLuong };
+  return { ...candidate, chatLieu, loai, tongCong, tongTrongLuong, defects };
 }
 
 // ---------------------------------------------------------------------------
@@ -239,15 +245,22 @@ function resolveOutputPaths(outputDir, dateLabel, isDraft = false) {
     mm = String(now.getMonth() + 1).padStart(2, '0');
   }
 
-  const folderPath = path.join(outputDir, yyyy, mm);
-  ensureDir(folderPath);
+  const baseFolder = path.join(outputDir, yyyy, mm);
+  const baoCaoFolder = path.join(baseFolder, 'BaoCao');
+  const phieuNhapFolder = path.join(baseFolder, 'PhieuNhap');
+  const qcFolder = path.join(baseFolder, 'GiaoQC');
+
+  ensureDir(baoCaoFolder);
+  ensureDir(phieuNhapFolder);
+  ensureDir(qcFolder);
 
   const prefix = isDraft ? "P-029-06.01_Nhap_Bao_Phe_" : "P-029-06.01_";
+  const targetFolder = isDraft ? phieuNhapFolder : baoCaoFolder;
 
   return {
-    fullPath: path.join(folderPath, `${prefix}${dateLabel}铸造车间不良品回炉申请单A3.xlsx`),
-    qcPath: path.join(folderPath, `P-029-06.02_QC_Giao_Phe_${dateLabel}铸造车间废料发QC表A3.xlsx`),
-    folderPath,
+    fullPath: path.join(targetFolder, `${prefix}${dateLabel}铸造车间不良品回炉申请单A3.xlsx`),
+    qcPath: path.join(qcFolder, `P-029-06.02_QC_Giao_Phe_${dateLabel}铸造车间废料发QC表A3.xlsx`),
+    folderPath: baseFolder,
   };
 }
 
@@ -278,11 +291,12 @@ async function exportBaoPhe({ templatePath, allCandidates, outputDir, dateLabel,
     throw new Error(`Không tìm thấy file template tại: ${templatePath}`);
   }
 
-  // Tính toán toàn bộ dòng
-  const computedRows = allCandidates.map(computeRow);
+  // Tính toán dòng cho File Báo Cáo (autoFillKhac = true trừ khi là Phiếu nháp,
+  // nhưng Phiếu nháp đã tự truyền r.scrap_quantity vào Khác ở frontend, nên để true cũng không ảnh hưởng, vì tongCong == refScrap)
+  const fullRows = allCandidates.map(c => computeRow(c, true));
 
-  // File QC chỉ giữ dòng có ít nhất 1 nguyên nhân được nhập
-  const qcRows = computedRows.filter(r => r.tongCong > 0);
+  // File QC chỉ giữ dòng có ít nhất 1 nguyên nhân được nhập và KHÔNG bù phế (autoFillKhac = false)
+  const qcRows = allCandidates.map(c => computeRow(c, false)).filter(r => r.tongCong > 0);
 
   // Tính toán paths
   const { fullPath, qcPath, folderPath } = resolveOutputPaths(outputDir, dateLabel, isDraft);
@@ -291,8 +305,8 @@ async function exportBaoPhe({ templatePath, allCandidates, outputDir, dateLabel,
   const wbFull = await XlsxPopulate.fromFileAsync(templatePath);
   const wsFull = wbFull.sheet(SHEET_NAME) ?? wbFull.sheet(0);
   if (!wsFull) throw new Error(`Không tìm thấy worksheet "${SHEET_NAME}"`);
-  writeDataRows(wsFull, computedRows);
-  writeFooterSummary(wsFull, computedRows);
+  writeDataRows(wsFull, fullRows);
+  writeFooterSummary(wsFull, fullRows);
   await wbFull.toFileAsync(fullPath);
 
   // Nếu là phiếu nháp thì không cần xuất file QC, trả về luôn
