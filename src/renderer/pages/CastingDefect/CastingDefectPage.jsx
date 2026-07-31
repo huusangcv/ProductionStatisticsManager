@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Box,
   Button,
@@ -88,6 +88,7 @@ export default function CastingDefectPage() {
   const [exporting, setExporting] = useState(false);
   const [lastResult, setLastResult] = useState(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const saveTimeoutRef = useRef(null);
 
   // ── Snackbar ──
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
@@ -114,18 +115,23 @@ export default function CastingDefectPage() {
     setLoadingData(true);
     setGridRows([]);
     try {
-      const [candidatesRes, summaryRes] = await Promise.all([
+      const [candidatesRes, summaryRes, savedRes] = await Promise.all([
         window.electronAPI.baoPhe.getCandidates(filterDate),
         window.electronAPI.baoPhe.getSummary(filterDate),
+        window.electronAPI.baoPhe.loadSavedRows ? window.electronAPI.baoPhe.loadSavedRows(filterDate) : Promise.resolve({ ok: false }),
       ]);
 
       if (candidatesRes.ok) {
-        // Khởi tạo gridRows: mỗi dòng DB + defects rỗng
+        const savedData = savedRes.ok ? savedRes.rows : {};
+        // Khởi tạo gridRows: kết hợp dữ liệu đã lưu nếu có
         setGridRows(
-          (candidatesRes.rows || []).map((r) => ({
-            ...r,
-            defects: emptyDefects(),
-          }))
+          (candidatesRes.rows || []).map((r) => {
+            const existingDefects = savedData[r.id];
+            return {
+              ...r,
+              defects: existingDefects ? { ...emptyDefects(), ...existingDefects } : emptyDefects(),
+            };
+          })
         );
       } else {
         showSnackbar("Lỗi tải dữ liệu: " + candidatesRes.message, "error");
@@ -151,9 +157,20 @@ export default function CastingDefectPage() {
     setGridRows((prev) => {
       const updated = [...prev];
       updated[rowIdx] = { ...updated[rowIdx], defects: newDefects };
+
+      // Tự động lưu sau 1 giây
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => {
+        if (window.electronAPI.baoPhe.saveAllRows) {
+          window.electronAPI.baoPhe.saveAllRows(filterDate, updated).catch(err => {
+            console.error("Auto-save failed:", err);
+          });
+        }
+      }, 1000);
+
       return updated;
     });
-  }, []);
+  }, [filterDate]);
 
   // ── Tính toán trực tiếp cho băng đối soát ────────────────────────────────
 

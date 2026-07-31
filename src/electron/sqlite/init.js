@@ -2,6 +2,7 @@ const { ensureAppAccount } = require("./account");
 const { ensureEmployeesTable, seedEmployeesIfEmpty } = require("./employees");
 const { ensureRolesTable, seedRolesIfEmpty } = require("./roles");
 const { ensurePositionsTable, seedPositionsIfEmpty } = require("./positions");
+const { ensureBaoPheTables } = require("./baoPhe");
 const { ensureGrindingTable } = require("./grinding");
 const { ensureCuttingTable } = require("./cutting");
 const { ensureImportSessionsTable } = require("./importSessions");
@@ -72,6 +73,7 @@ function initializeDatabase() {
   ensurePrintersTable();
   ensureSettingsTable();
   ensurePrintLogsTable();
+  ensureBaoPheTables();
   ensureUpdateLogsTable();
   ensureHeatTreatmentSummaryTable();
   ensurePersonalProductionTable();

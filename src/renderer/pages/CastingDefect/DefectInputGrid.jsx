@@ -1,5 +1,5 @@
 import { useRef, useCallback, useMemo, useEffect, useState } from "react";
-import { Box, Typography, Popover, TextField, Checkbox, FormControlLabel, IconButton, Button, Divider } from "@mui/material";
+import { Box, Typography, Popover, TextField, Checkbox, FormControlLabel, IconButton, Button, Divider, GlobalStyles } from "@mui/material";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import PropTypes from "prop-types";
@@ -11,22 +11,22 @@ import PropTypes from "prop-types";
  * label: tiêu đề hiển thị trên header (ngắn để vừa cột hẹp)
  */
 export const DEFECT_COLS = [
-  { key: "catPham",      label: "Cắt phạm"       },
-  { key: "maiPham",      label: "Mài phạm"        },
-  { key: "xiHo",         label: "Xì hồ"           },
-  { key: "ducThieu",     label: "Đúc thiếu"       },
-  { key: "loCat",        label: "Lổ cát"          },
-  { key: "loKhi",        label: "Lổ khí"          },
-  { key: "lungLo",       label: "Lủng lổ"         },
-  { key: "bienDang",     label: "Biến dạng"       },
-  { key: "matNet",       label: "Mất nét"         },
-  { key: "kepCat",       label: "Kẹp cát"         },
-  { key: "vetNut",       label: "Vết nứt"         },
-  { key: "saiKichThuoc", label: "Sai KT"          },
-  { key: "kepSat",       label: "Kẹp sắt"         },
-  { key: "lanhNgat",     label: "Lạnh ngắt"       },
-  { key: "loXi",         label: "Lỗ xỉ"           },
-  { key: "khac",         label: "Khác"            },
+  { key: "catPham", label: "Cắt phạm" },
+  { key: "maiPham", label: "Mài phạm" },
+  { key: "xiHo", label: "Xì hồ" },
+  { key: "ducThieu", label: "Đúc thiếu" },
+  { key: "loCat", label: "Lổ cát" },
+  { key: "loKhi", label: "Lổ khí" },
+  { key: "lungLo", label: "Lủng lổ" },
+  { key: "bienDang", label: "Biến dạng" },
+  { key: "matNet", label: "Mất nét" },
+  { key: "kepCat", label: "Kẹp cát" },
+  { key: "vetNut", label: "Vết nứt" },
+  { key: "saiKichThuoc", label: "Sai KT" },
+  { key: "kepSat", label: "Kẹp sắt" },
+  { key: "lanhNgat", label: "Lạnh ngắt" },
+  { key: "loXi", label: "Lỗ xỉ" },
+  { key: "khac", label: "Khác" },
 ];
 
 /**
@@ -60,7 +60,7 @@ export function getChatLieu(quyCach) {
  */
 export function getLoai(tenHang, quyCach) {
   const ten = String(tenHang || "");
-  const qc  = String(quyCach || "");
+  const qc = String(quyCach || "");
   if (ten.includes("OM-06")) return "ỐNG";
   if (qc.startsWith("DN") || qc.startsWith("NPS") || ten.includes("LADISH")) return "VAN";
   return "ỐNG";
@@ -87,31 +87,31 @@ export function calcTongTrongLuong(tongCong, unitWeight) {
 
 // ── STYLE CONSTANTS ───────────────────────────────────────────────────────────
 
-const HEADER_BG   = "#1e2d4a";
+const HEADER_BG = "#1e2d4a";
 const HEADER_TEXT = "#c8d6ef";
-const ROW_EVEN    = "#ffffff";
-const ROW_ODD     = "#f8fafd";
-const CELL_FOCUS  = "#eef4ff";
+const ROW_EVEN = "#ffffff";
+const ROW_ODD = "#f8fafd";
+const CELL_FOCUS = "#eef4ff";
 const CELL_ACTIVE = "#dbeafe";
 const INPUT_HAS_VAL = "#f0f9ff";
 const BORDER_COLOR = "rgba(99,126,179,0.18)";
 const READ_CELL_BG = "#f1f5f9";
-const FONT_SIZE    = "11px";
-const ROW_HEIGHT   = 28;
+const FONT_SIZE = "11px";
+const ROW_HEIGHT = 28;
 
 // Độ rộng cột cố định (px)
 const COL_WIDTHS = {
-  stt:          36,
-  maCongDon:   100,
-  tenHang:     160,
-  quyCach:     120,
-  chatLieu:     62,
-  loai:         48,
-  defect:       56,   // mỗi 1 trong 16 cột nguyên nhân
-  tongCong:     52,
-  trongLuong:   52,
-  tongTL:       60,
-  soPhe:        56,
+  stt: 36,
+  maCongDon: 100,
+  tenHang: 160,
+  quyCach: 120,
+  chatLieu: 62,
+  loai: 48,
+  defect: 56,   // mỗi 1 trong 16 cột nguyên nhân
+  tongCong: 52,
+  trongLuong: 52,
+  tongTL: 60,
+  soPhe: 56,
 };
 
 // ── SUB-COMPONENTS ────────────────────────────────────────────────────────────
@@ -206,14 +206,15 @@ function ColumnFilter({ anchorEl, onClose, options, selected, onApply, title }) 
 }
 
 /** Ô header */
-function Th({ children, width, align = "center", sticky = false, stickyLeft = 0, filterActive, onFilterClick }) {
+function Th({ children, width, align = "center", sticky = false, stickyLeft = 0, filterActive, onFilterClick, bg, colKey }) {
   return (
     <th
+      data-col={colKey}
       style={{
         width,
         minWidth: width,
         maxWidth: width,
-        background: HEADER_BG,
+        background: bg || HEADER_BG,
         color: HEADER_TEXT,
         fontSize: "10.5px",
         fontWeight: 600,
@@ -285,6 +286,8 @@ function NumCell({ rowIdx, colKey, value, onChange, onKeyDown, inputRef, width }
 
   return (
     <td
+      data-col={colKey}
+      className={hasVal ? "has-val" : ""}
       style={{
         width,
         minWidth: width,
@@ -302,6 +305,16 @@ function NumCell({ rowIdx, colKey, value, onChange, onKeyDown, inputRef, width }
         pattern="[0-9]*"
         value={value === 0 ? "" : String(value)}
         placeholder=""
+        onFocus={(e) => {
+          e.target.closest('tr')?.classList.add('crosshair-row');
+          document.querySelectorAll(`td[data-col="${colKey}"]`).forEach(el => el.classList.add('crosshair-col'));
+          document.querySelectorAll(`th[data-col="${colKey}"]`).forEach(el => el.classList.add('crosshair-th'));
+        }}
+        onBlur={(e) => {
+          e.target.closest('tr')?.classList.remove('crosshair-row');
+          document.querySelectorAll('.crosshair-col').forEach(el => el.classList.remove('crosshair-col'));
+          document.querySelectorAll('.crosshair-th').forEach(el => el.classList.remove('crosshair-th'));
+        }}
         onChange={(e) => {
           // Chỉ cho phép ký tự số nguyên không âm
           const raw = e.target.value.replace(/[^0-9]/g, "");
@@ -322,8 +335,8 @@ function NumCell({ rowIdx, colKey, value, onChange, onKeyDown, inputRef, width }
           fontWeight: hasVal ? 600 : 400,
           cursor: "text",
         }}
-        onFocus={(e) => { e.target.style.background = CELL_ACTIVE; }}
-        onBlur={(e)  => { e.target.style.background = "transparent"; }}
+      // onFocus={(e) => { e.target.style.background = CELL_ACTIVE; }}
+      // onBlur={(e) => { e.target.style.background = "transparent"; }}
       />
     </td>
   );
@@ -344,9 +357,9 @@ export default function DefectInputGrid({ rows, onRowChange }) {
 
   // State cho filter
   const [filters, setFilters] = useState({});
-  const [filterPopover, setFilterPopover] = useState({ anchorEl: null, column: null });
+  const [filterPopover, setFilterPopover] = useState({ anchorEl: null, column: null, title: "" });
 
-  // Khởi tạo ref array khi rows thay đổi độ dài
+  // Khởi tạo refs array khi rows thay đổi độ dài
   useEffect(() => {
     inputRefs.current = rows.map((_, ri) =>
       inputRefs.current[ri] ||
@@ -448,16 +461,16 @@ export default function DefectInputGrid({ rows, onRowChange }) {
 
   // Tính sticky left offsets (STT + maCongDon + tenHang + quyCach đều sticky)
   const stickyOffsets = useMemo(() => {
-    const sttW     = COL_WIDTHS.stt;
-    const maW      = COL_WIDTHS.maCongDon;
-    const tenW     = COL_WIDTHS.tenHang;
-    const qcW      = COL_WIDTHS.quyCach;
+    const sttW = COL_WIDTHS.stt;
+    const maW = COL_WIDTHS.maCongDon;
+    const tenW = COL_WIDTHS.tenHang;
+    const qcW = COL_WIDTHS.quyCach;
     return {
-      stt:      0,
+      stt: 0,
       maCongDon: sttW,
-      tenHang:   sttW + maW,
-      quyCach:   sttW + maW + tenW,
-      chatLieu:  sttW + maW + tenW + qcW,
+      tenHang: sttW + maW,
+      quyCach: sttW + maW + tenW,
+      chatLieu: sttW + maW + tenW + qcW,
     };
   }, []);
 
@@ -491,6 +504,11 @@ export default function DefectInputGrid({ rows, onRowChange }) {
         },
       }}
     >
+      <GlobalStyles styles={{
+        ".crosshair-row td": { backgroundColor: "#e2e8f0 !important" },
+        ".crosshair-col:not(.has-val)": { backgroundColor: "#f1f5f9 !important" },
+        ".crosshair-th": { backgroundColor: "#475569 !important", color: "#fff !important" }
+      }} />
       <table
         style={{
           borderCollapse: "collapse",
@@ -519,19 +537,25 @@ export default function DefectInputGrid({ rows, onRowChange }) {
         {/* ── THEAD ── */}
         <thead style={{ position: "sticky", top: 0, zIndex: 5 }}>
           <tr>
-            <Th width={COL_WIDTHS.stt}        sticky stickyLeft={stickyOffsets.stt}      >STT</Th>
-            <Th width={COL_WIDTHS.maCongDon}  sticky stickyLeft={stickyOffsets.maCongDon} align="left"
-                filterActive={!!filters["maCongDon"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "maCongDon", title: "Mã công đơn" })}>Mã công đơn</Th>
-            <Th width={COL_WIDTHS.tenHang}    sticky stickyLeft={stickyOffsets.tenHang}   align="left"
-                filterActive={!!filters["tenHang"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "tenHang", title: "Tên hàng" })}>Tên hàng</Th>
-            <Th width={COL_WIDTHS.quyCach}    sticky stickyLeft={stickyOffsets.quyCach}   align="left"
-                filterActive={!!filters["quyCach"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "quyCach", title: "Quy cách" })}>Quy cách</Th>
-            <Th width={COL_WIDTHS.chatLieu}   sticky stickyLeft={stickyOffsets.chatLieu}  
-                filterActive={!!filters["chatLieu"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "chatLieu", title: "Chất liệu" })}>Chất liệu</Th>
-            <Th width={COL_WIDTHS.loai}       
-                filterActive={!!filters["loai"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "loai", title: "Loại" })}>Loại</Th>
+            <Th width={COL_WIDTHS.stt} sticky stickyLeft={stickyOffsets.stt}      >STT</Th>
+            <Th width={COL_WIDTHS.maCongDon} sticky stickyLeft={stickyOffsets.maCongDon} align="left"
+              filterActive={!!filters["maCongDon"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "maCongDon", title: "Mã công đơn" })}>Mã công đơn</Th>
+            <Th width={COL_WIDTHS.tenHang} sticky stickyLeft={stickyOffsets.tenHang} align="left"
+              filterActive={!!filters["tenHang"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "tenHang", title: "Tên hàng" })}>Tên hàng</Th>
+            <Th width={COL_WIDTHS.quyCach} sticky stickyLeft={stickyOffsets.quyCach} align="left"
+              filterActive={!!filters["quyCach"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "quyCach", title: "Quy cách" })}>Quy cách</Th>
+            <Th width={COL_WIDTHS.chatLieu} sticky stickyLeft={stickyOffsets.chatLieu}
+              filterActive={!!filters["chatLieu"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "chatLieu", title: "Chất liệu" })}>Chất liệu</Th>
+            <Th width={COL_WIDTHS.loai}
+              filterActive={!!filters["loai"]} onFilterClick={(e) => setFilterPopover({ anchorEl: e.currentTarget, column: "loai", title: "Loại" })}>Loại</Th>
             {DEFECT_COLS.map(({ key, label }) => (
-              <Th key={key} width={COL_WIDTHS.defect}>{label}</Th>
+              <Th
+                key={key}
+                colKey={key}
+                width={COL_WIDTHS.defect}
+              >
+                {label}
+              </Th>
             ))}
             <Th width={COL_WIDTHS.tongCong}  >Tổng{"\n"}cộng</Th>
             <Th width={COL_WIDTHS.trongLuong}>TL{"\n"}đơn vị</Th>
@@ -543,12 +567,14 @@ export default function DefectInputGrid({ rows, onRowChange }) {
         {/* ── TBODY ── */}
         <tbody>
           {visibleRows.map(({ row, originalIndex: ri }, visibleIdx) => {
-            const isOdd      = visibleIdx % 2 === 1;
-            const rowBg      = isOdd ? ROW_ODD : ROW_EVEN;
-            const tongCong   = calcTongCong(row.defects);
-            const tongTL     = calcTongTrongLuong(tongCong, row.unit_weight);
-            const chatLieu   = getChatLieu(row.specification);
-            const loai       = getLoai(row.item_name, row.specification);
+            const isOdd = visibleIdx % 2 === 1;
+            const rowBg = isOdd ? ROW_ODD : ROW_EVEN;
+            const tongCong = calcTongCong(row.defects);
+            const tongTL = calcTongTrongLuong(tongCong, row.unit_weight);
+            const chatLieu = getChatLieu(row.specification);
+            const loai = getLoai(row.item_name, row.specification);
+            const soPheGoc = Number(row.scrap_quantity) || 0;
+            const isExceeded = tongCong > soPheGoc;
 
             return (
               <tr
@@ -632,13 +658,17 @@ export default function DefectInputGrid({ rows, onRowChange }) {
                 ))}
 
                 {/* Tổng cộng */}
-                <ReadCell width={COL_WIDTHS.tongCong} align="right" bg={tongCong > 0 ? "#fef9c3" : rowBg}>
+                <ReadCell 
+                  width={COL_WIDTHS.tongCong} 
+                  align="right" 
+                  bg={isExceeded ? "#fee2e2" : (tongCong > 0 ? "#fef9c3" : rowBg)}
+                >
                   <Typography
                     variant="caption"
                     sx={{
                       fontSize: FONT_SIZE,
                       fontWeight: tongCong > 0 ? 700 : 400,
-                      color: tongCong > 0 ? "#b45309" : "#94a3b8",
+                      color: isExceeded ? "#b91c1c" : (tongCong > 0 ? "#b45309" : "#94a3b8"),
                     }}
                   >
                     {tongCong || ""}
@@ -671,12 +701,12 @@ export default function DefectInputGrid({ rows, onRowChange }) {
                     sx={{
                       fontSize: "11.5px",
                       fontWeight: 700,
-                      color: "#334155",
-                      bgcolor: "#f1f5f9",
+                      color: isExceeded ? "#ef4444" : "#334155",
+                      bgcolor: isExceeded ? "#fee2e2" : "#f1f5f9",
                       px: 1,
                       py: 0.2,
                       borderRadius: "4px",
-                      border: "1px solid #e2e8f0"
+                      border: isExceeded ? "1px solid #fca5a5" : "1px solid #e2e8f0"
                     }}
                   >
                     {row.scrap_quantity || ""}
@@ -714,6 +744,6 @@ export default function DefectInputGrid({ rows, onRowChange }) {
 }
 
 DefectInputGrid.propTypes = {
-  rows:        PropTypes.array.isRequired,
+  rows: PropTypes.array.isRequired,
   onRowChange: PropTypes.func.isRequired,
 };

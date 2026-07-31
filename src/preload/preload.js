@@ -175,6 +175,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getCandidates: (date)          => ipcRenderer.invoke("bao-phe:getCandidates", date),
     getSummary:    (date)          => ipcRenderer.invoke("bao-phe:getSummary", date),
     getLatestDate: ()              => ipcRenderer.invoke("bao-phe:getLatestDate"),
+    loadSavedRows: (date)          => ipcRenderer.invoke("bao-phe:loadSavedRows", date),
+    saveAllRows:   (date, gridRows)=> ipcRenderer.invoke("bao-phe:saveAllRows", date, gridRows),
     export:        (params)        => ipcRenderer.invoke("bao-phe:export", params),
     openFolder:    (folderPath)    => ipcRenderer.invoke("bao-phe:openFolder", folderPath),
     openFolderByDate:(dateStr)     => ipcRenderer.invoke("bao-phe:openFolderByDate", dateStr),

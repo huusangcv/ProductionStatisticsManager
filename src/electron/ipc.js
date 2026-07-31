@@ -1122,6 +1122,27 @@ function registerIpcHandlers() {
     }
   });
 
+  // Tải dữ liệu phế đã lưu
+  ipcMain.handle("bao-phe:loadSavedRows", (_event, date) => {
+    try {
+      const { loadSavedRows } = require("./sqlite/baoPhe");
+      return { ok: true, rows: loadSavedRows(date) };
+    } catch (error) {
+      return { ok: false, message: error.message, rows: {} };
+    }
+  });
+
+  // Lưu toàn bộ dữ liệu phế từ grid
+  ipcMain.handle("bao-phe:saveAllRows", (_event, date, gridRows) => {
+    try {
+      const { saveAllRows } = require("./sqlite/baoPhe");
+      saveAllRows(date, gridRows);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: error.message };
+    }
+  });
+
   // Xuất 2 file Excel từ grid data
   ipcMain.handle("bao-phe:export", async (_event, { candidates, dateLabel, isDraft }) => {
     try {
@@ -1151,6 +1172,15 @@ function registerIpcHandlers() {
         dateLabel,
         isDraft,
       });
+
+      // Nếu không phải nháp, đánh dấu đã in và lưu đường dẫn
+      if (!isDraft) {
+        // convert dateLabel "DD.MM.YYYY" -> "YYYY-MM-DD"
+        const [d, m, y] = dateLabel.split(".");
+        const isoDate = `${y}-${m}-${d}`;
+        const { markExported } = require("./sqlite/baoPhe");
+        markExported(isoDate, result.full, result.qc);
+      }
 
       return {
         ok: true,
