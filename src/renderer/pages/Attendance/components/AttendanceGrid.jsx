@@ -1,7 +1,7 @@
 import { DataGrid } from "@mui/x-data-grid";
 import { MenuItem, Select, TextField } from "@mui/material";
 import AttendanceStatusBadge, { STATUS_CONFIG } from "./AttendanceStatusBadge";
-import { viVNGridLocaleText } from "../../../../constants/dataGridLocale";
+import { viVNGridLocaleText } from "../../../constants/dataGridLocale";
 
 const dataGridSx = {
   border: "none",

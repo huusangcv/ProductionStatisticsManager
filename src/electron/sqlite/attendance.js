@@ -1,5 +1,10 @@
-const { getDatabase } = require("./init");
+const Database = require("better-sqlite3");
+const { getDatabasePath } = require("./paths");
 const logger = require("../logger");
+
+function getDatabase() {
+  return new Database(getDatabasePath());
+}
 
 function ensureAttendanceTable() {
   const db = getDatabase();
@@ -22,6 +27,8 @@ function ensureAttendanceTable() {
   } catch (err) {
     logger.error("Error ensuring attendance table:", err);
     throw err;
+  } finally {
+    db.close();
   }
 }
 
@@ -36,23 +43,26 @@ function getAttendanceByDate(date) {
       SELECT 
         e.id as employee_id, 
         e.employee_code, 
-        e.name as employee_name, 
-        e.role_code, 
+        e.full_name as employee_name, 
+        r.code as role_code, 
         e.representative_code,
-        e.is_active,
+        CASE WHEN e.status = 'Đang làm việc' THEN 1 ELSE 0 END as is_active,
         COALESCE(a.status, 'NOT_CHECKED') as status,
         a.note,
         a.id as attendance_id,
         a.updated_at
       FROM employees e
+      JOIN roles r ON e.role_id = r.id
       LEFT JOIN attendance a ON e.id = a.employee_id AND a.work_date = ?
-      WHERE e.is_active = 1
+      WHERE e.status = 'Đang làm việc'
       ORDER BY e.representative_code ASC, e.employee_code ASC
     `);
     return stmt.all(date);
   } catch (err) {
     logger.error("Error getting attendance by date:", err);
     throw err;
+  } finally {
+    db.close();
   }
 }
 
@@ -81,6 +91,8 @@ function upsertAttendanceBatch(date, records) {
   } catch (err) {
     logger.error("Error upserting attendance batch:", err);
     throw err;
+  } finally {
+    db.close();
   }
 }
 
@@ -94,13 +106,15 @@ function checkMissingAttendance(date) {
       SELECT COUNT(e.id) as missing_count
       FROM employees e
       LEFT JOIN attendance a ON e.id = a.employee_id AND a.work_date = ?
-      WHERE e.is_active = 1 AND (a.id IS NULL OR a.status = 'NOT_CHECKED')
+      WHERE e.status = 'Đang làm việc' AND (a.id IS NULL OR a.status = 'NOT_CHECKED')
     `);
     const result = stmt.get(date);
     return result ? result.missing_count : 0;
   } catch (err) {
     logger.error("Error checking missing attendance:", err);
     throw err;
+  } finally {
+    db.close();
   }
 }
 

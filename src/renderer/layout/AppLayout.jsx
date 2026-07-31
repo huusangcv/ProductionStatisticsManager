@@ -4,7 +4,7 @@ import { Box, Fade } from "@mui/material";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import styles from "./AppLayout.module.css";
-import { NotificationProvider, useNotification } from "../context/NotificationContext";
+import { NotificationProvider } from "../context/NotificationContext";
 import NotificationDrawer from "../components/notifications/NotificationDrawer";
 
 function StartupTasks() {
