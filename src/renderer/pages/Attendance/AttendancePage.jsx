@@ -8,7 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 
 export default function AttendancePage() {
   const { savedUsername } = useAuth();
-  
+
   // Permission check: Only Admin and Thong Ke can edit. (Assuming usernames are admin or thongke)
   const isReadOnly = useMemo(() => {
     const user = (savedUsername || "").toLowerCase();
@@ -95,18 +95,7 @@ export default function AttendancePage() {
   const stats = useMemo(() => attendanceService.computeStats(records), [records]);
 
   return (
-    <Box sx={{ p: 3, height: "100%", display: "flex", flexDirection: "column", gap: 2, bgcolor: "#F1F5F9" }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 600, color: "#1E293B", mb: 0.5 }}>
-            Điểm danh
-          </Typography>
-          <Typography variant="body2" sx={{ color: "#64748B" }}>
-            Quản lý và theo dõi chuyên cần của nhân viên. Dữ liệu làm nguồn tham chiếu cho các module khác.
-          </Typography>
-        </Box>
-      </Box>
-
+    <Box sx={{ p: 0, height: "100%", display: "flex", flexDirection: "column", gap: 2, bgcolor: "#F1F5F9" }}>
       <Card sx={{ flex: 1, display: "flex", flexDirection: "column", borderRadius: "12px", boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1)" }}>
         <AttendanceToolbar
           filterDate={filterDate}

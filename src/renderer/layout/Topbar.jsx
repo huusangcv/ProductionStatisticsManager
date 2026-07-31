@@ -9,6 +9,10 @@ const PAGE_META = {
     title: "Dashboard",
     subtitle: "Tổng quan hệ thống",
   },
+  "/attendance": {
+    title: "Điểm danh",
+    subtitle: "Quản lý điểm danh nhân viên",
+  },
   "/grinding": {
     title: "Sản lượng Mài",
     subtitle: "Quản lý và thống kê sản lượng mài từ file Excel",
