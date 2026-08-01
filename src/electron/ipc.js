@@ -4,7 +4,7 @@ const XLSX = require("xlsx");
 const ExcelJS = require("exceljs");
 const path = require("path");
 const fs = require("fs");
-const Database = require("better-sqlite3");
+const { openDatabase } = require("./sqlite/connection");
 const { initializeDatabase } = require("./sqlite/init");
 const {
   validateLogin,
@@ -459,7 +459,7 @@ function makeSaveHandler(
 
       // Check unmapped representative codes before import
       const { getDatabasePath } = require("./sqlite/paths");
-      const dbCheck = new Database(getDatabasePath());
+      const dbCheck = openDatabase();
       let unmappedCodes = [];
       let absentEmployees = [];
       try {
@@ -972,7 +972,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle("heatTreatment:getGrindingByDate", (_event, reportDate) => {
     const { getDatabasePath } = require("./sqlite/paths");
-    const db = new Database(getDatabasePath());
+    const db = openDatabase();
     try {
       return db
         .prepare(
@@ -1048,8 +1048,8 @@ function registerIpcHandlers() {
   // DEBUG — xem raw data không filter scrap/completed
   ipcMain.handle("castingDefect:debugDate", async (_event, reportDate) => {
     const { getDatabasePath } = require("./sqlite/paths");
-    const Database = require("better-sqlite3");
-    const db = new Database(getDatabasePath());
+    const { openDatabase } = require("./sqlite/connection");
+    const db = openDatabase();
     try {
       const all = db.prepare(`
         SELECT work_order_number, completed_quantity, scrap_quantity

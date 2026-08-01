@@ -8,6 +8,10 @@ export function AuthProvider({ children }) {
     return localStorage.getItem("savedUsername") || "";
   });
 
+  const [currentUser, setCurrentUser] = useState(() => {
+    return localStorage.getItem("currentUser") || "";
+  });
+
   const login = async (username, password, rememberMe) => {
     try {
       // Call IPC handler exposed via preload.js
@@ -15,6 +19,9 @@ export function AuthProvider({ children }) {
       
       if (result.ok) {
         setIsAuthenticated(true);
+        setCurrentUser(username);
+        localStorage.setItem("currentUser", username);
+
         if (rememberMe) {
           localStorage.setItem("savedUsername", username);
           setSavedUsername(username);
@@ -37,11 +44,13 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     setIsAuthenticated(false);
+    setCurrentUser("");
+    localStorage.removeItem("currentUser");
     await window.electronAPI?.window?.setLoginMode?.();
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, savedUsername }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout, savedUsername, currentUser }}>
       {children}
     </AuthContext.Provider>
   );

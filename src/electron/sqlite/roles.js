@@ -1,9 +1,7 @@
 const { getDatabasePath } = require("./paths");
-const Database = require("better-sqlite3");
+const { openDatabase } = require("./connection");
 
-function openDatabase() {
-  return new Database(getDatabasePath());
-}
+
 
 const DEFAULT_ROLES = [
   { code: "GRIND", name: "Mài", sort_order: 1, description: "" },

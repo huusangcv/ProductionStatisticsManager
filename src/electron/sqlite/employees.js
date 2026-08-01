@@ -1,9 +1,7 @@
 const { getDatabasePath } = require("./paths");
-const Database = require("better-sqlite3");
+const { openDatabase } = require("./connection");
 
-function openDatabase() {
-  return new Database(getDatabasePath());
-}
+
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -28,7 +26,8 @@ function ensureEmployeesTable() {
         created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
         updated_at          TEXT    NOT NULL DEFAULT (datetime('now')),
         FOREIGN KEY (role_id) REFERENCES roles(id),
-        FOREIGN KEY (position_id) REFERENCES positions(id)
+        FOREIGN KEY (position_id) REFERENCES positions(id),
+        UNIQUE(role_id, representative_code)
       )
     `);
 
@@ -71,10 +70,59 @@ function migrateRemoveUniqueRepresentativeCode(db) {
   }
 
   if (hasUniqueRepCode) {
-    // Create backup of old table
-    db.exec("ALTER TABLE employees RENAME TO employees_unique_old");
+    db.transaction(() => {
+      // Create backup of old table
+      db.exec("ALTER TABLE employees RENAME TO employees_unique_old");
 
-    // Create new table without unique index on representative_code
+      // Create new table without unique index on representative_code
+      db.exec(`
+        CREATE TABLE employees (
+          id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+          employee_code       TEXT    UNIQUE NOT NULL,
+          representative_code TEXT    NOT NULL,
+          full_name           TEXT    NOT NULL,
+          role_id             INTEGER NOT NULL,
+          position_id         INTEGER NOT NULL,
+          phone               TEXT,
+          status              TEXT    DEFAULT 'Đang làm việc',
+          hire_date           TEXT,
+          note                TEXT,
+          created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+          updated_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY (role_id) REFERENCES roles(id),
+          FOREIGN KEY (position_id) REFERENCES positions(id)
+        )
+      `);
+
+      const columns = [
+        "id", "employee_code", "representative_code", "full_name",
+        "role_id", "position_id", "phone", "status",
+        "hire_date", "note", "created_at", "updated_at"
+      ].join(", ");
+
+      // Use INSERT OR IGNORE to prevent unique constraint violations from crashing the migration
+      db.exec(`INSERT OR IGNORE INTO employees (${columns}) SELECT ${columns} FROM employees_unique_old`);
+      db.exec("DROP TABLE employees_unique_old");
+    })();
+  }
+}
+
+function migrateOldEmployees(db) {
+  db.transaction(() => {
+    // 1. Get all existing employees
+    const oldEmployees = db
+      .prepare(
+        `
+      SELECT id, employee_code, employee_name, role_code, phone, status, hire_date, note
+      FROM employees
+    `,
+      )
+      .all();
+
+    // 2. Create backup of old table
+    db.exec("ALTER TABLE employees RENAME TO employees_old");
+
+    // 3. Create new table
     db.exec(`
       CREATE TABLE employees (
         id                  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,67 +138,23 @@ function migrateRemoveUniqueRepresentativeCode(db) {
         created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
         updated_at          TEXT    NOT NULL DEFAULT (datetime('now')),
         FOREIGN KEY (role_id) REFERENCES roles(id),
-        FOREIGN KEY (position_id) REFERENCES positions(id)
+        FOREIGN KEY (position_id) REFERENCES positions(id),
+        UNIQUE(role_id, representative_code)
       )
     `);
 
-    const columns = [
-      "id", "employee_code", "representative_code", "full_name",
-      "role_id", "position_id", "phone", "status",
-      "hire_date", "note", "created_at", "updated_at"
-    ].join(", ");
+    // 4. Get default roles and positions
+    const roleMap = new Map();
+    const roles = db.prepare("SELECT * FROM roles").all();
+    for (const role of roles) roleMap.set(role.code, role.id);
 
-    db.exec(`INSERT INTO employees (${columns}) SELECT ${columns} FROM employees_unique_old`);
-    db.exec("DROP TABLE employees_unique_old");
-  }
-}
+    const positionMap = new Map();
+    const positions = db.prepare("SELECT * FROM positions").all();
+    for (const pos of positions) positionMap.set(pos.code, pos.id);
 
-function migrateOldEmployees(db) {
-  // 1. Get all existing employees
-  const oldEmployees = db
-    .prepare(
-      `
-    SELECT id, employee_code, employee_name, role_code, phone, status, hire_date, note
-    FROM employees
-  `,
-    )
-    .all();
-
-  // 2. Create backup of old table
-  db.exec("ALTER TABLE employees RENAME TO employees_old");
-
-  // 3. Create new table
-  db.exec(`
-    CREATE TABLE employees (
-      id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-      employee_code       TEXT    UNIQUE NOT NULL,
-      representative_code TEXT    NOT NULL,
-      full_name           TEXT    NOT NULL,
-      role_id             INTEGER NOT NULL,
-      position_id         INTEGER NOT NULL,
-      phone               TEXT,
-      status              TEXT    DEFAULT 'Đang làm việc',
-      hire_date           TEXT,
-      note                TEXT,
-      created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
-      updated_at          TEXT    NOT NULL DEFAULT (datetime('now')),
-      FOREIGN KEY (role_id) REFERENCES roles(id),
-      FOREIGN KEY (position_id) REFERENCES positions(id)
-    )
-  `);
-
-  // 4. Get default roles and positions
-  const roleMap = new Map();
-  const roles = db.prepare("SELECT * FROM roles").all();
-  for (const role of roles) roleMap.set(role.code, role.id);
-
-  const positionMap = new Map();
-  const positions = db.prepare("SELECT * FROM positions").all();
-  for (const pos of positions) positionMap.set(pos.code, pos.id);
-
-  // 5. Insert migrated data
-  const insert = db.prepare(`
-    INSERT INTO employees (
+    // 5. Insert migrated data
+    const insert = db.prepare(`
+    INSERT OR IGNORE INTO employees (
       id, 
       employee_code, 
       representative_code, 
@@ -164,45 +168,46 @@ function migrateOldEmployees(db) {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const getDefaultPositionId = () =>
-    positionMap.get("WORKER") || positions[0]?.id || 1;
-  const getDefaultRoleId = () => roleMap.get("GRIND") || roles[0]?.id || 1;
+    const getDefaultPositionId = () =>
+      positionMap.get("WORKER") || positions[0]?.id || 1;
+    const getDefaultRoleId = () => roleMap.get("GRIND") || roles[0]?.id || 1;
 
-  for (const emp of oldEmployees) {
-    let roleId = getDefaultRoleId();
-    // Try to map old role_code to new role
-    if (emp.role_code) {
-      // Try fuzzy match based on name
-      const matchedRole = roles.find(
-        (r) => r.name.includes(emp.role_code) || emp.role_code.includes(r.name),
+    for (const emp of oldEmployees) {
+      let roleId = getDefaultRoleId();
+      // Try to map old role_code to new role
+      if (emp.role_code) {
+        // Try fuzzy match based on name
+        const matchedRole = roles.find(
+          (r) => r.name.includes(emp.role_code) || emp.role_code.includes(r.name),
+        );
+        if (matchedRole) roleId = matchedRole.id;
+      }
+
+      let positionId = getDefaultPositionId();
+      // Try to map old role_code to position
+      if (emp.role_code) {
+        const matchedPos = positions.find(
+          (p) => p.name.includes(emp.role_code) || emp.role_code.includes(p.name),
+        );
+        if (matchedPos) positionId = matchedPos.id;
+      }
+
+      const representativeCode = emp.employee_code; // Use employee_code as default representative_code
+
+      insert.run(
+        emp.id,
+        emp.employee_code,
+        representativeCode,
+        emp.employee_name,
+        roleId,
+        positionId,
+        emp.phone,
+        emp.status,
+        emp.hire_date,
+        emp.note,
       );
-      if (matchedRole) roleId = matchedRole.id;
     }
-
-    let positionId = getDefaultPositionId();
-    // Try to map old role_code to position
-    if (emp.role_code) {
-      const matchedPos = positions.find(
-        (p) => p.name.includes(emp.role_code) || emp.role_code.includes(p.name),
-      );
-      if (matchedPos) positionId = matchedPos.id;
-    }
-
-    const representativeCode = emp.employee_code; // Use employee_code as default representative_code
-
-    insert.run(
-      emp.id,
-      emp.employee_code,
-      representativeCode,
-      emp.employee_name,
-      roleId,
-      positionId,
-      emp.phone,
-      emp.status,
-      emp.hire_date,
-      emp.note,
-    );
-  }
+  })();
 }
 
 // ---------------------------------------------------------------------------
@@ -212,7 +217,7 @@ function migrateOldEmployees(db) {
 const SEED_EMPLOYEES = [
   {
     code: "V21111171",
-    rep_code: "V21111171",
+    rep_code: "8",
     name: "Đinh Thế Trung Nguyên",
     role_code: "GRIND",
     position_code: "LEADER",
@@ -221,7 +226,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V23021781",
-    rep_code: "V23021781",
+    rep_code: "7",
     name: "Trang Quang Khánh",
     role_code: "GRIND",
     position_code: "SHIFT",
@@ -230,7 +235,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V26063277",
-    rep_code: "V26063277",
+    rep_code: "0",
     name: "Lê Hữu Sang",
     role_code: "CUT",
     position_code: "STAFF",
@@ -239,7 +244,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V22021245",
-    rep_code: "V22021245",
+    rep_code: "1",
     name: "Phan Văn Đợi",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -248,7 +253,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V22021247",
-    rep_code: "V22021247",
+    rep_code: "2",
     name: "Phạm Hoàng Lên",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -257,7 +262,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V22021264",
-    rep_code: "V22021264",
+    rep_code: "2",
     name: "Phạm Hoàng Xia",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -266,7 +271,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V26013075",
-    rep_code: "V26013075",
+    rep_code: "3",
     name: "Phạm Hoàng Sống",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -275,7 +280,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V22031369",
-    rep_code: "V22031369",
+    rep_code: "4",
     name: "Đinh Văn Khang",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -284,7 +289,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V22061602",
-    rep_code: "V22061602",
+    rep_code: "5",
     name: "Nguyễn Thanh Vân",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -293,7 +298,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V21121209",
-    rep_code: "V21121209",
+    rep_code: "6",
     name: "Huỳnh Văn Toàn",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -302,7 +307,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V19090117",
-    rep_code: "V19090117",
+    rep_code: "7",
     name: "Nguyễn Thanh Long",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -311,7 +316,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V26063308",
-    rep_code: "V26063308",
+    rep_code: "8",
     name: "Dương Văn Hoàng",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -320,7 +325,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V26063274",
-    rep_code: "V26063274",
+    rep_code: "9",
     name: "Châu Văn Điền",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -329,7 +334,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V26053242",
-    rep_code: "V26053242",
+    rep_code: "0",
     name: "Nguyễn Văn Rớt",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -338,7 +343,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V22091729",
-    rep_code: "V22091729",
+    rep_code: "1",
     name: "Phạm Hoàng Gập",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -347,7 +352,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V25092973",
-    rep_code: "V25092973",
+    rep_code: "2",
     name: "Phạm Văn Nầy",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -356,7 +361,7 @@ const SEED_EMPLOYEES = [
   },
   {
     code: "V25052787",
-    rep_code: "V25052787",
+    rep_code: "3",
     name: "Nguyễn Văn Hậu",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -364,17 +369,8 @@ const SEED_EMPLOYEES = [
     note: "",
   },
   {
-    code: "V26053149",
-    rep_code: "V26053149",
-    name: "Nguyễn Minh Hải",
-    role_code: "GRIND",
-    position_code: "WORKER",
-    phone: "0999900011",
-    note: "",
-  },
-  {
     code: "V20080554",
-    rep_code: "V20080554",
+    rep_code: "0",
     name: "Trần Công Vương",
     role_code: "GRIND",
     position_code: "WORKER",
@@ -451,6 +447,13 @@ function seedEmployeesIfEmpty() {
     const count = db.prepare("SELECT COUNT(*) as cnt FROM employees").get();
     if (count.cnt > 0) {
       migrateEmployeeCodesTo8Digits(db);
+      return;
+    }
+
+    // Safety check: if old tables exist, a previous migration failed. Do NOT seed.
+    const hasOldTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND (name='employees_old' OR name='employees_unique_old')").get();
+    if (hasOldTable) {
+      console.warn("Safety Check: Found backup employees table. Skipping seed to prevent data loss.");
       return;
     }
 

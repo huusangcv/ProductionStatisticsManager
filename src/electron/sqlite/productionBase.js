@@ -2,12 +2,10 @@
  * productionBase.js — Generic DAO factory for production modules.
  */
 
-const Database = require("better-sqlite3");
+const { openDatabase } = require("./connection");
 const { getDatabasePath } = require("./paths");
 
-function openDatabase() {
-  return new Database(getDatabasePath());
-}
+
 
 /**
  * Builds a comma-separated SQL column definition string from a column spec.
@@ -56,13 +54,16 @@ function migrateRemoveDedupConstraint(db, tableName, columnSpec) {
     "imported_at",
   ].join(", ");
 
-  db.exec(`DROP TABLE IF EXISTS ${tempTable}`);
-  db.exec(buildCreateTableSql(tempTable, columnSpec));
-  db.exec(
-    `INSERT INTO ${tempTable} (${columns}) SELECT ${columns} FROM ${tableName}`,
-  );
-  db.exec(`DROP TABLE ${tableName}`);
-  db.exec(`ALTER TABLE ${tempTable} RENAME TO ${tableName}`);
+  db.transaction(() => {
+    db.exec(`DROP TABLE IF EXISTS ${tempTable}`);
+    db.exec(buildCreateTableSql(tempTable, columnSpec));
+    // Use INSERT OR IGNORE just in case
+    db.exec(
+      `INSERT OR IGNORE INTO ${tempTable} (${columns}) SELECT ${columns} FROM ${tableName}`,
+    );
+    db.exec(`DROP TABLE ${tableName}`);
+    db.exec(`ALTER TABLE ${tempTable} RENAME TO ${tableName}`);
+  })();
 }
 
 // Helper to calculate joint count (only for cutting_production)

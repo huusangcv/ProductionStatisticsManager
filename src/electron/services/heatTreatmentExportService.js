@@ -4,7 +4,7 @@
  */
 
 const fs = require("fs");
-const Database = require("better-sqlite3");
+const { openDatabase } = require("../sqlite/connection");
 const { getTemplate } = require("../sqlite/excelTemplates");
 const { getDatabasePath } = require("../sqlite/paths");
 const { applyHeatTreatmentRules, getHeatTreatmentPeriod } = require("../heatTreatment/heatTreatmentRules");
@@ -36,7 +36,7 @@ async function generateExport({ reportDate }) {
     }
 
     // 2. Load grinding data for date
-    const db = new Database(getDatabasePath());
+    const db = openDatabase();
     let grindingRows;
     try {
       grindingRows = db

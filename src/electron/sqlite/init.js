@@ -26,7 +26,9 @@ const {
   ensureDirectories,
   writeAppConfig,
 } = require("./paths");
-const Database = require("better-sqlite3");
+const { openDatabase } = require("./connection");
+const fs = require("fs");
+const logger = require("../logger");
 
 // Read version from package.json at startup (safe — sync, small file)
 let APP_VERSION = "0.1.0";
@@ -44,11 +46,32 @@ function initializeDatabase() {
   // 2. Write default config/app.json on first launch (never overwrites).
   writeAppConfig(APP_VERSION);
 
-  // 3. Open the SQLite database to apply pragmas, then close.
   const databasePath = getDatabasePath();
-  const database = new Database(databasePath);
-  database.pragma("journal_mode = WAL");
-  database.pragma("foreign_keys = ON");
+
+  // Log Database info
+  try {
+    if (fs.existsSync(databasePath)) {
+      const stats = fs.statSync(databasePath);
+      logger.info("Database Diagnostics", {
+        path: databasePath,
+        exists: true,
+        sizeBytes: stats.size,
+        createdAt: stats.birthtime,
+        lastModified: stats.mtime
+      });
+    } else {
+      logger.info("Database Diagnostics", {
+        path: databasePath,
+        exists: false,
+        message: "Database will be created"
+      });
+    }
+  } catch (err) {
+    logger.error("Failed to read database stats", err);
+  }
+
+  // 3. Open the SQLite database to apply pragmas, then close.
+  const database = openDatabase();
   database.close();
 
   // 4. Seed single application account on first startup.

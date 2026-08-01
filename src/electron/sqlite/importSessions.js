@@ -1,10 +1,8 @@
-const Database = require("better-sqlite3");
+const { openDatabase } = require("./connection");
 const { getDatabasePath } = require("./paths");
 const crypto = require("crypto");
 
-function openDatabase() {
-  return new Database(getDatabasePath());
-}
+
 
 /**
  * Generate a unique session code.

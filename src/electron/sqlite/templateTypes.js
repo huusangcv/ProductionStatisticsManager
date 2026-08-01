@@ -4,12 +4,10 @@
  * Defines dynamic types of excel templates (e.g. heat-treatment, production-report, defect-report).
  */
 
-const Database = require("better-sqlite3");
+const { openDatabase } = require("./connection");
 const { getDatabasePath } = require("./paths");
 
-function openDatabase() {
-  return new Database(getDatabasePath());
-}
+
 
 function ensureTemplateTypesTable() {
   const db = openDatabase();

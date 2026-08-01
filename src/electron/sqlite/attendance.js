@@ -1,9 +1,9 @@
-const Database = require("better-sqlite3");
+const { openDatabase } = require("./connection");
 const { getDatabasePath } = require("./paths");
 const logger = require("../logger");
 
 function getDatabase() {
-  return new Database(getDatabasePath());
+  return openDatabase();
 }
 
 function ensureAttendanceTable() {

@@ -13,12 +13,10 @@
  * Max 34 rows (fixed template size).
  */
 
-const Database = require("better-sqlite3");
+const { openDatabase } = require("../sqlite/connection");
 const { getDatabasePath } = require("../sqlite/paths");
 
-function openDatabase() {
-  return new Database(getDatabasePath());
-}
+
 
 /**
  * Gets grinding_production rows with scrap for a given report_date.

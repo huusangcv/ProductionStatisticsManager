@@ -1,11 +1,9 @@
-const Database = require("better-sqlite3");
+const { openDatabase } = require("./connection");
 const fs = require("fs");
 const path = require("path");
 const { getDatabasePath, getAppDataRoot } = require("./paths");
 
-function openDatabase() {
-  return new Database(getDatabasePath());
-}
+
 
 function listBackups() {
   const backupsDir = path.join(getAppDataRoot(), "backups");

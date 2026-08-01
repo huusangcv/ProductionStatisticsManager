@@ -1,12 +1,10 @@
 const { getDatabasePath } = require("./paths");
-const Database = require("better-sqlite3");
+const { openDatabase } = require("./connection");
 
 const DEFAULT_USERNAME = "admin";
 const DEFAULT_PASSWORD = "123456";
 
-function openDatabase() {
-  return new Database(getDatabasePath());
-}
+
 
 /**
  * Creates the app_account table if it does not exist.

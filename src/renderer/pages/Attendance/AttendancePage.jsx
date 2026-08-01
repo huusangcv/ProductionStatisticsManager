@@ -7,13 +7,13 @@ import attendanceService from "../../services/attendanceService";
 import { useAuth } from "../../context/AuthContext";
 
 export default function AttendancePage() {
-  const { savedUsername } = useAuth();
+  const { currentUser } = useAuth();
 
   // Permission check: Only Admin and Thong Ke can edit. (Assuming usernames are admin or thongke)
   const isReadOnly = useMemo(() => {
-    const user = (savedUsername || "").toLowerCase();
+    const user = (currentUser || "").toLowerCase();
     return !(user === "admin" || user === "thongke" || user === "thống kê");
-  }, [savedUsername]);
+  }, [currentUser]);
 
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);

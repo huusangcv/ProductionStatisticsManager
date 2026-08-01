@@ -4,11 +4,9 @@
  */
 
 const { getDatabasePath } = require("./paths");
-const Database = require("better-sqlite3");
+const { openDatabase } = require("./connection");
 
-function openDatabase() {
-  return new Database(getDatabasePath());
-}
+
 
 // ---------------------------------------------------------------------------
 // Schema
