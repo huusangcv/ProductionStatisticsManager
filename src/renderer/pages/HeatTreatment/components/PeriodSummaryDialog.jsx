@@ -85,9 +85,9 @@ export default function PeriodSummaryDialog({ open, onClose }) {
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ pt: 1 }}>
+      <DialogContent sx={{ pt: 2 }}>
         {/* Chọn tháng/năm */}
-        <Box sx={{ display: "flex", gap: 2, mb: 2, alignItems: "center" }}>
+        <Box sx={{ display: "flex", gap: 2, mb: 2, mt: 1, alignItems: "center" }}>
           <TextField
             label="Tháng"
             type="number"

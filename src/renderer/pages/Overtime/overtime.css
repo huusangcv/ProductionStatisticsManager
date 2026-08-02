@@ -386,8 +386,9 @@
 
   /* ── 5. Table ──────────────────────────────────────────────── */
   .xl-table {
-    width: 794px !important;
-    max-width: 794px !important;
+    width: calc(100% - 2px) !important;
+    max-width: calc(100% - 2px) !important;
+    margin: 0 auto !important;
     border-collapse: collapse !important;
     table-layout: fixed !important;
   }

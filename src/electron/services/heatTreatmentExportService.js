@@ -84,9 +84,9 @@ async function generateExport({ reportDate }) {
 
     if (!genResult.ok) return genResult;
 
-    // 7. Auto-save summary to heat_treatment_summary (upsert by period — one record per kỳ)
+    // 7. Auto-save summary to heat_treatment_summary (upsert by date — one record per day)
     const heatTreatmentSummaryService = require("./heatTreatmentSummaryService");
-    const saveRes = heatTreatmentSummaryService.upsertByPeriod(summary);
+    const saveRes = heatTreatmentSummaryService.upsert(summary);
     if (!saveRes || !saveRes.ok) {
       // Log warning but don't fail the export — file was already written successfully
       const logger = require("../logger");
