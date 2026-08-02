@@ -301,10 +301,18 @@ async function exportBaoPhe({ templatePath, allCandidates, outputDir, dateLabel,
   // Tính toán paths
   const { fullPath, qcPath, folderPath } = resolveOutputPaths(outputDir, dateLabel, isDraft);
 
+  // Định dạng ngày hiển thị cho Excel (truyền object Date để xlsx-populate tự convert thành số serial)
+  let dateObj = new Date();
+  const parts = dateLabel.split('.');
+  if (parts.length === 3) {
+    dateObj = new Date(parts[2], parts[1] - 1, parts[0]);
+  }
+
   // --- BƯỚC 1: GHI FILE FULL (TẤT CẢ CÁC DÒNG) ---
   const wbFull = await XlsxPopulate.fromFileAsync(templatePath);
   const wsFull = wbFull.sheet(SHEET_NAME) ?? wbFull.sheet(0);
   if (!wsFull) throw new Error(`Không tìm thấy worksheet "${SHEET_NAME}"`);
+  wsFull.cell("C3").value(dateObj);
   writeDataRows(wsFull, fullRows);
   writeFooterSummary(wsFull, fullRows);
   await wbFull.toFileAsync(fullPath);
@@ -317,6 +325,7 @@ async function exportBaoPhe({ templatePath, allCandidates, outputDir, dateLabel,
   // --- BƯỚC 3: GHI FILE QC (Chỉ các dòng có nguyên nhân phế > 0) ---
   const wbQC = await XlsxPopulate.fromFileAsync(templatePath);
   const wsQC = wbQC.sheet(SHEET_NAME) ?? wbQC.sheet(0);
+  wsQC.cell("C3").value(dateObj);
   writeDataRows(wsQC, qcRows);
   writeFooterSummary(wsQC, qcRows);
   await wbQC.toFileAsync(qcPath);

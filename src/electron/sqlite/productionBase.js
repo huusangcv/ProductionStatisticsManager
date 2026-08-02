@@ -157,13 +157,21 @@ function createProductionModule(tableName, columnSpec, roleCode) {
         .get(tableName);
 
       if (tableExists) {
+        // Migration: Rename 'date' to 'report_date' for old databases BEFORE doing anything else
+        let currentCols = db.prepare(`PRAGMA table_info(${tableName})`).all();
+        const hasOldDate = currentCols.some((col) => col.name === "date");
+        const hasReportDateAlready = currentCols.some((col) => col.name === "report_date");
+        if (hasOldDate && !hasReportDateAlready) {
+          db.exec(`ALTER TABLE ${tableName} RENAME COLUMN date TO report_date`);
+        }
+
         migrateRemoveDedupConstraint(db, tableName, columnSpec);
       } else {
         db.exec(buildCreateTableSql(tableName, columnSpec));
       }
 
       // Migration: Add import_session_id to existing tables
-      const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
+      let columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
       const hasSessionId = columns.some(
         (col) => col.name === "import_session_id",
       );
@@ -172,6 +180,8 @@ function createProductionModule(tableName, columnSpec, roleCode) {
           `ALTER TABLE ${tableName} ADD COLUMN import_session_id INTEGER`,
         );
       }
+
+
 
       // Migration: Convert report_date from dd/MM/yyyy to YYYY-MM-DD if needed
       const hasReportDate = columns.some((col) => col.name === "report_date");

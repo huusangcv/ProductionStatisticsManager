@@ -9,20 +9,56 @@ function getDatabase() {
 function ensureAttendanceTable() {
   const db = getDatabase();
   try {
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS attendance (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        work_date TEXT NOT NULL,
-        employee_id INTEGER NOT NULL,
-        status TEXT NOT NULL DEFAULT 'NOT_CHECKED',
-        note TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(work_date, employee_id),
-        FOREIGN KEY (employee_id) REFERENCES employees(id)
-      );
-      CREATE INDEX IF NOT EXISTS idx_attendance_work_date ON attendance(work_date);
-    `);
+    const tableInfo = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='attendance'").get();
+
+    if (!tableInfo) {
+      db.exec(`
+        CREATE TABLE attendance (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          work_date TEXT NOT NULL,
+          employee_id INTEGER NOT NULL,
+          status TEXT NOT NULL DEFAULT 'NOT_CHECKED',
+          note TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(work_date, employee_id),
+          FOREIGN KEY (employee_id) REFERENCES employees(id)
+        );
+      `);
+    } else {
+      const columns = db.prepare("PRAGMA table_info(attendance)").all();
+      const hasWorkDate = columns.some((col) => col.name === "work_date");
+      const hasDate = columns.some((col) => col.name === "date");
+
+      if (!hasWorkDate && hasDate) {
+        db.transaction(() => {
+          db.exec("ALTER TABLE attendance RENAME TO attendance_old");
+          db.exec(`
+            CREATE TABLE attendance (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              work_date TEXT NOT NULL,
+              employee_id INTEGER NOT NULL,
+              status TEXT NOT NULL DEFAULT 'NOT_CHECKED',
+              note TEXT,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              UNIQUE(work_date, employee_id),
+              FOREIGN KEY (employee_id) REFERENCES employees(id)
+            );
+          `);
+          db.exec(`
+            INSERT INTO attendance (work_date, employee_id, status, note, created_at, updated_at)
+            SELECT date AS work_date, employee_id, status, note, created_at, updated_at
+            FROM attendance_old
+          `);
+          db.exec("DROP TABLE attendance_old");
+        })();
+      } else if (!hasWorkDate) {
+        db.exec("ALTER TABLE attendance ADD COLUMN work_date TEXT");
+      }
+    }
+
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_attendance_work_date ON attendance(work_date);`);
     logger.info("attendance table ensured");
   } catch (err) {
     logger.error("Error ensuring attendance table:", err);

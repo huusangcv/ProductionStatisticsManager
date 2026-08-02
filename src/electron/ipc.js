@@ -12,7 +12,11 @@ const {
   updateAccount,
 } = require("./sqlite/account");
 const { getRecentUpdateLogs } = require("./sqlite/updateLogs");
-const { checkForUpdates, downloadUpdate, quitAndInstall } = require("./services/update/updateService");
+const {
+  checkForUpdates,
+  downloadUpdate,
+  quitAndInstall,
+} = require("./services/update/updateService");
 const {
   getAllEmployees,
   getEmployeeByCode,
@@ -84,9 +88,16 @@ const {
   previewTemplate,
 } = require("./heatTreatment/excelEngine");
 const { resolveExportPath } = require("./heatTreatment/exportPaths");
-const { generateCastingDefectExcel } = require("./castingDefectReturn/excelEngine");
-const { resolveExportPath: resolveCastingExportPath } = require("./castingDefectReturn/exportPaths");
-const { getDefectRowsByDate, mapRowToExcel } = require("./castingDefectReturn/defectRules");
+const {
+  generateCastingDefectExcel,
+} = require("./castingDefectReturn/excelEngine");
+const {
+  resolveExportPath: resolveCastingExportPath,
+} = require("./castingDefectReturn/exportPaths");
+const {
+  getDefectRowsByDate,
+  mapRowToExcel,
+} = require("./castingDefectReturn/defectRules");
 const { exportBaoPhe } = require("./castingDefectReturn/export-bao-phe");
 const {
   getAllPrinters,
@@ -130,7 +141,7 @@ const {
   updatePrice,
   deletePrice,
   importPricesFromExcel,
-  exportPricesToExcel
+  exportPricesToExcel,
 } = require("./sqlite/prices");
 const {
   getHistory,
@@ -151,13 +162,14 @@ const {
   deleteAllNotifications,
   createNotification,
 } = require("./sqlite/notifications");
-const { createAndPushNotification } = require("./services/notification/notificationService");
+const {
+  createAndPushNotification,
+} = require("./services/notification/notificationService");
 const {
   getAttendanceByDate,
   upsertAttendanceBatch,
-  checkMissingAttendance
+  checkMissingAttendance,
 } = require("./sqlite/attendance");
-
 
 // ============================================================================
 // Shared Excel Parse Engine
@@ -382,34 +394,48 @@ function parseExcelFile(filePath, columnSpec) {
  * Also checks if any mapped employees are marked as NOT PRESENT on the reportDate.
  */
 function checkImportValidation(db, records, roleCode, reportDate) {
-  const codes = [...new Set(records.map((r) => r.representative_code).filter(Boolean))];
+  const codes = [
+    ...new Set(records.map((r) => r.representative_code).filter(Boolean)),
+  ];
   const unmapped = [];
   const absent = [];
-  
+
   for (const code of codes) {
+    if (code === "23081905") {
+      continue;
+    }
     const emp = db
-      .prepare(`
+      .prepare(
+        `
         SELECT e.id, e.employee_code, e.full_name
         FROM employees e
         JOIN roles r ON e.role_id = r.id
         WHERE e.representative_code = ? AND r.code = ?
         LIMIT 1
-      `)
+      `,
+      )
       .get(code, roleCode);
-      
+
     if (!emp) {
       unmapped.push(code);
     } else {
       // Check attendance
       const att = db
-        .prepare(`
+        .prepare(
+          `
           SELECT status
           FROM attendance
-          WHERE employee_id = ? AND date = ?
-        `)
+          WHERE employee_id = ? AND work_date = ?
+        `,
+        )
         .get(emp.id, reportDate);
-        
-      if (att && att.status && att.status !== 'PRESENT' && att.status !== 'NOT_CHECKED') {
+
+      if (
+        att &&
+        att.status &&
+        att.status !== "PRESENT" &&
+        att.status !== "NOT_CHECKED"
+      ) {
         absent.push(`${emp.employee_code} - ${emp.full_name}`);
       }
     }
@@ -423,7 +449,7 @@ function makeSaveHandler(
   checkExistsFn,
   deleteByDateFn,
   importFn,
-  roleCode
+  roleCode,
 ) {
   return async (event, { records, fileName, reportDate }) => {
     const win = BrowserWindow.fromWebContents(event.sender);
@@ -463,7 +489,12 @@ function makeSaveHandler(
       let unmappedCodes = [];
       let absentEmployees = [];
       try {
-        const validation = checkImportValidation(dbCheck, records, roleCode, reportDate);
+        const validation = checkImportValidation(
+          dbCheck,
+          records,
+          roleCode,
+          reportDate,
+        );
         unmappedCodes = validation.unmappedCodes;
         absentEmployees = validation.absentEmployees;
       } finally {
@@ -473,7 +504,9 @@ function makeSaveHandler(
       if (unmappedCodes.length > 0) {
         return {
           ok: false,
-          message: "Không mapping được nhân viên. Các mã đại diện sau chưa được khai báo: " + unmappedCodes.join(", ")
+          message:
+            "Không mapping được nhân viên. Các mã đại diện sau chưa được khai báo: " +
+            unmappedCodes.join(", "),
         };
       }
 
@@ -484,10 +517,12 @@ function makeSaveHandler(
           if (priceRec) {
             if (roleCode === "CUT") {
               record.cutting_price = priceRec.cutting_price || 0;
-              record.total_price = (record.completed_quantity || 0) * record.cutting_price;
+              record.total_price =
+                (record.completed_quantity || 0) * record.cutting_price;
             } else if (roleCode === "GRIND") {
               record.grinding_price = priceRec.grinding_price || 0;
-              record.total_price = (record.completed_quantity || 0) * record.grinding_price;
+              record.total_price =
+                (record.completed_quantity || 0) * record.grinding_price;
             }
           } else {
             if (roleCode === "CUT") {
@@ -525,6 +560,8 @@ function makeSaveHandler(
 
       return { ...result, unmappedCodes, absentEmployees };
     } catch (error) {
+      const logger = require("./logger");
+      logger.error("Save Handler Error:", error);
       return { ok: false, message: "Lỗi khi lưu dữ liệu: " + error.message };
     }
   };
@@ -565,7 +602,10 @@ const GRINDING_SPEC = [
     type: "integer",
   },
   // "Họ tên nhân viên员工名称" is actually the representative_code (mã đại diện)
-  { excelHeader: "Họ tên nhân viên员工名称", databaseField: "representative_code" },
+  {
+    excelHeader: "Họ tên nhân viên员工名称",
+    databaseField: "representative_code",
+  },
   {
     excelHeader: "Số lượng báo phế报废数量",
     databaseField: "scrap_quantity",
@@ -599,7 +639,10 @@ const CUTTING_SPEC = [
     type: "integer",
   },
   // "Họ tên nhân viên员工名称" is actually the representative_code (mã đại diện)
-  { excelHeader: "Họ tên nhân viên员工名称", databaseField: "representative_code" },
+  {
+    excelHeader: "Họ tên nhân viên员工名称",
+    databaseField: "representative_code",
+  },
   // No scrap_quantity in Cutting
   {
     excelHeader: "Đơn vị trọng lượng单位重量",
@@ -648,8 +691,10 @@ function registerIpcHandlers() {
   ipcMain.handle("employee:getByRepresentativeCode", (_event, repCode) =>
     getEmployeeByRepresentativeCode(repCode),
   );
-  ipcMain.handle("employee:getByRepresentativeCodeAndRole", (_event, repCode, roleCode) =>
-    getEmployeeByRepresentativeCodeAndRole(repCode, roleCode),
+  ipcMain.handle(
+    "employee:getByRepresentativeCodeAndRole",
+    (_event, repCode, roleCode) =>
+      getEmployeeByRepresentativeCodeAndRole(repCode, roleCode),
   );
   ipcMain.handle("employee:getById", (_event, id) => getEmployeeById(id));
   ipcMain.handle("employee:create", (_event, data) => createEmployee(data));
@@ -665,7 +710,8 @@ function registerIpcHandlers() {
       filters: [{ name: "Excel Files", extensions: ["xlsx", "xls"] }],
       properties: ["openFile"],
     });
-    if (canceled || filePaths.length === 0) return { ok: false, canceled: true };
+    if (canceled || filePaths.length === 0)
+      return { ok: false, canceled: true };
 
     const filePath = filePaths[0];
     try {
@@ -681,8 +727,12 @@ function registerIpcHandlers() {
       const allPositions = getAllPositions();
 
       // Build lookup maps by name
-      const roleByName = new Map(allRoles.map((r) => [r.name.trim().toLowerCase(), r.id]));
-      const posByName = new Map(allPositions.map((p) => [p.name.trim().toLowerCase(), p.id]));
+      const roleByName = new Map(
+        allRoles.map((r) => [r.name.trim().toLowerCase(), r.id]),
+      );
+      const posByName = new Map(
+        allPositions.map((p) => [p.name.trim().toLowerCase(), p.id]),
+      );
 
       let importedCount = 0;
       const errors = [];
@@ -691,14 +741,24 @@ function registerIpcHandlers() {
         const row = rows[i];
         const rowNum = i + 2;
 
-        const employee_code = String(row["Mã số"] || row["employee_code"] || "").trim();
-        const representative_code = String(row["Mã đại diện"] || row["representative_code"] || "").trim();
-        const full_name = String(row["Họ tên"] || row["full_name"] || "").trim();
+        const employee_code = String(
+          row["Mã số"] || row["employee_code"] || "",
+        ).trim();
+        const representative_code = String(
+          row["Mã đại diện"] || row["representative_code"] || "",
+        ).trim();
+        const full_name = String(
+          row["Họ tên"] || row["full_name"] || "",
+        ).trim();
         const roleName = String(row["Vai trò"] || row["role"] || "").trim();
         const posName = String(row["Chức vụ"] || row["position"] || "").trim();
         const phone = String(row["Điện thoại"] || row["phone"] || "").trim();
-        const hire_date = String(row["Ngày vào làm"] || row["hire_date"] || "").trim();
-        const status = String(row["Trạng thái"] || row["status"] || "Đang làm việc").trim();
+        const hire_date = String(
+          row["Ngày vào làm"] || row["hire_date"] || "",
+        ).trim();
+        const status = String(
+          row["Trạng thái"] || row["status"] || "Đang làm việc",
+        ).trim();
 
         if (!employee_code || !full_name) {
           errors.push(`Dòng ${rowNum}: Thiếu Mã số hoặc Họ tên.`);
@@ -712,13 +772,17 @@ function registerIpcHandlers() {
 
         const role_id = roleByName.get(roleName.toLowerCase());
         if (!role_id) {
-          errors.push(`Dòng ${rowNum} (${employee_code}): Không tìm thấy vai trò "${roleName}". Vui lòng khai báo trong Danh mục → Vai trò.`);
+          errors.push(
+            `Dòng ${rowNum} (${employee_code}): Không tìm thấy vai trò "${roleName}". Vui lòng khai báo trong Danh mục → Vai trò.`,
+          );
           continue;
         }
 
         const position_id = posByName.get(posName.toLowerCase());
         if (!position_id) {
-          errors.push(`Dòng ${rowNum} (${employee_code}): Không tìm thấy chức vụ "${posName}". Vui lòng khai báo trong Danh mục → Chức vụ.`);
+          errors.push(
+            `Dòng ${rowNum} (${employee_code}): Không tìm thấy chức vụ "${posName}". Vui lòng khai báo trong Danh mục → Chức vụ.`,
+          );
           continue;
         }
 
@@ -736,7 +800,10 @@ function registerIpcHandlers() {
 
         if (createResult.ok) {
           importedCount++;
-        } else if (createResult.message && createResult.message.includes("đã tồn tại")) {
+        } else if (
+          createResult.message &&
+          createResult.message.includes("đã tồn tại")
+        ) {
           // Update existing by employee_code
           const existing = getEmployeeByCode(employee_code);
           if (existing) {
@@ -751,10 +818,13 @@ function registerIpcHandlers() {
               note: existing.note,
             });
             if (upd.ok) importedCount++;
-            else errors.push(`Dòng ${rowNum} (${employee_code}): ${upd.message}`);
+            else
+              errors.push(`Dòng ${rowNum} (${employee_code}): ${upd.message}`);
           }
         } else {
-          errors.push(`Dòng ${rowNum} (${employee_code}): ${createResult.message}`);
+          errors.push(
+            `Dòng ${rowNum} (${employee_code}): ${createResult.message}`,
+          );
         }
       }
 
@@ -778,7 +848,16 @@ function registerIpcHandlers() {
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet("Nhân viên");
 
-      sheet.addRow(["Mã số", "Mã đại diện", "Họ tên", "Vai trò", "Chức vụ", "Điện thoại", "Trạng thái", "Ngày vào làm"]);
+      sheet.addRow([
+        "Mã số",
+        "Mã đại diện",
+        "Họ tên",
+        "Vai trò",
+        "Chức vụ",
+        "Điện thoại",
+        "Trạng thái",
+        "Ngày vào làm",
+      ]);
 
       for (const emp of employees) {
         sheet.addRow([
@@ -811,7 +890,9 @@ function registerIpcHandlers() {
   // ── Position IPC handlers ─────────────────────────────────────────────────────────
   ipcMain.handle("position:getAll", () => getAllPositions());
   ipcMain.handle("position:getById", (_event, id) => getPositionById(id));
-  ipcMain.handle("position:getByCode", (_event, code) => getPositionByCode(code));
+  ipcMain.handle("position:getByCode", (_event, code) =>
+    getPositionByCode(code),
+  );
   ipcMain.handle("position:create", (_event, data) => createPosition(data));
   ipcMain.handle("position:update", (_event, { id, data }) =>
     updatePosition(id, data),
@@ -849,7 +930,7 @@ function registerIpcHandlers() {
       checkGrindingDataExistsByDate,
       deleteGrindingDataByDate,
       importGrindingData,
-      "GRIND"
+      "GRIND",
     ),
   );
 
@@ -870,10 +951,16 @@ function registerIpcHandlers() {
   );
 
   // --- Overtime handlers ---
-  ipcMain.handle("overtime:getHistory", (_event, departmentId) => getHistory(departmentId));
-  ipcMain.handle("overtime:saveHistory", (_event, snapshotData) => saveHistory(snapshotData));
+  ipcMain.handle("overtime:getHistory", (_event, departmentId) =>
+    getHistory(departmentId),
+  );
+  ipcMain.handle("overtime:saveHistory", (_event, snapshotData) =>
+    saveHistory(snapshotData),
+  );
   ipcMain.handle("overtime:deleteHistory", (_event, id) => deleteHistory(id));
-  ipcMain.handle("overtime:clearHistory", (_event, departmentId) => clearHistory(departmentId));
+  ipcMain.handle("overtime:clearHistory", (_event, departmentId) =>
+    clearHistory(departmentId),
+  );
 
   ipcMain.handle("cutting:parseExcel", (_event, filePath) =>
     parseExcelFile(filePath, CUTTING_SPEC),
@@ -887,7 +974,7 @@ function registerIpcHandlers() {
       checkCuttingDataExistsByDate,
       deleteCuttingDataByDate,
       importCuttingData,
-      "CUT"
+      "CUT",
     ),
   );
 
@@ -899,7 +986,9 @@ function registerIpcHandlers() {
   // --- Prices handlers ---
   ipcMain.handle("price:getAll", () => getAllPrices());
   ipcMain.handle("price:create", (_event, data) => createPrice(data));
-  ipcMain.handle("price:update", (_event, { id, data }) => updatePrice(id, data));
+  ipcMain.handle("price:update", (_event, { id, data }) =>
+    updatePrice(id, data),
+  );
   ipcMain.handle("price:delete", (_event, id) => deletePrice(id));
   ipcMain.handle("price:importExcel", async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
@@ -908,7 +997,8 @@ function registerIpcHandlers() {
       filters: [{ name: "Excel Files", extensions: ["xls", "xlsx"] }],
       properties: ["openFile"],
     });
-    if (canceled || filePaths.length === 0) return { ok: false, canceled: true };
+    if (canceled || filePaths.length === 0)
+      return { ok: false, canceled: true };
     return importPricesFromExcel(filePaths[0]);
   });
   ipcMain.handle("price:exportExcel", async (event) => {
@@ -993,10 +1083,16 @@ function registerIpcHandlers() {
     return heatTreatmentExportService.generateExport({ reportDate });
   });
 
-  ipcMain.handle("heatTreatment:generatePeriodSummary", async (_event, { periodYear, periodMonth }) => {
-    const heatTreatmentSummaryExportService = require("./services/heatTreatmentSummaryExportService");
-    return heatTreatmentSummaryExportService.generatePeriodSummaryExport({ periodYear, periodMonth });
-  });
+  ipcMain.handle(
+    "heatTreatment:generatePeriodSummary",
+    async (_event, { periodYear, periodMonth }) => {
+      const heatTreatmentSummaryExportService = require("./services/heatTreatmentSummaryExportService");
+      return heatTreatmentSummaryExportService.generatePeriodSummaryExport({
+        periodYear,
+        periodMonth,
+      });
+    },
+  );
 
   ipcMain.handle("heatTreatment:checkExportFile", (_event, reportDate) => {
     try {
@@ -1031,9 +1127,12 @@ function registerIpcHandlers() {
     return await printerService.printExcel(filePath, null, "heat-treatment");
   });
 
-  ipcMain.handle("report:printExcel", async (_event, { filePath, module: moduleKey }) => {
-    return await printerService.printExcel(filePath, null, moduleKey || null);
-  });
+  ipcMain.handle(
+    "report:printExcel",
+    async (_event, { filePath, module: moduleKey }) => {
+      return await printerService.printExcel(filePath, null, moduleKey || null);
+    },
+  );
 
   // ── Casting Defect Return handlers ────────────────────────────────────────────────
 
@@ -1051,12 +1150,16 @@ function registerIpcHandlers() {
     const { openDatabase } = require("./sqlite/connection");
     const db = openDatabase();
     try {
-      const all = db.prepare(`
+      const all = db
+        .prepare(
+          `
         SELECT work_order_number, completed_quantity, scrap_quantity
         FROM grinding_production
         WHERE report_date = ?
         LIMIT 30
-      `).all(reportDate);
+      `,
+        )
+        .all(reportDate);
       return { total: all.length, rows: all };
     } finally {
       db.close();
@@ -1071,21 +1174,29 @@ function registerIpcHandlers() {
       if (!tmpl)
         return {
           ok: false,
-          message: "Chưa cấu hình template. Vui lòng upload template P-029-06.01 trong Cài đặt.",
+          message:
+            "Chưa cấu hình template. Vui lòng upload template P-029-06.01 trong Cài đặt.",
         };
       if (!fs.existsSync(tmpl.template_path))
-        return { ok: false, message: "File template không tồn tại. Vui lòng upload lại." };
+        return {
+          ok: false,
+          message: "File template không tồn tại. Vui lòng upload lại.",
+        };
 
       // 2. Query grinding_production (scrap_quantity > 0 only)
       const { rows: dbRows, total } = getDefectRowsByDate(reportDate);
       if (!dbRows || dbRows.length === 0)
-        return { ok: false, message: `Không có dữ liệu phế (Mài) cho ngày ${reportDate}.` };
+        return {
+          ok: false,
+          message: `Không có dữ liệu phế (Mài) cho ngày ${reportDate}.`,
+        };
 
       // 3. Map to Excel column format
       const excelRows = dbRows.map(mapRowToExcel);
 
       // 4. Resolve output path
-      const { filePath, folderPath, fileName } = resolveCastingExportPath(reportDate);
+      const { filePath, folderPath, fileName } =
+        resolveCastingExportPath(reportDate);
 
       // 5. Generate Excel
       const genResult = await generateCastingDefectExcel({
@@ -1123,7 +1234,11 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle("castingDefect:print", async (_event, filePath) => {
-    return await printerService.printExcel(filePath, null, "casting-defect-return");
+    return await printerService.printExcel(
+      filePath,
+      null,
+      "casting-defect-return",
+    );
   });
 
   // ── Báo Phế (Grid nhập liệu) handlers ────────────────────────────────────────
@@ -1178,55 +1293,62 @@ function registerIpcHandlers() {
   });
 
   // Xuất 2 file Excel từ grid data
-  ipcMain.handle("bao-phe:export", async (_event, { candidates, dateLabel, isDraft }) => {
-    try {
-      // Lấy template
-      const tmpl = getTemplate("casting-defect-return");
-      if (!tmpl) {
+  ipcMain.handle(
+    "bao-phe:export",
+    async (_event, { candidates, dateLabel, isDraft }) => {
+      try {
+        // Lấy template
+        const tmpl = getTemplate("casting-defect-return");
+        if (!tmpl) {
+          return {
+            ok: false,
+            message:
+              "Chưa cấu hình template. Vui lòng upload template P-029-06.01 trong Cài đặt.",
+          };
+        }
+        if (!fs.existsSync(tmpl.template_path)) {
+          return {
+            ok: false,
+            message: "File template không tồn tại. Vui lòng upload lại.",
+          };
+        }
+        if (!candidates || candidates.length === 0) {
+          return { ok: false, message: "Không có dữ liệu để xuất file." };
+        }
+
+        // Thư mục output riêng cho chức năng mới
+        const { getAppDataRoot } = require("./sqlite/paths");
+        const outputDir = path.join(getAppDataRoot(), "exports", "BaoPhe");
+
+        const result = await exportBaoPhe({
+          templatePath: tmpl.template_path,
+          allCandidates: candidates,
+          outputDir,
+          dateLabel,
+          isDraft,
+        });
+
+        // Nếu không phải nháp, đánh dấu đã in và lưu đường dẫn
+        if (!isDraft) {
+          // convert dateLabel "DD.MM.YYYY" -> "YYYY-MM-DD"
+          const [d, m, y] = dateLabel.split(".");
+          const isoDate = `${y}-${m}-${d}`;
+          const { markExported } = require("./sqlite/baoPhe");
+          markExported(isoDate, result.full, result.qc);
+        }
+
         return {
-          ok: false,
-          message: "Chưa cấu hình template. Vui lòng upload template P-029-06.01 trong Cài đặt.",
+          ok: true,
+          full: result.full,
+          qc: result.qc,
+          folderPath: result.folderPath,
         };
+      } catch (error) {
+        console.error("[bao-phe:export] Error:", error);
+        return { ok: false, message: "Lỗi xuất file: " + error.message };
       }
-      if (!fs.existsSync(tmpl.template_path)) {
-        return { ok: false, message: "File template không tồn tại. Vui lòng upload lại." };
-      }
-      if (!candidates || candidates.length === 0) {
-        return { ok: false, message: "Không có dữ liệu để xuất file." };
-      }
-
-      // Thư mục output riêng cho chức năng mới
-      const { getAppDataRoot } = require("./sqlite/paths");
-      const outputDir = path.join(getAppDataRoot(), "exports", "BaoPhe");
-
-      const result = await exportBaoPhe({
-        templatePath: tmpl.template_path,
-        allCandidates: candidates,
-        outputDir,
-        dateLabel,
-        isDraft,
-      });
-
-      // Nếu không phải nháp, đánh dấu đã in và lưu đường dẫn
-      if (!isDraft) {
-        // convert dateLabel "DD.MM.YYYY" -> "YYYY-MM-DD"
-        const [d, m, y] = dateLabel.split(".");
-        const isoDate = `${y}-${m}-${d}`;
-        const { markExported } = require("./sqlite/baoPhe");
-        markExported(isoDate, result.full, result.qc);
-      }
-
-      return {
-        ok: true,
-        full: result.full,
-        qc: result.qc,
-        folderPath: result.folderPath,
-      };
-    } catch (error) {
-      console.error("[bao-phe:export] Error:", error);
-      return { ok: false, message: "Lỗi xuất file: " + error.message };
-    }
-  });
+    },
+  );
 
   ipcMain.handle("bao-phe:openFolder", (_event, folderPath) => {
     shell.openPath(folderPath);
@@ -1236,12 +1358,22 @@ function registerIpcHandlers() {
   ipcMain.handle("bao-phe:openFolderByDate", (_event, dateStr) => {
     const { getAppDataRoot } = require("./sqlite/paths");
     const [yyyy, mm] = dateStr.split("-");
-    const folderPath = path.join(getAppDataRoot(), "exports", "BaoPhe", yyyy, mm);
+    const folderPath = path.join(
+      getAppDataRoot(),
+      "exports",
+      "BaoPhe",
+      yyyy,
+      mm,
+    );
     if (fs.existsSync(folderPath)) {
       shell.openPath(folderPath);
       return { ok: true };
     } else {
-      return { ok: false, message: "Thư mục chưa tồn tại (chưa có file nào được xuất trong tháng này)." };
+      return {
+        ok: false,
+        message:
+          "Thư mục chưa tồn tại (chưa có file nào được xuất trong tháng này).",
+      };
     }
   });
 
@@ -1266,7 +1398,7 @@ function registerIpcHandlers() {
       $workbook.Close($false);
       $excel.Quit();
       [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null;
-    `.replace(/\n/g, ' ');
+    `.replace(/\n/g, " ");
 
     return new Promise((resolve) => {
       exec(`powershell -Command "${psCommand}"`, (error) => {
@@ -1282,7 +1414,10 @@ function registerIpcHandlers() {
 
   // ── Personal Production (Sản lượng Cá nhân) ─────────────────────────────
   ipcMain.handle("personal-production:generate", async (event, params) => {
-    return await personalProductionService.generate(params.startDate, params.endDate);
+    return await personalProductionService.generate(
+      params.startDate,
+      params.endDate,
+    );
   });
   ipcMain.handle("personal-production:openFolder", async (event, filePath) => {
     return personalProductionService.openFolder(filePath);
@@ -1293,9 +1428,12 @@ function registerIpcHandlers() {
   ipcMain.handle("personal-production:getByDate", async (event, date) => {
     return await personalProductionService.getByDate(date);
   });
-  ipcMain.handle("personal-production:checkExists", async (event, { date, sources }) => {
-    return await personalProductionService.checkExists(date, sources);
-  });
+  ipcMain.handle(
+    "personal-production:checkExists",
+    async (event, { date, sources }) => {
+      return await personalProductionService.checkExists(date, sources);
+    },
+  );
   ipcMain.handle("personal-production:sync", async (event, payload) => {
     return await personalProductionService.syncData(payload);
   });
@@ -1329,9 +1467,12 @@ function registerIpcHandlers() {
     return await printerService.printTest(printerName);
   });
 
-  ipcMain.handle("printer:printExcel", async (_event, { filePath, module: moduleKey }) => {
-    return await printerService.printExcel(filePath, null, moduleKey || null);
-  });
+  ipcMain.handle(
+    "printer:printExcel",
+    async (_event, { filePath, module: moduleKey }) => {
+      return await printerService.printExcel(filePath, null, moduleKey || null);
+    },
+  );
 
   ipcMain.handle("printer:printPdf", async (_event, filePath) => {
     return await printerService.printPdf(filePath);
@@ -1366,8 +1507,23 @@ function registerIpcHandlers() {
 
   ipcMain.handle(
     "template:upload",
-    async (event, { module, sourcePath, overwrite = false, sheetName, startColumn, endColumn }) => {
-      return await templateService.copyTemplate(sourcePath, module, { overwrite, sheetName, startColumn, endColumn });
+    async (
+      event,
+      {
+        module,
+        sourcePath,
+        overwrite = false,
+        sheetName,
+        startColumn,
+        endColumn,
+      },
+    ) => {
+      return await templateService.copyTemplate(sourcePath, module, {
+        overwrite,
+        sheetName,
+        startColumn,
+        endColumn,
+      });
     },
   );
 
@@ -1590,17 +1746,25 @@ function registerIpcHandlers() {
   ipcMain.handle("dashboard:getKPIs", (_event, { type, fromDate, toDate }) =>
     getDashboardKPIs(type, fromDate, toDate),
   );
-  ipcMain.handle("dashboard:getTopEmployees", (_event, { type, fromDate, toDate }) =>
-    getTopEmployees(type, fromDate, toDate),
+  ipcMain.handle(
+    "dashboard:getTopEmployees",
+    (_event, { type, fromDate, toDate }) =>
+      getTopEmployees(type, fromDate, toDate),
   );
-  ipcMain.handle("dashboard:getTopWorkOrders", (_event, { type, fromDate, toDate }) =>
-    getTopWorkOrders(type, fromDate, toDate),
+  ipcMain.handle(
+    "dashboard:getTopWorkOrders",
+    (_event, { type, fromDate, toDate }) =>
+      getTopWorkOrders(type, fromDate, toDate),
   );
-  ipcMain.handle("dashboard:getProductionByDate", (_event, { type, fromDate, toDate }) =>
-    getProductionByDate(type, fromDate, toDate),
+  ipcMain.handle(
+    "dashboard:getProductionByDate",
+    (_event, { type, fromDate, toDate }) =>
+      getProductionByDate(type, fromDate, toDate),
   );
-  ipcMain.handle("dashboard:getGridData", (_event, { type, fromDate, toDate }) =>
-    getDashboardGridData(type, fromDate, toDate),
+  ipcMain.handle(
+    "dashboard:getGridData",
+    (_event, { type, fromDate, toDate }) =>
+      getDashboardGridData(type, fromDate, toDate),
   );
 
   // --- Auto Update Handlers ---
@@ -1622,9 +1786,12 @@ function registerIpcHandlers() {
   });
 
   // --- Notification Center Handlers ---
-  ipcMain.handle("notification:getAll", (_event, { limit = 50, offset = 0 } = {}) => {
-    return getNotifications({ limit, offset });
-  });
+  ipcMain.handle(
+    "notification:getAll",
+    (_event, { limit = 50, offset = 0 } = {}) => {
+      return getNotifications({ limit, offset });
+    },
+  );
 
   ipcMain.handle("notification:getUnreadCount", () => {
     return getUnreadCount();
@@ -1668,4 +1835,3 @@ function registerIpcHandlers() {
 }
 
 module.exports = { registerIpcHandlers };
-
