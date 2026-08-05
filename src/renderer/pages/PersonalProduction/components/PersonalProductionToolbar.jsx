@@ -1,15 +1,24 @@
-import { Box, Button, IconButton, TextField, Tooltip } from "@mui/material";
+import { useState } from "react";
+import {
+  Box,
+  Button,
+  IconButton,
+  TextField,
+  Tooltip,
+  Menu,
+  MenuItem,
+} from "@mui/material";
 import {
   GridToolbarContainer,
   GridToolbarColumnsButton,
   GridToolbarFilterButton,
   GridToolbarQuickFilter,
-  GridToolbarExport,
-  useGridApiContext,
 } from "@mui/x-data-grid";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import SyncRoundedIcon from "@mui/icons-material/SyncRounded";
-import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 
 const iconOnlyButtonSx = {
   minWidth: "36px !important",
@@ -45,6 +54,21 @@ const iconOnlyButtonSx = {
   },
 };
 
+const btnOutlined = {
+  height: 36,
+  borderRadius: "8px",
+  fontWeight: 600,
+  textTransform: "none",
+  px: 2,
+  bgcolor: "#fff",
+  borderColor: "#E2E8F0",
+  color: "#1E293B",
+  "&:hover": {
+    bgcolor: "#F8FAFC",
+    borderColor: "#CBD5E1",
+  },
+};
+
 export default function PersonalProductionToolbar({
   onOpenSync,
   onRefresh,
@@ -52,11 +76,18 @@ export default function PersonalProductionToolbar({
   filterDate,
   onFilterDateChange,
 }) {
-  const apiRef = useGridApiContext();
+  const [exportAnchorEl, setExportAnchorEl] = useState(null);
 
-  const handleExport = () => {
-    if (onExport) {
-      onExport();
+  const handleTaoExcel = () => {
+    setExportAnchorEl(null);
+    if (onExport) onExport();
+  };
+
+  const handleMoThuMuc = async () => {
+    setExportAnchorEl(null);
+    const res = await window.electronAPI.personalProduction.openExportFolder(filterDate);
+    if (!res?.ok) {
+      console.warn("Không thể mở thư mục:", res?.message);
     }
   };
 
@@ -141,49 +172,56 @@ export default function PersonalProductionToolbar({
 
       {/* Right Section */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={onOpenSync}
-          startIcon={<SyncRoundedIcon />}
-          sx={{
-            height: 36,
-            borderRadius: "8px",
-            fontWeight: 600,
-            textTransform: "none",
-            px: 2,
-            boxShadow: "none",
-            "&:hover": {
-              boxShadow: "0 2px 6px rgba(37, 99, 235, 0.25)",
-            },
-          }}
-        >
-          Đồng bộ dữ liệu
-        </Button>
-
+        {/* Xuất/In dropdown — gồm: Đồng bộ dữ liệu + Tạo Excel */}
         <Button
           variant="outlined"
           color="inherit"
-          onClick={handleExport}
-          startIcon={<FileDownloadOutlinedIcon sx={{ color: "success.main" }} />}
+          onClick={(e) => setExportAnchorEl(e.currentTarget)}
+          endIcon={<KeyboardArrowDownIcon fontSize="small" />}
+          sx={btnOutlined}
+        >
+          Xuất/In
+        </Button>
+        <Menu
+          anchorEl={exportAnchorEl}
+          open={Boolean(exportAnchorEl)}
+          onClose={() => setExportAnchorEl(null)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
           sx={{
-            height: 36,
-            borderRadius: "8px",
-            fontWeight: 600,
-            textTransform: "none",
-            px: 2,
-            bgcolor: "#fff",
-            borderColor: "#E2E8F0",
-            color: "#1E293B",
-            "&:hover": {
-              bgcolor: "#F8FAFC",
-              borderColor: "#CBD5E1",
+            "& .MuiPaper-root": {
+              mt: 0.5,
+              minWidth: 190,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+              borderRadius: "8px",
             },
           }}
         >
-          Xuất Excel
+          <MenuItem
+            onClick={() => { setExportAnchorEl(null); if (onOpenSync) onOpenSync(); }}
+            sx={{ fontSize: "13px", py: 1 }}
+          >
+            <SyncRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "#64748b" }} />
+            Đồng bộ dữ liệu
+          </MenuItem>
+          <MenuItem onClick={handleTaoExcel} sx={{ fontSize: "13px", py: 1 }}>
+            <DescriptionOutlinedIcon fontSize="small" sx={{ mr: 1.5, color: "#64748b" }} />
+            Tạo Excel
+          </MenuItem>
+        </Menu>
+
+        {/* Mở thư mục — standalone */}
+        <Button
+          variant="outlined"
+          color="inherit"
+          startIcon={<FolderOpenIcon fontSize="small" />}
+          onClick={handleMoThuMuc}
+          sx={btnOutlined}
+        >
+          Mở thư mục
         </Button>
 
+        {/* Refresh */}
         <Tooltip title="Làm mới" arrow placement="top">
           <IconButton
             onClick={onRefresh}

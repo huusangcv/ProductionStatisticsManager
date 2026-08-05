@@ -18,7 +18,7 @@ function ensureExportDir(year, month) {
   const dirPath = path.join(
     root,
     "exports",
-    "PersonalProduction",
+    "SanLuongCaNhan",
     String(year),
     String(month).padStart(2, "0")
   );
@@ -120,7 +120,10 @@ async function generate(startDate, endDate) {
         wsRow.cell(5).value(row.product_name || row.item_name || "");
         wsRow.cell(6).value(row.specification || "");
         wsRow.cell(7).value(qty);
-        let empCodeVal = row.employee_code || row.representative_code || "";
+        let empCodeVal = row.employee_code;
+        if (empCodeVal === null || empCodeVal === undefined) {
+          empCodeVal = row.representative_code || "";
+        }
         if (empCodeVal) {
           empCodeVal = String(empCodeVal)
             .trim()
@@ -219,6 +222,38 @@ function openFile(filePath) {
   }
 }
 
+/**
+ * Open export folder for a given date (year/month)
+ * @param {string} date - "YYYY-MM-DD"
+ */
+function openExportFolder(date) {
+  try {
+    const root = getAppDataRoot();
+    let folderPath = path.join(root, "exports", "SanLuongCaNhan");
+    if (date) {
+      const d = new Date(date);
+      if (!isNaN(d)) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const monthFolder = path.join(folderPath, String(yyyy), mm);
+        if (fs.existsSync(monthFolder)) {
+          folderPath = monthFolder;
+        } else if (fs.existsSync(path.join(folderPath, String(yyyy)))) {
+          folderPath = path.join(folderPath, String(yyyy));
+        }
+      }
+    }
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true });
+    }
+    shell.openPath(folderPath);
+    return { ok: true, folderPath };
+  } catch (error) {
+    logger.error("Error opening export folder", error);
+    return { ok: false, message: error.message };
+  }
+}
+
 async function getByDate(workDate) {
   try {
     const records = personalProductionDAO.getByDate(workDate);
@@ -245,6 +280,47 @@ async function syncData({ workDate, syncCutting = true, syncGrinding = true }) {
       return { ok: false, message: "Vui lòng chọn ngày đồng bộ." };
     }
 
+    const attendanceRepo = require("../sqlite/attendance");
+    const attList = attendanceRepo.getAttendanceByDate(workDate);
+    const presentCodes = new Set(
+      attList
+        .filter(a => a.status === "PRESENT")
+        .map(a => String(a.employee_code || "").trim().replace(/^[Vv]/, ""))
+    );
+
+    const unmappedCodesSet = new Set();
+    
+    // Kiểm tra xem mã nào vắng mặt — KHÔNG xóa, chỉ ghi nhận để warning + highlight
+    const collectAbsentCodes = (codesString) => {
+      if (!codesString) return null;
+      const codes = codesString.split(/[\s,;]+/).map(c => c.trim().replace(/^[Vv]/, "")).filter(Boolean);
+      const absent = [];
+      for (const c of codes) {
+        if (c !== "23081905" && !presentCodes.has(c)) {
+          unmappedCodesSet.add(c);
+          absent.push(c);
+        }
+      }
+      return absent.length > 0 ? absent.join(" ") : null;
+    };
+
+    // Lấy tên đầy đủ — giữ nguyên tất cả tên, kể cả người vắng
+    const getFullNames = (codesString, originalName) => {
+      if (!codesString) return originalName || "";
+      const codes = codesString
+        .split(/[\s,;]+/)
+        .map(c => c.trim().replace(/^[Vv]/, ""))
+        .filter(Boolean);
+      if (codes.length === 0) return originalName || "";
+      
+      const names = codes.map(c => {
+        if (c === "23081905") return "Báo phế hệ thống";
+        const emp = attList.find(a => String(a.employee_code || "").replace(/^[Vv]/, "") === c);
+        return emp ? emp.employee_name : c;
+      });
+      return names.filter(Boolean).join(", ") || originalName || "";
+    };
+
     const recordsToInsert = [];
     const sourcesToDelete = [];
 
@@ -258,12 +334,14 @@ async function syncData({ workDate, syncCutting = true, syncGrinding = true }) {
           continue; // Chỉ đồng bộ các dòng có Số lượng hoàn thành hoặc Số xâu > 0
         }
         const repCode = (row.representative_code || "").trim();
+        const rawCode = row.employee_code || repCode;
+        
         recordsToInsert.push({
           work_date: workDate,
           source_type: "cutting",
           source_id: row.id,
-          employee_code: row.employee_code || repCode || null,
-          employee_name: row.employee_full_name || row.employee_name || repCode || null,
+          employee_code: rawCode || null,
+          employee_name: getFullNames(rawCode, row.employee_full_name || row.employee_name || repCode),
           representative_code: repCode || null,
           customer_order_number: row.customer_order_number || "",
           job_code: row.work_order_number || "",
@@ -274,6 +352,7 @@ async function syncData({ workDate, syncCutting = true, syncGrinding = true }) {
           quantity: qty,
           joint_count: joints,
           sheet_name: "CẮT",
+          absent_codes: collectAbsentCodes(rawCode),
         });
       }
     }
@@ -287,12 +366,14 @@ async function syncData({ workDate, syncCutting = true, syncGrinding = true }) {
           continue; // Chỉ đồng bộ các dòng có Số lượng hoàn thành > 0
         }
         const repCode = (row.representative_code || "").trim();
+        const rawCode = row.employee_code || repCode;
+        
         recordsToInsert.push({
           work_date: workDate,
           source_type: "grinding",
           source_id: row.id,
-          employee_code: row.employee_code || repCode || null,
-          employee_name: row.employee_full_name || row.employee_name || repCode || null,
+          employee_code: rawCode || null,
+          employee_name: getFullNames(rawCode, row.employee_full_name || row.employee_name || repCode),
           representative_code: repCode || null,
           customer_order_number: row.customer_order_number || "",
           job_code: row.work_order_number || "",
@@ -303,6 +384,7 @@ async function syncData({ workDate, syncCutting = true, syncGrinding = true }) {
           quantity: qty,
           joint_count: 0,
           sheet_name: "MÀI",
+          absent_codes: collectAbsentCodes(rawCode),
         });
       }
     }
@@ -326,7 +408,14 @@ async function syncData({ workDate, syncCutting = true, syncGrinding = true }) {
     return {
       ok: true,
       insertedCount: insertResult.insertedCount,
-      unmappedCodes: [],
+      unmappedCodes: [...unmappedCodesSet].map(c => {
+        const emp = attList.find(a => String(a.employee_code || "").replace(/^[Vv]/, "") === c);
+        return {
+          code: c,
+          name: emp ? emp.employee_name : null,
+          representativeCode: emp ? emp.representative_code : null,
+        };
+      }),
     };
   } catch (error) {
     logger.error("Lỗi đồng bộ Sản lượng cá nhân", error);
@@ -336,6 +425,35 @@ async function syncData({ workDate, syncCutting = true, syncGrinding = true }) {
 
 async function updateRecord(id, data) {
   try {
+    // Lấy thông tin bản ghi hiện tại để biết ngày (work_date)
+    const existing = personalProductionDAO.getById?.(id) || personalProductionDAO.getRecordById?.(id);
+    // Lưu ý: DAO có thể chưa có hàm getById, ta sẽ thêm nếu cần, hoặc bỏ qua nếu data đã có work_date
+    // Tạm thời nếu trong data không truyền work_date, mà DAO không hỗ trợ get thì...
+    // Nhưng data thường không có work_date. Ta cần lấy work_date từ SQLite.
+    
+    // Cách an toàn hơn: viết trực tiếp SQL lấy work_date hoặc viết hàm getById trong DAO.
+    const db = require("../sqlite/connection").openDatabase();
+    const currentRecord = db.prepare(`SELECT work_date FROM personal_production WHERE id = ?`).get(id);
+    db.close();
+
+    if (!currentRecord) {
+      return { ok: false, message: `Không tìm thấy dòng dữ liệu ID ${id}` };
+    }
+
+    const workDate = data.work_date || currentRecord.work_date;
+    const employeeCode = data.employee_code;
+
+    // Kiểm tra điểm danh nếu có mã nhân viên và không phải tài khoản báo phế (23081905)
+    if (employeeCode && employeeCode !== "23081905") {
+      const attendanceRepo = require("../sqlite/attendance");
+      const attList = attendanceRepo.getAttendanceByDate(workDate);
+      
+      const empAtt = attList.find(a => a.employee_code === employeeCode);
+      if (!empAtt || empAtt.status !== "PRESENT") {
+        return { ok: false, message: "Nhân viên đang vắng, không thể nhập sản lượng." };
+      }
+    }
+
     const result = personalProductionDAO.updateRecord(id, data);
     return result;
   } catch (error) {
@@ -348,6 +466,7 @@ module.exports = {
   generate,
   openFolder,
   openFile,
+  openExportFolder,
   getByDate,
   checkExists,
   syncData,

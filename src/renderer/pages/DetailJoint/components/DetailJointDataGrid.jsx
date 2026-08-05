@@ -10,6 +10,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 
 import DataGridToolbarActions, {
   StandardButton,
+  ExportImportDropdown,
 } from "../../../components/shared/DataGridToolbarActions";
 import { viVNGridLocaleText } from "../../../constants/dataGridLocale";
 
@@ -31,22 +32,6 @@ function DetailJointDataGrid({
   const safeSelectedRowIds = selectedRowIds ?? [];
 
   const columns = [
-    {
-      field: "stt",
-      headerName: "STT",
-      width: 70,
-      valueGetter: (params) => {
-        try {
-          const sortedIds = params.api?.getSortedRowIds();
-          if (!sortedIds) return "";
-          const index = sortedIds.indexOf(params.id);
-          return index >= 0 ? index + 1 : "";
-        } catch (error) {
-          console.error("Error calculating STT:", error);
-          return "";
-        }
-      },
-    },
     { field: "material_code", headerName: "Mã liệu", width: 180 },
     {
       field: "product_name",
@@ -94,7 +79,6 @@ function DetailJointDataGrid({
         density="compact"
         rows={safeData}
         columns={columns}
-        checkboxSelection
         rowSelectionModel={safeSelectedRowIds}
         onRowSelectionModelChange={onSelectionChange}
         onRowDoubleClick={onRowDoubleClick}
@@ -104,34 +88,14 @@ function DetailJointDataGrid({
               hasExport={false}
               rightActions={
                 <>
+                  <ExportImportDropdown onImport={onImportExcel} onExport={onExportExcel} />
+
                   <StandardButton
-                    primary={false}
-                    icon={<UploadFileIcon />}
-                    label="Nhập Excel"
-                    onClick={onImportExcel}
+                    primary={true}
+                    icon={<AddIcon />}
+                    label="Thêm mới"
+                    onClick={onAdd}
                   />
-                  <StandardButton
-                    primary={false}
-                    icon={<DownloadIcon />}
-                    label="Xuất Excel"
-                    onClick={onExportExcel}
-                  />
-                  {hasSelection ? (
-                    <StandardButton
-                      primary={true}
-                      icon={<DeleteOutlineOutlinedIcon />}
-                      label="Xóa đã chọn"
-                      onClick={onDeleteSelected}
-                      color="error"
-                    />
-                  ) : (
-                    <StandardButton
-                      primary={true}
-                      icon={<AddIcon />}
-                      label="Thêm mới"
-                      onClick={onAdd}
-                    />
-                  )}
                   <StandardButton
                     primary={false}
                     icon={<RefreshIcon />}

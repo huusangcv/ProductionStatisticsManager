@@ -164,7 +164,7 @@ function RolesPage() {
           slots={{
             toolbar: () => (
               <DataGridToolbarActions
-                hasExport={true}
+                hasExport={false}
                 rightActions={
                   <>
                     <StandardButton primary icon={<AddIcon />} label="Thêm vai trò" onClick={openAdd} />

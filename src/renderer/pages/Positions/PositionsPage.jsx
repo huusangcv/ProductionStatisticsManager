@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import {
   Box, Card, Stack, Snackbar, Alert, Drawer, Typography, IconButton,
   Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, MenuItem, Chip,
+  TextField, MenuItem, Chip, Menu, ListItemIcon, ListItemText,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import AddIcon from "@mui/icons-material/Add";
@@ -50,6 +50,24 @@ function PositionsPage() {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const [form, setForm] = useState({ code: "", name: "", description: "", sort_order: 0, is_active: 1 });
   const [formErrors, setFormErrors] = useState({});
+  const [contextMenu, setContextMenu] = useState(null);
+
+  const handleContextMenu = (event) => {
+    event.preventDefault();
+    const id = event.currentTarget.getAttribute("data-id");
+    if (!id) return;
+    const row = positions.find((r) => r.id === parseInt(id));
+    if (!row) return;
+    setContextMenu({
+      mouseX: event.clientX + 2,
+      mouseY: event.clientY - 6,
+      item: row,
+    });
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
+  };
 
   const showSnackbar = (message, severity = "success") =>
     setSnackbar({ open: true, message, severity });
@@ -138,18 +156,6 @@ function PositionsPage() {
       width: 130,
       renderCell: (p) => <StatusChip active={p.value === 1} />,
     },
-    {
-      field: "actions",
-      headerName: "",
-      width: 90,
-      sortable: false,
-      renderCell: (p) => (
-        <Stack direction="row" spacing={0.5}>
-          <IconButton size="small" onClick={(e) => { e.stopPropagation(); openEdit(p.row); }}><EditOutlinedIcon fontSize="small" /></IconButton>
-          <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setDeleteDialog(p.row); }}><DeleteOutlineOutlinedIcon fontSize="small" /></IconButton>
-        </Stack>
-      ),
-    },
   ];
 
   return (
@@ -162,10 +168,16 @@ function PositionsPage() {
           columns={columns}
           loading={loading}
           onRowDoubleClick={(p) => setDrawerItem(p.row)}
+          slotProps={{
+            row: {
+              onContextMenu: handleContextMenu,
+              style: { cursor: "context-menu" },
+            },
+          }}
           slots={{
             toolbar: () => (
               <DataGridToolbarActions
-                hasExport={true}
+                hasExport={false}
                 rightActions={
                   <>
                     <StandardButton primary icon={<AddIcon />} label="Thêm chức vụ" onClick={openAdd} />
@@ -179,6 +191,59 @@ function PositionsPage() {
           pageSizeOptions={[10, 20, 50, 100]}
           sx={GRID_SX}
         />
+
+        <Menu
+          open={contextMenu !== null}
+          onClose={handleCloseContextMenu}
+          anchorReference="anchorPosition"
+          anchorPosition={
+            contextMenu !== null
+              ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+              : undefined
+          }
+          slotProps={{
+            paper: {
+              elevation: 2,
+              sx: {
+                borderRadius: "8px",
+                minWidth: 160,
+                boxShadow: "0 4px 12px rgba(15, 23, 42, 0.08)",
+                border: "1px solid #E2E8F0",
+                "& .MuiMenuItem-root": {
+                  px: 2,
+                  py: 1,
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                  color: "#1E293B",
+                },
+              },
+            },
+          }}
+        >
+          <MenuItem
+            onClick={() => {
+              openEdit(contextMenu.item);
+              handleCloseContextMenu();
+            }}
+          >
+            <ListItemIcon>
+              <EditOutlinedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Chỉnh sửa</ListItemText>
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setDeleteDialog(contextMenu.item);
+              handleCloseContextMenu();
+            }}
+            sx={{ color: "#EF4444 !important" }}
+          >
+            <ListItemIcon>
+              <DeleteOutlineOutlinedIcon fontSize="small" sx={{ color: "#EF4444" }} />
+            </ListItemIcon>
+            <ListItemText>Xóa chức vụ</ListItemText>
+          </MenuItem>
+        </Menu>
       </Card>
 
       {/* Detail Drawer */}
@@ -286,6 +351,5 @@ function PositionsPage() {
       </Snackbar>
     </Box>
   );
-}
-
+};
 export default PositionsPage;

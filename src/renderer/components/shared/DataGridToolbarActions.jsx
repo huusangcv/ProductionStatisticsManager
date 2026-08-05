@@ -1,4 +1,8 @@
-import { Box, Button, Tooltip } from "@mui/material";
+import { Box, Button, Tooltip, IconButton, CircularProgress, Menu, MenuItem } from "@mui/material";
+import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import { useState } from "react";
 import {
   GridToolbarContainer,
   GridToolbarColumnsButton,
@@ -71,13 +75,13 @@ export default function DataGridToolbarActions({ hasExport = true, rightActions 
           <GridToolbarFilterButton slotProps={{ button: { sx: iconOnlyButtonSx, "aria-label": "Bộ lọc" } }} sx={iconOnlyButtonSx} />
         </Box>
         {hasExport && <GridToolbarExport />}
-        <Box sx={{ ml: 2, display: "flex", alignItems: "center" }}>
+        <Box sx={{ ml: 0.5, display: "flex", alignItems: "center" }}>
           <GridToolbarQuickFilter
             placeholder="Tìm kiếm nhanh..."
             variant="outlined"
             size="small"
             sx={{
-              width: 250,
+              width: 180,
               pb: "0 !important",
               m: "0 !important",
               "& .MuiFormControl-root": {
@@ -90,6 +94,7 @@ export default function DataGridToolbarActions({ hasExport = true, rightActions 
                 maxHeight: "36px !important",
                 borderRadius: "8px",
                 bgcolor: "#fff",
+                fontSize: "0.875rem",
                 boxSizing: "border-box",
               },
             }}
@@ -115,22 +120,137 @@ export const StandardButton = ({
   disabled,
   onClick,
   ...props
-}) => (
-  <Button
-    variant={primary ? "contained" : "outlined"}
-    color={primary ? "primary" : "secondary"}
-    disableElevation={primary}
-    startIcon={icon}
-    disabled={disabled || loading}
-    onClick={onClick}
-    sx={{
-      height: 38,
-      borderRadius: "8px",
-      fontWeight: 600,
-      textTransform: "none",
-    }}
-    {...props}
-  >
-    {loading ? "Đang xử lý..." : label}
-  </Button>
-);
+}) => {
+  if (label === "Làm mới" || props.iconOnly) {
+    return (
+      <Tooltip title={label} arrow placement="top">
+        <IconButton
+          onClick={onClick}
+          size="small"
+          disabled={disabled || loading}
+          sx={{
+            width: 36,
+            height: 36,
+            borderRadius: "8px",
+            border: "1px solid #E2E8F0",
+            bgcolor: "#fff",
+            color: "#475569",
+            "&:hover": {
+              bgcolor: "#F8FAFC",
+              borderColor: "#CBD5E1",
+              color: "primary.main",
+            },
+          }}
+          {...props}
+        >
+          {loading ? <CircularProgress size={16} color="inherit" /> : icon}
+        </IconButton>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Button
+      variant={primary ? "contained" : "outlined"}
+      color={primary ? "primary" : "inherit"}
+      disableElevation={primary}
+      startIcon={loading ? <CircularProgress size={16} color="inherit" /> : icon}
+      disabled={disabled || loading}
+      onClick={onClick}
+      sx={{
+        height: 36,
+        borderRadius: "8px",
+        fontWeight: 600,
+        textTransform: "none",
+        px: 2,
+        ...(primary
+          ? {
+              boxShadow: "none",
+              "&:hover": {
+                boxShadow: "0 2px 6px rgba(37, 99, 235, 0.25)",
+              },
+            }
+          : {
+              bgcolor: "#fff",
+              borderColor: "#E2E8F0",
+              color: "#1E293B",
+              "&:hover": {
+                bgcolor: "#F8FAFC",
+                borderColor: "#CBD5E1",
+              },
+            }),
+      }}
+      {...props}
+    >
+      {label}
+    </Button>
+  );
+};
+
+export const ExportImportDropdown = ({ onImport, onExport }) => {
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+
+  return (
+    <>
+      <Button
+        variant="outlined"
+        color="secondary"
+        onClick={(e) => setAnchorEl(e.currentTarget)}
+        endIcon={<KeyboardArrowDownRoundedIcon />}
+        sx={{
+          height: 36,
+          borderRadius: "8px",
+          fontWeight: 600,
+          textTransform: "none",
+          px: 2,
+          bgcolor: "#fff",
+          borderColor: "#E2E8F0",
+          color: "#1E293B",
+          "&:hover": {
+            bgcolor: "#F8FAFC",
+            borderColor: "#CBD5E1",
+          },
+        }}
+      >
+        Nhập/Xuất
+      </Button>
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={() => setAnchorEl(null)}
+        slotProps={{
+          paper: {
+            elevation: 2,
+            sx: {
+              borderRadius: "10px",
+              mt: 0.5,
+              minWidth: 160,
+              border: "1px solid #E2E8F0",
+              boxShadow: "0 4px 12px rgba(15, 23, 42, 0.08)",
+            },
+          },
+        }}
+      >
+        {onImport && (
+          <MenuItem
+            onClick={() => { setAnchorEl(null); onImport(); }}
+            sx={{ py: 1, gap: 1.5, fontSize: "0.875rem", fontWeight: 500, color: "#1E293B" }}
+          >
+            <FileUploadOutlinedIcon fontSize="small" sx={{ mr: 1.5, color: "#64748b" }} />
+            Nhập Excel
+          </MenuItem>
+        )}
+        {onExport && (
+          <MenuItem
+            onClick={() => { setAnchorEl(null); onExport(); }}
+            sx={{ py: 1, gap: 1.5, fontSize: "0.875rem", fontWeight: 500, color: "#1E293B" }}
+          >
+            <FileDownloadOutlinedIcon fontSize="small" sx={{ mr: 1.5, color: "#64748b" }} />
+            Xuất Excel
+          </MenuItem>
+        )}
+      </Menu>
+    </>
+  );
+};

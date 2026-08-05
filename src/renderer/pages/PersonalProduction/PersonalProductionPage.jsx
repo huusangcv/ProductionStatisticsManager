@@ -7,6 +7,7 @@ import { DataGrid } from "@mui/x-data-grid";
 import { PERSONAL_PRODUCTION_COLUMNS } from "../../../constants/personalProductionColumns";
 import PersonalProductionToolbar from "./components/PersonalProductionToolbar";
 import SyncPersonalProductionDialog from "./components/SyncPersonalProductionDialog";
+import PersonalProductionDrawer from "./components/PersonalProductionDrawer";
 import { viVNGridLocaleText } from "../../constants/dataGridLocale";
 import ProductionGridFooter from "../../components/shared/ProductionGridFooter";
 
@@ -46,6 +47,12 @@ const productionDataGridSx = {
     minHeight: "40px",
     padding: 0,
   },
+  // Highlight dòng có nhân viên vắng mặt
+  "& .row-has-absent": {
+    bgcolor: "#FFF7ED !important",
+    borderLeft: "3px solid #F97316 !important",
+    "&:hover": { bgcolor: "#FFEDD5 !important" },
+  },
 };
 
 export default function PersonalProductionPage() {
@@ -60,6 +67,10 @@ export default function PersonalProductionPage() {
     message: "",
     severity: "success",
   });
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [filterDate, setFilterDate] = useState(() => {
     const d = new Date();
@@ -109,23 +120,27 @@ export default function PersonalProductionPage() {
     loadData();
   }, [loadData]);
 
-  const handleProcessRowUpdate = async (newRow, oldRow) => {
-    try {
-      const res = await window.electronAPI.personalProduction.update(newRow.id, newRow);
-      if (!res.ok) {
-        showSnackbar(res.message || "Lỗi cập nhật dữ liệu", "error");
-        return oldRow;
-      }
-      showSnackbar("Cập nhật thành công", "success");
-      return newRow;
-    } catch (error) {
-      showSnackbar("Lỗi: " + error.message, "error");
-      return oldRow;
-    }
+  const handleRowDoubleClick = (params) => {
+    setSelectedRecord(params.row);
+    setDrawerOpen(true);
   };
 
-  const handleProcessRowUpdateError = (error) => {
-    showSnackbar("Lỗi chỉnh sửa: " + error.message, "error");
+  const handleSaveDrawer = async (updatedData) => {
+    setIsSaving(true);
+    try {
+      const res = await window.electronAPI.personalProduction.update(updatedData.id, updatedData);
+      if (!res.ok) {
+        showSnackbar(res.message || "Lỗi cập nhật dữ liệu", "error");
+      } else {
+        showSnackbar("Cập nhật thành công", "success");
+        setDrawerOpen(false);
+        loadData(); // Tải lại để cập nhật DataGrid
+      }
+    } catch (error) {
+      showSnackbar("Lỗi: " + error.message, "error");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleExport = async () => {
@@ -193,8 +208,10 @@ export default function PersonalProductionPage() {
             pagination: { paginationModel: { pageSize: 50 } },
           }}
           pageSizeOptions={[10, 20, 50, 100]}
-          processRowUpdate={handleProcessRowUpdate}
-          onProcessRowUpdateError={handleProcessRowUpdateError}
+          onRowDoubleClick={handleRowDoubleClick}
+          getRowClassName={(params) =>
+            params.row.absent_codes ? "row-has-absent" : ""
+          }
           sx={productionDataGridSx}
         />
       </Card>
@@ -211,6 +228,14 @@ export default function PersonalProductionPage() {
           }
         }}
         showSnackbar={showSnackbar}
+      />
+
+      <PersonalProductionDrawer
+        open={drawerOpen}
+        record={selectedRecord}
+        onClose={() => setDrawerOpen(false)}
+        onSave={handleSaveDrawer}
+        isSaving={isSaving}
       />
 
       <Dialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} maxWidth="sm" fullWidth>

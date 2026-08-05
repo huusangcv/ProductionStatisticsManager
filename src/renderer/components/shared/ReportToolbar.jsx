@@ -57,6 +57,7 @@ const iconOnlyButtonSx = {
 
 export default function ReportToolbar({
   leftCustomControls,
+  extraMenuItems,
   onGenerate,
   generating = false,
   disableGenerate = false,
@@ -182,7 +183,7 @@ export default function ReportToolbar({
             {generating ? (
               <CircularProgress size={18} color="inherit" />
             ) : (
-              <DescriptionIcon sx={{ fontSize: 18, color: "primary.main" }} />
+              <DescriptionIcon fontSize="small" sx={{ mr: 1.5, color: "#64748b" }} />
             )}
             {generating ? "Đang tạo..." : generateLabel}
           </MenuItem>
@@ -203,10 +204,11 @@ export default function ReportToolbar({
             {printing ? (
               <CircularProgress size={18} color="inherit" />
             ) : (
-              <PrintIcon sx={{ fontSize: 18, color: "success.main" }} />
+              <PrintIcon fontSize="small" sx={{ mr: 1.5, color: "#64748b" }} />
             )}
             {printing ? "Đang in..." : printLabel}
           </MenuItem>
+          {extraMenuItems}
         </Menu>
 
         {/* Nút Mở thư mục riêng biệt */}

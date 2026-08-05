@@ -12,7 +12,7 @@ import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 
 import EmployeeAvatar from "./EmployeeAvatar";
 import EmployeeStatusChip from "./EmployeeStatusChip";
-import DataGridToolbarActions, { StandardButton } from "../../../components/shared/DataGridToolbarActions";
+import DataGridToolbarActions, { StandardButton, ExportImportDropdown } from "../../../components/shared/DataGridToolbarActions";
 import { viVNGridLocaleText } from "../../../constants/dataGridLocale";
 
 function EmployeeDataGrid({
@@ -113,7 +113,7 @@ function EmployeeDataGrid({
         slots={{
           toolbar: () => (
             <DataGridToolbarActions
-              hasExport={true}
+              hasExport={false}
               rightActions={
                 <>
                   <StandardButton
@@ -122,18 +122,7 @@ function EmployeeDataGrid({
                     label="Thêm nhân viên"
                     onClick={onAddEmployee}
                   />
-                  <StandardButton
-                    primary={false}
-                    icon={<FileUploadOutlinedIcon />}
-                    label="Import"
-                    onClick={onImport}
-                  />
-                  <StandardButton
-                    primary={false}
-                    icon={<FileDownloadOutlinedIcon />}
-                    label="Export"
-                    onClick={onExport}
-                  />
+                  <ExportImportDropdown onImport={onImport} />
                   <StandardButton
                     primary={false}
                     icon={<RefreshIcon />}

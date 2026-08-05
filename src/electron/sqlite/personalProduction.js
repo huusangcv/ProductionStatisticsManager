@@ -27,6 +27,7 @@ function ensurePersonalProductionTable() {
         quantity            REAL,
         joint_count         REAL DEFAULT 0,
         sheet_name          TEXT    NOT NULL,
+        absent_codes        TEXT,
         created_at          TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
         updated_at          TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
         is_edited           INTEGER DEFAULT 0
@@ -42,6 +43,9 @@ function ensurePersonalProductionTable() {
     }
     if (!columns.includes("customer_order_number")) {
       db.exec("ALTER TABLE personal_production ADD COLUMN customer_order_number TEXT");
+    }
+    if (!columns.includes("absent_codes")) {
+      db.exec("ALTER TABLE personal_production ADD COLUMN absent_codes TEXT");
     }
   } finally {
     db.close();
@@ -198,11 +202,12 @@ function insertBatch(records) {
       INSERT INTO personal_production (
         work_date, source_type, source_id, employee_code, employee_name,
         representative_code, customer_order_number, job_code, material_code, product_name,
-        specification, detail, quantity, joint_count, sheet_name, created_at, updated_at, is_edited
+        specification, detail, quantity, joint_count, sheet_name, absent_codes,
+        created_at, updated_at, is_edited
       ) VALUES (
         @work_date, @source_type, @source_id, @employee_code, @employee_name,
         @representative_code, @customer_order_number, @job_code, @material_code, @product_name,
-        @specification, @detail, @quantity, @joint_count, @sheet_name,
+        @specification, @detail, @quantity, @joint_count, @sheet_name, @absent_codes,
         datetime('now', 'localtime'), datetime('now', 'localtime'), 0
       )
     `);
@@ -226,6 +231,7 @@ function insertBatch(records) {
           quantity: Number(row.quantity) || 0,
           joint_count: Number(row.joint_count) || 0,
           sheet_name: row.sheet_name || "",
+          absent_codes: row.absent_codes || null,
         });
         count++;
       }

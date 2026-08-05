@@ -1440,6 +1440,9 @@ function registerIpcHandlers() {
   ipcMain.handle("personal-production:update", async (event, { id, data }) => {
     return await personalProductionService.updateRecord(id, data);
   });
+  ipcMain.handle("personal-production:openExportFolder", async (event, date) => {
+    return personalProductionService.openExportFolder(date);
+  });
 
   // ── Printer IPC handlers ──────────────────────────────────────────────────────────
 

@@ -9,6 +9,7 @@ import {
   CircularProgress,
   Typography,
   Tooltip,
+  MenuItem,
 } from "@mui/material";
 import DescriptionIcon from "@mui/icons-material/Description";
 import PrintIcon from "@mui/icons-material/Print";
@@ -249,35 +250,22 @@ export default function HeatTreatmentPage() {
               </Box>
             </Tooltip>
           )}
-          {/* Nút xuất file tổng hợp kỳ */}
-          <Tooltip title="Xuất file tổng hợp kỳ Hàng Xử lý Nhiệt" arrow placement="top">
-            <Button
-              id="btn-period-summary"
-              variant="outlined"
-              size="small"
-              startIcon={<SummarizeIcon />}
-              onClick={() => setShowPeriodSummaryDialog(true)}
-              sx={{
-                height: 36,
-                borderRadius: "8px",
-                fontWeight: 600,
-                textTransform: "none",
-                px: 1.5,
-                bgcolor: "#fff",
-                borderColor: "#E2E8F0",
-                color: "#475569",
-                fontSize: "0.8rem",
-                "&:hover": {
-                  bgcolor: "#F0F4FF",
-                  borderColor: "primary.main",
-                  color: "primary.main",
-                },
-              }}
-            >
-              Tổng hợp kỳ
-            </Button>
-          </Tooltip>
         </Box>
+      }
+      extraMenuItems={
+        <MenuItem
+          onClick={() => setShowPeriodSummaryDialog(true)}
+          sx={{
+            py: 1,
+            gap: 1.5,
+            fontSize: "0.875rem",
+            fontWeight: 500,
+            color: "#1E293B",
+          }}
+        >
+          <SummarizeIcon fontSize="small" sx={{ mr: 1.5, color: "#64748b" }} />
+          Tổng hợp kỳ
+        </MenuItem>
       }
       onGenerate={handleGenerate}
       generating={generating}

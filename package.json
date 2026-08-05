@@ -1,6 +1,6 @@
 {
   "name": "production-statistics-manager",
-  "version": "1.1.6",
+  "version": "1.2.1",
   "private": true,
   "main": "src/electron/main.js",
   "description": "Electron + React architecture for Production Statistics Manager",

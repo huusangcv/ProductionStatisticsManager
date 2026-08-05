@@ -70,14 +70,14 @@ export const PERSONAL_PRODUCTION_COLUMNS = [
     field: "detail",
     headerName: "Chi tiết kết xâu",
     width: 160,
-    editable: true,
+    editable: false,
   },
   {
     field: "joint_count",
     headerName: "Số xâu",
     width: 120,
     type: "number",
-    editable: true,
+    editable: false,
     align: "right",
     headerAlign: "right",
   },
@@ -86,7 +86,7 @@ export const PERSONAL_PRODUCTION_COLUMNS = [
     headerName: "Số lượng",
     width: 130,
     type: "number",
-    editable: true,
+    editable: false,
     align: "right",
     headerAlign: "right",
   },
@@ -94,19 +94,19 @@ export const PERSONAL_PRODUCTION_COLUMNS = [
     field: "representative_code",
     headerName: "Mã đại diện",
     width: 130,
-    editable: true,
+    editable: false,
   },
   {
     field: "employee_code",
     headerName: "Mã nhân viên",
     width: 140,
-    editable: true,
+    editable: false,
   },
   {
     field: "employee_name",
     headerName: "Tên nhân viên",
     width: 240,
-    editable: true,
+    editable: false,
     renderCell: (params) => {
       const att = params.row.attendance_status;
       // Nếu có status điểm danh và không phải có mặt / chưa điểm danh

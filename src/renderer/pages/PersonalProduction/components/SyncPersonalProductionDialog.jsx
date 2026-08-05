@@ -102,7 +102,7 @@ export default function SyncPersonalProductionDialog({
 
   return (
     <>
-      <Dialog open={open} onClose={isProcessing ? undefined : onClose} maxWidth="xs" fullWidth>
+      <Dialog open={open && !unmappedDialogOpen} onClose={isProcessing ? undefined : onClose} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 18, borderBottom: "1px solid #E2E8F0", pb: 1.5 }}>
           Đồng bộ sản lượng cá nhân
         </DialogTitle>
@@ -206,21 +206,41 @@ export default function SyncPersonalProductionDialog({
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 700, color: "warning.dark" }}>
-          ⚠ Mã đại diện chưa khai báo
+          ⚠ Cảnh báo: Mã nhân viên vắng mặt / Không hợp lệ
         </DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 1 }}>
-            Các mã đại diện sau <b>không tìm thấy</b> trong danh mục nhân viên. Dữ liệu đã được đồng bộ nhưng thông tin Mã nhân viên và Tên nhân viên đang để trống.
+            Các mã sau đây thuộc về <b>nhân viên vắng mặt</b> trong ngày đồng bộ. Dữ liệu sản lượng vẫn được đồng bộ đầy đủ và <b>không bị thay đổi</b>.
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Vui lòng vào <b>Danh mục → Nhân viên</b> để bổ sung mã đại diện cho các nhân viên này.
+            Các dòng liên quan đã được <b style={{ color: "#F97316" }}>highlight màu cam</b> trên bảng để bạn dễ nhận biết và xử lý nếu cần.
           </Typography>
-          <List dense sx={{ bgcolor: "#fff8f0", borderRadius: 1, border: "1px solid #fde68a", maxHeight: 200, overflow: "auto" }}>
-            {unmappedCodes.map((code, idx) => (
-              <ListItem key={idx}>
-                <ListItemText primary={code} />
-              </ListItem>
-            ))}
+          <List dense sx={{ bgcolor: "#fff8f0", borderRadius: 1, border: "1px solid #fde68a", maxHeight: 240, overflow: "auto" }}>
+            {unmappedCodes.map((item, idx) => {
+              const code = typeof item === "object" ? item.code : item;
+              const name = typeof item === "object" ? item.name : null;
+              const repCode = typeof item === "object" ? item.representativeCode : null;
+              return (
+                <ListItem key={idx} sx={{ py: 0.5, borderBottom: idx < unmappedCodes.length - 1 ? "1px solid #fde68a" : "none" }}>
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box component="span" sx={{ fontWeight: 700, fontSize: 13, color: "#92400E", fontFamily: "monospace", bgcolor: "#FEF3C7", px: 0.8, py: 0.2, borderRadius: 0.5 }}>
+                          {code}
+                        </Box>
+                        {name && (
+                          <Box component="span" sx={{ fontSize: 13, color: "#1E293B" }}>
+                            {name}
+                          </Box>
+                        )}
+                      </Box>
+                    }
+                    secondary={repCode ? `Mã đại diện: ${repCode}` : undefined}
+                    secondaryTypographyProps={{ sx: { fontSize: 11, color: "#78716C" } }}
+                  />
+                </ListItem>
+              );
+            })}
           </List>
         </DialogContent>
         <DialogActions>
