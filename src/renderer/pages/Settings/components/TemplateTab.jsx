@@ -21,6 +21,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
+import { sharedDataGridSx } from "../../../constants/dataGridStyles";
 import UploadOutlinedIcon from "@mui/icons-material/UploadOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
@@ -73,7 +74,7 @@ const TemplateTab = () => {
     message: "",
     severity: "success",
   });
-  
+
   // Upload Dialog State
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedModule, setSelectedModule] = useState("");
@@ -82,7 +83,7 @@ const TemplateTab = () => {
   const [uploadSheets, setUploadSheets] = useState([]);
   const [selectedSheet, setSelectedSheet] = useState("");
   const [uploadStartCol, setUploadStartCol] = useState("A");
-  const [uploadEndCol,   setUploadEndCol]   = useState("Z");
+  const [uploadEndCol, setUploadEndCol] = useState("Z");
   const [uploadError, setUploadError] = useState("");
 
   const showSnackbar = (message, severity = "success") => {
@@ -173,7 +174,7 @@ const TemplateTab = () => {
       setUploadFilePath(result.filePath);
       const name = result.filePath.split(/[\\/]/).pop();
       setUploadFileName(name);
-      
+
       // Fetch sheets dynamically
       const sheetsResult = await window.electronAPI.template.getSheets(result.filePath);
       if (sheetsResult.success && sheetsResult.sheets.length > 0) {
@@ -201,7 +202,7 @@ const TemplateTab = () => {
     }
 
     setUploadDialogOpen(false);
-    
+
     const result = await handleUploadSubmit({
       module: selectedModule,
       sourcePath: uploadFilePath,
@@ -209,7 +210,7 @@ const TemplateTab = () => {
       startColumn: uploadStartCol,
       endColumn: uploadEndCol
     });
-    
+
     if (result.success) {
       showSnackbar(result.message, "success");
     } else {
@@ -333,6 +334,7 @@ const TemplateTab = () => {
                 showQuickFilter: true,
               },
             }}
+            sx={sharedDataGridSx}
           />
         </Box>
       </Paper>
@@ -558,8 +560,8 @@ const TemplateTab = () => {
         </DialogContent>
         <DialogActions sx={{ pt: 2 }}>
           <Button onClick={() => setUploadDialogOpen(false)}>Hủy</Button>
-          <Button 
-            onClick={confirmUpload} 
+          <Button
+            onClick={confirmUpload}
             variant="contained"
             disabled={!selectedModule || !uploadFilePath || !selectedSheet || loading}
           >

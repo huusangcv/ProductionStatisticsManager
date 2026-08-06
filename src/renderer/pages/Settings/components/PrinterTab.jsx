@@ -11,6 +11,7 @@ import {
   Snackbar,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import { sharedDataGridSx } from "../../../constants/dataGridStyles";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
@@ -185,7 +186,7 @@ const PrinterTab = () => {
                   },
                 }}
                 pageSizeOptions={[10, 20, 50]}
-                sx={{ border: "none" }}
+                sx={sharedDataGridSx}
               />
             </Box>
           </Paper>

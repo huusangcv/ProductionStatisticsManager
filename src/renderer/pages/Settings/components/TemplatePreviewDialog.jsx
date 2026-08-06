@@ -15,6 +15,7 @@ import {
 import { DataGrid } from "@mui/x-data-grid";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
+import { sharedDataGridSx } from "../../../constants/dataGridStyles";
 
 const viVNGridLocaleText = {
   toolbarColumns: "Cột",
@@ -72,16 +73,10 @@ function SheetGrid({ sheetData }) {
         initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
         pageSizeOptions={[25, 50, 100]}
         sx={{
+          ...sharedDataGridSx,
           border: "1px solid",
           borderColor: "divider",
           borderRadius: 1,
-          "& .MuiDataGrid-columnHeaders": {
-            bgcolor: "#F8FAFC",
-            fontWeight: 600,
-            fontSize: 12,
-          },
-          "& .MuiDataGrid-cell": { fontSize: 12 },
-          "& .MuiDataGrid-cell:focus-within": { outline: "none" },
         }}
       />
     </Box>

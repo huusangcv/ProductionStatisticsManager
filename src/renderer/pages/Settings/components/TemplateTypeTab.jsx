@@ -20,16 +20,17 @@ import { DataGrid } from "@mui/x-data-grid";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
+import { sharedDataGridSx } from "../../../constants/dataGridStyles";
 import { useTemplateTypes } from "../../../hooks/useTemplateTypes";
 
 const TemplateTypeTab = () => {
   const { types, loading, createType, updateType, deleteType } = useTemplateTypes();
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
-  
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [currentId, setCurrentId] = useState(null);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     name: "",
@@ -87,7 +88,7 @@ const TemplateTypeTab = () => {
     }
 
     const payload = { ...formData, display_order: Number(formData.display_order) };
-    
+
     let result;
     if (editMode) {
       result = await updateType(currentId, payload);
@@ -174,12 +175,8 @@ const TemplateTypeTab = () => {
           hideFooterSelectedRowCount
           rowHeight={50}
           sx={{
+            ...sharedDataGridSx,
             border: 0,
-            "& .MuiDataGrid-columnHeaders": {
-              backgroundColor: "background.default",
-              borderBottom: 1,
-              borderColor: "divider",
-            },
           }}
         />
       </Paper>
