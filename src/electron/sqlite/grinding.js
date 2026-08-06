@@ -29,6 +29,51 @@ const GRINDING_COLUMN_SPEC = [
 
 const grindingDAO = createProductionModule("grinding_production", GRINDING_COLUMN_SPEC, "GRIND");
 
+/**
+ * Xóa toàn bộ dữ liệu sản lượng mài theo ngày, bao gồm cascade thủ công sang
+ * bảng bao_phe_duc_dong (vì FOREIGN KEY không có ON DELETE CASCADE).
+ *
+ * Thứ tự xóa:
+ *   1. Lấy danh sách grinding_production.id của ngày đó
+ *   2. Xóa các dòng trong bao_phe_duc_dong tham chiếu những id trên
+ *   3. Xóa các bao_phe_duc header nào không còn dòng nào (tránh rác)
+ *   4. Xóa grinding_production theo ngày
+ *
+ * @param {string} date - "YYYY-MM-DD"
+ */
+function deleteGrindingDataByDate(date) {
+  const db = openDatabase();
+  try {
+    db.transaction(() => {
+      // 1. Lấy id của các dòng sản lượng mài ngày đó
+      const grindingIds = db
+        .prepare(`SELECT id FROM grinding_production WHERE report_date = ?`)
+        .all(date)
+        .map((r) => r.id);
+
+      if (grindingIds.length > 0) {
+        const placeholders = grindingIds.map(() => "?").join(", ");
+
+        // 2. Xóa các dòng báo phế liên quan
+        db.prepare(
+          `DELETE FROM bao_phe_duc_dong WHERE grinding_production_id IN (${placeholders})`
+        ).run(...grindingIds);
+
+        // 3. Cleanup bao_phe_duc header nếu không còn dòng nào
+        db.prepare(`
+          DELETE FROM bao_phe_duc
+          WHERE id NOT IN (SELECT DISTINCT bao_phe_duc_id FROM bao_phe_duc_dong)
+        `).run();
+      }
+
+      // 4. Xóa dữ liệu mài theo ngày
+      db.prepare(`DELETE FROM grinding_production WHERE report_date = ?`).run(date);
+    })();
+  } finally {
+    db.close();
+  }
+}
+
 function getDefectsByDate(date) {
   const db = openDatabase();
   try {
@@ -140,7 +185,7 @@ module.exports = {
   updateGrindingData:              grindingDAO.update,
   deleteGrindingDataById:          grindingDAO.deleteById,
   checkGrindingDataExistsByDate:  grindingDAO.checkExistsByDate,
-  deleteGrindingDataByDate:       grindingDAO.deleteByDate,
+  deleteGrindingDataByDate,       // override: cascade-xóa bao_phe_duc_dong trước
   importGrindingData:             grindingDAO.importData,
   getLatestGrindingDate:          grindingDAO.getLatestDate,
   getDefectsByDate,

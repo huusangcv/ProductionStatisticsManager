@@ -71,6 +71,8 @@ function ensureAttendanceTable() {
 /**
  * Lấy danh sách điểm danh của ngày. 
  * Nếu nhân viên chưa có record sẽ trả về trạng thái mặc định NOT_CHECKED.
+ * Dedup theo representative_code: khi 1 người có nhiều vai trò (nhiều bản ghi employee),
+ * chỉ hiển thị 1 lần (ưu tiên bản ghi có id nhỏ nhất — thêm vào trước).
  */
 function getAttendanceByDate(date) {
   const db = getDatabase();
@@ -91,6 +93,12 @@ function getAttendanceByDate(date) {
       JOIN roles r ON e.role_id = r.id
       LEFT JOIN attendance a ON e.id = a.employee_id AND a.work_date = ?
       WHERE e.status = 'Đang làm việc'
+        AND e.id = (
+          SELECT MIN(e2.id)
+          FROM employees e2
+          WHERE e2.representative_code = e.representative_code
+            AND e2.status = 'Đang làm việc'
+        )
       ORDER BY e.representative_code ASC, e.employee_code ASC
     `);
     return stmt.all(date);
@@ -133,7 +141,8 @@ function upsertAttendanceBatch(date, records) {
 }
 
 /**
- * Kiểm tra xem ngày hôm nay còn bao nhiêu nhân viên chưa điểm danh
+ * Kiểm tra xem ngày hôm nay còn bao nhiêu nhân viên chưa điểm danh.
+ * Dedup theo representative_code để không đếm 2 lần nhân viên đa vai trò.
  */
 function checkMissingAttendance(date) {
   const db = getDatabase();
@@ -142,7 +151,14 @@ function checkMissingAttendance(date) {
       SELECT COUNT(e.id) as missing_count
       FROM employees e
       LEFT JOIN attendance a ON e.id = a.employee_id AND a.work_date = ?
-      WHERE e.status = 'Đang làm việc' AND (a.id IS NULL OR a.status = 'NOT_CHECKED')
+      WHERE e.status = 'Đang làm việc'
+        AND (a.id IS NULL OR a.status = 'NOT_CHECKED')
+        AND e.id = (
+          SELECT MIN(e2.id)
+          FROM employees e2
+          WHERE e2.representative_code = e.representative_code
+            AND e2.status = 'Đang làm việc'
+        )
     `);
     const result = stmt.get(date);
     return result ? result.missing_count : 0;

@@ -70,7 +70,19 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
         emp.status !== 'Nghỉ việc' && presentEmployeeIds.has(String(emp.id))
       );
 
-      const mappedEmployees = activeEmployees.map(emp => {
+      // Dedup: nhân viên đa vai trò (cùng representative_code) chỉ hiển thị 1 lần
+      // Ưu tiên bản ghi có id nhỏ nhất (thêm trước = vai trò chính)
+      const seenRepCodes = new Map();
+      for (const emp of activeEmployees) {
+        const repCode = String(emp.representative_code || emp.id);
+        const existing = seenRepCodes.get(repCode);
+        if (!existing || emp.id < existing.id) {
+          seenRepCodes.set(repCode, emp);
+        }
+      }
+      const dedupedEmployees = Array.from(seenRepCodes.values());
+
+      const mappedEmployees = dedupedEmployees.map(emp => {
         const rawCode = String(emp.employee_code || emp.id || '');
         const cleanCode = rawCode.replace(/^[vV]/, '');
         const shortCode = cleanCode.length > 4 ? cleanCode.slice(-4) : cleanCode;
