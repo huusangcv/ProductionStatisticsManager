@@ -32,6 +32,9 @@ import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 import { useTemplates } from "../../../hooks/useTemplates";
 import PrintConfigCard from "./PrintConfigCard";
+import SettingsHeader from "./SettingsHeader";
+import StatusChip from "./StatusChip";
+import RowActions from "./RowActions";
 
 // Column list for the Upload Dialog (A–ZZ covers all practical cases)
 function _idxToCol(n) {
@@ -141,11 +144,10 @@ const TemplateTab = () => {
       headerName: "Trạng Thái",
       width: 120,
       renderCell: (params) => (
-        <Chip
-          label={params.value === "active" ? "Active" : "Missing"}
-          size="small"
-          color={params.value === "active" ? "success" : "warning"}
-          variant="outlined"
+        <StatusChip
+          active={params.value === "active"}
+          activeLabel="Active"
+          inactiveLabel="Missing"
         />
       ),
     },
@@ -154,6 +156,19 @@ const TemplateTab = () => {
       headerName: "Kích Thước",
       width: 120,
       valueGetter: (params) => formatFileSize(params?.row?.file_size),
+    },
+    {
+      field: "actions",
+      headerName: "Thao tác",
+      width: 120,
+      sortable: false,
+      renderCell: (params) => (
+        <RowActions
+          onEdit={() => handleSelectTemplate(params.row)}
+          editTooltip="Xem chi tiết"
+          onDelete={null} // Delete is handled inside the drawer for this tab
+        />
+      ),
     },
   ];
 
@@ -269,73 +284,73 @@ const TemplateTab = () => {
     showSnackbar(result.message, "success");
   };
 
+  const [searchValue, setSearchValue] = useState("");
+
+  const filteredRows = rows.filter(row =>
+    !searchValue ||
+    row.template_name?.toLowerCase().includes(searchValue.toLowerCase()) ||
+    row.module?.toLowerCase().includes(searchValue.toLowerCase())
+  );
+
   return (
-    <Box sx={{ p: 3, height: "100%", overflow: "hidden" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, height: "100%", overflow: "hidden" }}>
       <Paper
+        elevation={0}
         sx={{
-          borderRadius: 2,
-          height: "100%",
+          flex: 1,
           display: "flex",
           flexDirection: "column",
+          overflow: "hidden",
+          borderRadius: "16px",
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "white",
+          p: "16px 20px",
+          gap: "8px"
         }}
       >
-        <Box
-          sx={{
-            p: 2,
-            borderBottom: 1,
-            borderColor: "divider",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Excel Templates
-          </Typography>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshOutlinedIcon />}
-              onClick={handleRefreshClick}
-              disabled={loading}
-            >
-              Làm Mới
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<UploadOutlinedIcon />}
-              onClick={handleUploadClick}
-              disabled={loading}
-            >
-              Upload
-            </Button>
-          </Box>
+        <Box sx={{ pb: 1 }}>
+          <SettingsHeader 
+            onRefresh={handleRefreshClick}
+            isRefreshing={loading}
+            primaryAction={{
+              label: "Upload",
+              icon: <UploadOutlinedIcon />,
+              onClick: handleUploadClick,
+              disabled: loading,
+              variant: "contained"
+            }}
+            searchValue={searchValue}
+            onSearchChange={(e) => setSearchValue(e.target.value)}
+            searchPlaceholder="Tìm kiếm template..."
+            rowCountText={`${filteredRows.length} template`}
+          />
         </Box>
+        
         <Box sx={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
           <DataGrid
             density="compact"
-            rows={rows}
-            columns={columns}
-            loading={loading}
-            onRowClick={(params) => handleSelectTemplate(params.row)}
-            onRowDoubleClick={(params) => handleSelectTemplate(params.row)}
-            initialState={{
-              pagination: {
-                paginationModel: { page: 0, pageSize: 20 },
-              },
-            }}
-            pageSizeOptions={[10, 20, 50, 100]}
-            getRowId={(row) => row.id}
-            slots={{
-              toolbar: GridToolbar,
-            }}
-            slotProps={{
-              toolbar: {
-                showQuickFilter: true,
-              },
-            }}
-            sx={sharedDataGridSx}
-          />
+            rows={filteredRows}
+          columns={columns}
+          loading={loading}
+          onRowClick={(params) => handleSelectTemplate(params.row)}
+          onRowDoubleClick={(params) => handleSelectTemplate(params.row)}
+          initialState={{
+            pagination: {
+              paginationModel: { page: 0, pageSize: 20 },
+            },
+          }}
+          pageSizeOptions={[10, 20, 50, 100]}
+          getRowId={(row) => row.id}
+          sx={{
+            ...sharedDataGridSx,
+            border: 0,
+            bgcolor: 'white',
+            '& .MuiDataGrid-columnHeaders': {
+              bgcolor: 'action.hover',
+            }
+          }}
+        />
         </Box>
       </Paper>
 

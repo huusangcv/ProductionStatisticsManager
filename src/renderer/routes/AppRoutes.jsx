@@ -40,6 +40,17 @@ function PublicRoute({ children }) {
   return children;
 }
 
+/** Route guard: ADMIN-only. Non-admin users are redirected to /dashboard. */
+function AdminRoute({ children }) {
+  const { isAdmin } = useAuth();
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -63,19 +74,21 @@ function AppRoutes() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="grinding" element={<GrindingPage />} />
         <Route path="cutting" element={<CuttingPage />} />
-        <Route path="import-history" element={<ImportHistoryPage />} />
-        <Route path="employees" element={<EmployeesPage />} />
-        <Route path="roles" element={<RolesPage />} />
-        <Route path="positions" element={<PositionsPage />} />
-        <Route path="detail-joint" element={<DetailJointPage />} />
-        <Route path="prices" element={<PricesPage />} />
         <Route path="overtime" element={<OvertimePage />} />
         <Route path="personal-production" element={<PersonalProductionPage />} />
         <Route path="reports" element={<ReportsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
         <Route path="heat-treatment" element={<HeatTreatmentPage />} />
         <Route path="casting-defect" element={<CastingDefectPage />} />
         <Route path="attendance" element={<AttendancePage />} />
+
+        {/* ADMIN-only routes */}
+        <Route path="import-history" element={<AdminRoute><ImportHistoryPage /></AdminRoute>} />
+        <Route path="employees" element={<AdminRoute><EmployeesPage /></AdminRoute>} />
+        <Route path="roles" element={<AdminRoute><RolesPage /></AdminRoute>} />
+        <Route path="positions" element={<AdminRoute><PositionsPage /></AdminRoute>} />
+        <Route path="detail-joint" element={<AdminRoute><DetailJointPage /></AdminRoute>} />
+        <Route path="prices" element={<AdminRoute><PricesPage /></AdminRoute>} />
+        <Route path="settings" element={<AdminRoute><SettingsPage /></AdminRoute>} />
       </Route>
     </Routes>
   );

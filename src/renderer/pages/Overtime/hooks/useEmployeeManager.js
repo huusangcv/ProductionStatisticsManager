@@ -70,17 +70,21 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
         emp.status !== 'Nghỉ việc' && presentEmployeeIds.has(String(emp.id))
       );
 
-      // Dedup: nhân viên đa vai trò (cùng representative_code) chỉ hiển thị 1 lần
+      // Dedup: nhân viên đa vai trò (cùng mã số nhân viên) chỉ hiển thị 1 lần
       // Ưu tiên bản ghi có id nhỏ nhất (thêm trước = vai trò chính)
-      const seenRepCodes = new Map();
+      const seenEmpCodes = new Map();
       for (const emp of activeEmployees) {
-        const repCode = String(emp.representative_code || emp.id);
-        const existing = seenRepCodes.get(repCode);
+        // Use employee_code for deduplication
+        const empCode = (emp.employee_code && String(emp.employee_code).trim() !== '') 
+          ? String(emp.employee_code).trim().toLowerCase() 
+          : `id_${emp.id}`;
+        
+        const existing = seenEmpCodes.get(empCode);
         if (!existing || emp.id < existing.id) {
-          seenRepCodes.set(repCode, emp);
+          seenEmpCodes.set(empCode, emp);
         }
       }
-      const dedupedEmployees = Array.from(seenRepCodes.values());
+      const dedupedEmployees = Array.from(seenEmpCodes.values());
 
       const mappedEmployees = dedupedEmployees.map(emp => {
         const rawCode = String(emp.employee_code || emp.id || '');
@@ -348,8 +352,7 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
 
     if (!editingId) {
       if (employees.find(e => e.id.toLowerCase() === trimId.toLowerCase())) {
-        showToast('Mã NV đã tồn tại', 'error');
-        return;
+        showToast('Mã NV đã tồn tại', 'warning');
       }
       try {
         if (window.electronAPI?.employees?.create) {
@@ -380,8 +383,7 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
       }
     } else {
       if (trimId !== editingId && employees.find(e => e.id.toLowerCase() === trimId.toLowerCase())) {
-        showToast('Mã NV đã tồn tại', 'error');
-        return;
+        showToast('Mã NV đã tồn tại', 'warning');
       }
       const existing = employees.find(e => e.id === editingId);
       try {

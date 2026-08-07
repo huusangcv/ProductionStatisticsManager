@@ -50,16 +50,27 @@ const UpdateTab = () => {
   };
 
   return (
-    <Box sx={{ p: 3, height: "100%", overflow: "auto" }}>
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Paper sx={{ borderRadius: 2, p: 3 }}>
-            <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-              <UpdateOutlinedIcon sx={{ mr: 1, color: "primary.main" }} />
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Cập nhật phần mềm
-              </Typography>
-            </Box>
+    <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, height: "100%", overflow: "hidden" }}>
+      <Paper
+        elevation={0}
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "auto",
+          borderRadius: "16px",
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "white",
+          p: "20px 24px",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+          <UpdateOutlinedIcon sx={{ mr: 1, color: "primary.main" }} />
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Cập nhật phần mềm
+          </Typography>
+        </Box>
             
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
@@ -150,9 +161,7 @@ const UpdateTab = () => {
                 Lỗi cập nhật: {updateError}
               </Typography>
             )}
-          </Paper>
-        </Grid>
-      </Grid>
+      </Paper>
     </Box>
   );
 };

@@ -10,6 +10,12 @@ const {
   validateLogin,
   getAccount,
   updateAccount,
+  getAllAccounts,
+  getAccountById,
+  createAccount,
+  updatePassword,
+  updateRole: updateAccountRole,
+  deleteAccount,
 } = require("./sqlite/account");
 const { getRecentUpdateLogs } = require("./sqlite/updateLogs");
 const {
@@ -671,6 +677,7 @@ function registerIpcHandlers() {
 
   // --- Auth handlers ---
   ipcMain.handle("auth:login", (_event, { username, password }) => {
+    // Returns { ok, id, username, role } on success
     return validateLogin(username, password);
   });
 
@@ -680,6 +687,27 @@ function registerIpcHandlers() {
 
   ipcMain.handle("auth:updateAccount", (_event, { username, password }) => {
     return updateAccount({ username, password });
+  });
+
+  // --- Account management (ADMIN only) ---
+  ipcMain.handle("auth:getAccounts", () => {
+    return getAllAccounts();
+  });
+
+  ipcMain.handle("auth:createAccount", (_event, data) => {
+    return createAccount(data);
+  });
+
+  ipcMain.handle("auth:updatePassword", (_event, { id, password }) => {
+    return updatePassword(id, password);
+  });
+
+  ipcMain.handle("auth:updateRole", (_event, { id, role }) => {
+    return updateAccountRole(id, role);
+  });
+
+  ipcMain.handle("auth:deleteAccount", (_event, id) => {
+    return deleteAccount(id);
   });
 
   // --- Employee handlers ---
@@ -702,6 +730,7 @@ function registerIpcHandlers() {
     updateEmployee(id, data),
   );
   ipcMain.handle("employee:delete", (_event, id) => deleteEmployee(id));
+
 
   ipcMain.handle("employee:importExcel", async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);

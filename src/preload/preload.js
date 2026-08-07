@@ -9,6 +9,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     login: (credentials) => ipcRenderer.invoke("auth:login", credentials),
     getAccount: () => ipcRenderer.invoke("auth:getAccount"),
     updateAccount: (data) => ipcRenderer.invoke("auth:updateAccount", data),
+    // Multi-account management
+    getAccounts: () => ipcRenderer.invoke("auth:getAccounts"),
+    createAccount: (data) => ipcRenderer.invoke("auth:createAccount", data),
+    updatePassword: (id, password) => ipcRenderer.invoke("auth:updatePassword", { id, password }),
+    updateRole: (id, role) => ipcRenderer.invoke("auth:updateRole", { id, role }),
+    deleteAccount: (id) => ipcRenderer.invoke("auth:deleteAccount", id),
   },
   dashboard: {
     getKPIs: (params) => ipcRenderer.invoke("dashboard:getKPIs", params),

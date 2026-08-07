@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -20,6 +21,7 @@ import {
 import adminAvatar from "../assets/admin-avatar.svg";
 import AboutDialog from "./AboutDialog";
 import SettingsDialog from "./SettingsDialog";
+import { useAuth } from "../context/AuthContext";
 
 const menuItemSx = {
   display: "flex",
@@ -35,10 +37,16 @@ const menuItemSx = {
 
 function AdminMenu() {
   const anchorRef = useRef(null);
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+
+  const { currentAccount, logout, isAdmin } = useAuth();
+  const displayName = currentAccount?.username ?? "Admin";
+  const roleLabel = isAdmin ? "Quản trị viên" : "Thống kê";
 
   const handleMenuOpen = () => setMenuOpen(true);
   const handleMenuClose = () => setMenuOpen(false);
@@ -56,6 +64,17 @@ function AdminMenu() {
   const handleExitClick = () => {
     handleMenuClose();
     setExitConfirmOpen(true);
+  };
+
+  const handleLogoutClick = () => {
+    handleMenuClose();
+    setLogoutConfirmOpen(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    setLogoutConfirmOpen(false);
+    await logout();
+    navigate("/login", { replace: true });
   };
 
   const handleConfirmExit = () => {
@@ -79,7 +98,7 @@ function AdminMenu() {
           "&:hover": { bgcolor: "#f8fafc" },
         }}
       >
-        <Avatar src={adminAvatar} alt="Admin" sx={{ width: 36, height: 36 }} />
+        <Avatar src={adminAvatar} alt={displayName} sx={{ width: 36, height: 36 }} />
         <Stack spacing={0}>
           <Typography
             variant="body2"
@@ -89,10 +108,10 @@ function AdminMenu() {
               lineHeight: 1.2,
             }}
           >
-            Admin
+            {displayName}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Quản trị viên
+            {roleLabel}
           </Typography>
         </Stack>
         <IconButton
@@ -144,6 +163,13 @@ function AdminMenu() {
 
         <Divider sx={{ my: "6px" }} />
 
+        <MenuItem onClick={handleLogoutClick} sx={menuItemSx}>
+          <LogoutOutlinedIcon sx={{ fontSize: 20, color: "text.secondary" }} />
+          <Typography variant="body2">Đăng xuất</Typography>
+        </MenuItem>
+
+        <Divider sx={{ my: "6px" }} />
+
         <MenuItem onClick={handleExitClick} sx={menuItemSx}>
           <LogoutOutlinedIcon sx={{ fontSize: 20, color: "text.secondary" }} />
           <Typography variant="body2">Thoát chương trình</Typography>
@@ -182,6 +208,36 @@ function AdminMenu() {
           </Button>
           <Button onClick={handleConfirmExit} variant="contained" color="error">
             Thoát
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Logout Confirm Dialog */}
+      <Dialog
+        open={logoutConfirmOpen}
+        onClose={() => setLogoutConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+          Đăng xuất
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Bạn có chắc muốn đăng xuất khỏi tài khoản <b>{displayName}</b>?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button
+            onClick={() => setLogoutConfirmOpen(false)}
+            variant="text"
+            color="inherit"
+          >
+            Huỷ
+          </Button>
+          <Button onClick={handleConfirmLogout} variant="contained" color="primary">
+            Đăng xuất
           </Button>
         </DialogActions>
       </Dialog>

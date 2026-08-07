@@ -14,7 +14,7 @@ function ensureEmployeesTable() {
     db.exec(`
       CREATE TABLE IF NOT EXISTS employees (
         id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_code       TEXT    UNIQUE NOT NULL,
+        employee_code       TEXT    NOT NULL,
         representative_code TEXT    NOT NULL,
         full_name           TEXT    NOT NULL,
         role_id             INTEGER NOT NULL,
@@ -42,6 +42,9 @@ function ensureEmployeesTable() {
 
     // Migration: Change representative_code UNIQUE to UNIQUE(role_id, representative_code)
     migrateRemoveUniqueRepresentativeCode(db);
+
+    // Migration: Remove UNIQUE constraint from employee_code
+    migrateRemoveUniqueEmployeeCode(db);
 
   } finally {
     db.close();
@@ -78,7 +81,7 @@ function migrateRemoveUniqueRepresentativeCode(db) {
       db.exec(`
         CREATE TABLE employees (
           id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-          employee_code       TEXT    UNIQUE NOT NULL,
+          employee_code       TEXT    NOT NULL,
           representative_code TEXT    NOT NULL,
           full_name           TEXT    NOT NULL,
           role_id             INTEGER NOT NULL,
@@ -103,6 +106,48 @@ function migrateRemoveUniqueRepresentativeCode(db) {
       // Use INSERT OR IGNORE to prevent unique constraint violations from crashing the migration
       db.exec(`INSERT OR IGNORE INTO employees (${columns}) SELECT ${columns} FROM employees_unique_old`);
       db.exec("DROP TABLE employees_unique_old");
+    })();
+  }
+}
+
+function migrateRemoveUniqueEmployeeCode(db) {
+  const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='employees'").get();
+  
+  if (tableInfo && (tableInfo.sql.includes("employee_code       TEXT    UNIQUE") || tableInfo.sql.includes("employee_code TEXT    UNIQUE") || tableInfo.sql.includes("employee_code TEXT UNIQUE") || tableInfo.sql.includes("UNIQUE(employee_code)") || tableInfo.sql.includes("UNIQUE (employee_code)"))) {
+    db.transaction(() => {
+      // Create backup of old table
+      db.exec("ALTER TABLE employees RENAME TO employees_unique_empcode_old");
+
+      // Create new table without unique index on employee_code
+      db.exec(`
+        CREATE TABLE employees (
+          id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+          employee_code       TEXT    NOT NULL,
+          representative_code TEXT    NOT NULL,
+          full_name           TEXT    NOT NULL,
+          role_id             INTEGER NOT NULL,
+          position_id         INTEGER NOT NULL,
+          phone               TEXT,
+          status              TEXT    DEFAULT 'Đang làm việc',
+          hire_date           TEXT,
+          note                TEXT,
+          created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+          updated_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY (role_id) REFERENCES roles(id),
+          FOREIGN KEY (position_id) REFERENCES positions(id),
+          UNIQUE(role_id, representative_code)
+        )
+      `);
+
+      const columns = [
+        "id", "employee_code", "representative_code", "full_name",
+        "role_id", "position_id", "phone", "status",
+        "hire_date", "note", "created_at", "updated_at"
+      ].join(", ");
+
+      // Use INSERT OR IGNORE to prevent unique constraint violations from crashing the migration
+      db.exec(`INSERT OR IGNORE INTO employees (${columns}) SELECT ${columns} FROM employees_unique_empcode_old`);
+      db.exec("DROP TABLE employees_unique_empcode_old");
     })();
   }
 }
@@ -776,16 +821,6 @@ function createEmployee({
 
     return { ok: true, id: result.lastInsertRowid };
   } catch (error) {
-    if (
-      error.message.includes(
-        "UNIQUE constraint failed: employees.employee_code",
-      )
-    ) {
-      return {
-        ok: false,
-        message: `Mã nhân viên "${employee_code}" đã tồn tại.`,
-      };
-    }
     if (
       error.message.includes(
         "UNIQUE constraint failed: employees.role_id, employees.representative_code",

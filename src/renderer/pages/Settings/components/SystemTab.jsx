@@ -32,15 +32,26 @@ const SystemTab = () => {
   };
 
   return (
-    <Box sx={{ p: 3, height: "100%", overflow: "hidden" }}>
-      <Grid container spacing={3} sx={{ height: "100%" }}>
-        <Grid item xs={12}>
-          <Paper sx={{ borderRadius: 2, p: 3 }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-              Application Information
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={4}>
+    <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, height: "100%", overflow: "hidden" }}>
+      <Paper
+        elevation={0}
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "auto",
+          borderRadius: "16px",
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "white",
+          p: "20px 24px", // slightly larger padding for info content
+        }}
+      >
+        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+          Application Information
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6} md={4}>
                 <InfoItem label="Version" value={version ? `v${version}` : "—"} />
               </Grid>
               {folders.map((folder, idx) => (
@@ -90,9 +101,7 @@ const SystemTab = () => {
                 Restore Database
               </Button>
             </Box>
-          </Paper>
-        </Grid>
-      </Grid>
+      </Paper>
     </Box>
   );
 };

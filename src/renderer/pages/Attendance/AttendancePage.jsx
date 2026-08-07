@@ -7,13 +7,13 @@ import attendanceService from "../../services/attendanceService";
 import { useAuth } from "../../context/AuthContext";
 
 export default function AttendancePage() {
-  const { currentUser } = useAuth();
+  const { isAdmin } = useAuth();
 
-  // Permission check: Only Admin and Thong Ke can edit. (Assuming usernames are admin or thongke)
-  const isReadOnly = useMemo(() => {
-    const user = (currentUser || "").toLowerCase();
-    return !(user === "admin" || user === "thongke" || user === "thống kê");
-  }, [currentUser]);
+  // Only ADMIN can edit attendance
+  const isReadOnly = !isAdmin;
+
+  const [roles, setRoles] = useState([]);
+  const [roleMap, setRoleMap] = useState({});
 
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -42,6 +42,18 @@ export default function AttendancePage() {
       setLoading(false);
     }
   }, [filterDate, showSnackbar]);
+
+  // Load roles once for display mapping
+  useEffect(() => {
+    window.electronAPI.roles.getAll().then((data) => {
+      if (Array.isArray(data)) {
+        setRoles(data);
+        const map = {};
+        data.forEach((r) => { map[r.code] = r.name; });
+        setRoleMap(map);
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -128,6 +140,7 @@ export default function AttendancePage() {
             onStatusChange={handleStatusChange}
             onNoteChange={handleNoteChange}
             readOnly={isReadOnly}
+            roleMap={roleMap}
           />
         </Box>
       </Card>

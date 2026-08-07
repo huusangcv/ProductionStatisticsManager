@@ -323,7 +323,15 @@ export default function CastingDefectPage() {
             borderBottom: "1px solid #eef2f8",
           }}
         >
-
+          {/* ── Thống kê phế ── */}
+          <Box sx={{ display: "flex", gap: 3, alignItems: "center" }}>
+            <Typography sx={{ fontSize: "14px", fontWeight: 600, color: "#1e293b" }}>
+              Tổng số phế: <span style={{ color: "#dc2626" }}>{refSummary.totalScrap}</span>
+            </Typography>
+            <Typography sx={{ fontSize: "14px", fontWeight: 600, color: "#1e293b" }}>
+              Số phế thực tế: <span style={{ color: inputTotal !== refSummary.totalScrap ? "#dc2626" : "#16a34a" }}>{inputTotal}</span>
+            </Typography>
+          </Box>
 
           {/* Spacer */}
           <Box sx={{ flex: 1 }} />

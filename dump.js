@@ -1,17 +1,6 @@
-const ExcelJS = require('exceljs');
-const path = require('path');
-
-async function dump() {
-  const wb = new ExcelJS.Workbook();
-  const templatePath = path.join(__dirname, 'src', 'excels', 'h√†ng xln -.xlsx');
-  await wb.xlsx.readFile(templatePath);
-  const ws = wb.worksheets[0];
-  for(let i=1; i<=7; i++) {
-    let row = [];
-    ws.getRow(i).eachCell({includeEmpty: true}, cell => {
-       row.push(cell.address + ':' + String(cell.value || '').replace(/\r?\n|\r/g, ' '));
-    });
-    console.log(`Row ${i}:`, row.join(' | '));
-  }
-}
-dump();
+const fs = require('fs');
+const db = require('better-sqlite3')('D:/ProductionStatisticsManager/database/production.db');
+const rows = db.prepare(SELECT full_name, representative_code FROM employees WHERE status = '–ang l‡m vi?c' ORDER BY representative_code).all();
+const out = rows.map(r => r.representative_code + ' : ' + r.full_name).join('\n');
+fs.writeFileSync('D:/MyProjects/ProductionStatisticsManager/employees_dump.txt', out);
+process.exit(0);

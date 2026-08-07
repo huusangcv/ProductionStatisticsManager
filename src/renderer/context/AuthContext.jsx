@@ -2,25 +2,37 @@ import { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext(null);
 
+/**
+ * Parses stored currentAccount from localStorage safely.
+ */
+function loadCurrentAccount() {
+  try {
+    const raw = localStorage.getItem("currentAccount");
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentAccount, setCurrentAccount] = useState(loadCurrentAccount);
+
   const [savedUsername, setSavedUsername] = useState(() => {
     return localStorage.getItem("savedUsername") || "";
   });
 
-  const [currentUser, setCurrentUser] = useState(() => {
-    return localStorage.getItem("currentUser") || "";
-  });
-
   const login = async (username, password, rememberMe) => {
     try {
-      // Call IPC handler exposed via preload.js
+      // IPC returns { ok, id, username, role } on success
       const result = await window.electronAPI.auth.login({ username, password });
-      
+
       if (result.ok) {
+        const account = { id: result.id, username: result.username, role: result.role };
         setIsAuthenticated(true);
-        setCurrentUser(username);
-        localStorage.setItem("currentUser", username);
+        setCurrentAccount(account);
+        localStorage.setItem("currentAccount", JSON.stringify(account));
 
         if (rememberMe) {
           localStorage.setItem("savedUsername", username);
@@ -29,10 +41,12 @@ export function AuthProvider({ children }) {
           localStorage.removeItem("savedUsername");
           setSavedUsername("");
         }
+
         // Auto check for update silently in background after login
         setTimeout(() => {
           window.electronAPI?.update?.check?.().catch(() => {});
         }, 3000);
+
         return { success: true };
       } else {
         return { success: false, message: result.message };
@@ -44,13 +58,28 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     setIsAuthenticated(false);
-    setCurrentUser("");
-    localStorage.removeItem("currentUser");
+    setCurrentAccount(null);
+    localStorage.removeItem("currentAccount");
     await window.electronAPI?.window?.setLoginMode?.();
   };
 
+  /** Convenience: true if current user is ADMIN */
+  const isAdmin = currentAccount?.role === "ADMIN";
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, savedUsername, currentUser }}>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        login,
+        logout,
+        savedUsername,
+        // Legacy: keep currentUser as username string for backward compat
+        currentUser: currentAccount?.username ?? "",
+        // New: full account object
+        currentAccount,
+        isAdmin,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

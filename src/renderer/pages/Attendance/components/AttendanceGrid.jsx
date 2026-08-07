@@ -28,7 +28,7 @@ const dataGridSx = {
   },
 };
 
-export default function AttendanceGrid({ records, onStatusChange, onNoteChange, loading, readOnly }) {
+export default function AttendanceGrid({ records, onStatusChange, onNoteChange, loading, readOnly, roleMap = {} }) {
   
   const columns = [
     { field: "stt", headerName: "STT", width: 60, align: "center", headerAlign: "center",
@@ -36,7 +36,15 @@ export default function AttendanceGrid({ records, onStatusChange, onNoteChange, 
     },
     { field: "employee_code", headerName: "Mã NV", width: 100 },
     { field: "employee_name", headerName: "Tên nhân viên", width: 220 },
-    { field: "role_code", headerName: "Vai trò", width: 120 },
+    {
+      field: "role_code",
+      headerName: "Vai trò",
+      width: 120,
+      renderCell: (params) => {
+        // Use dynamic roleMap from roles table, fallback to raw code
+        return roleMap[params.value] ?? params.value ?? "—";
+      },
+    },
     { field: "representative_code", headerName: "Mã đại diện", width: 120 },
     {
       field: "status",

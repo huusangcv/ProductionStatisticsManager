@@ -14,14 +14,14 @@ import {
   Switch,
   Snackbar,
   Alert,
-  IconButton,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { sharedDataGridSx } from "../../../constants/dataGridStyles";
 import { useTemplateTypes } from "../../../hooks/useTemplateTypes";
+import SettingsHeader from "./SettingsHeader";
+import StatusChip from "./StatusChip";
+import RowActions from "./RowActions";
 
 const TemplateTypeTab = () => {
   const { types, loading, createType, updateType, deleteType } = useTemplateTypes();
@@ -126,10 +126,10 @@ const TemplateTypeTab = () => {
       headerName: "Trạng thái",
       width: 120,
       renderCell: (params) => (
-        <Chip
-          label={params.value ? "Hoạt động" : "Tạm dừng"}
-          color={params.value ? "success" : "default"}
-          size="small"
+        <StatusChip
+          active={params.value === 1}
+          activeLabel="Hoạt động"
+          inactiveLabel="Tạm dừng"
         />
       ),
     },
@@ -139,46 +139,72 @@ const TemplateTypeTab = () => {
       width: 120,
       sortable: false,
       renderCell: (params) => (
-        <Box>
-          <IconButton size="small" color="primary" onClick={() => handleOpenDialog(params.row)}>
-            <EditOutlinedIcon fontSize="small" />
-          </IconButton>
-          <IconButton size="small" color="error" onClick={() => handleDelete(params.row.id)}>
-            <DeleteOutlinedIcon fontSize="small" />
-          </IconButton>
-        </Box>
+        <RowActions
+          onEdit={() => handleOpenDialog(params.row)}
+          onDelete={() => handleDelete(params.row.id)}
+        />
       ),
     },
   ];
 
-  return (
-    <Box sx={{ p: 4, height: "100%", display: "flex", flexDirection: "column", gap: 2 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Typography variant="h6" fontWeight="bold">
-          Quản Lý Loại Template Excel
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddOutlinedIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Thêm Loại Mới
-        </Button>
-      </Box>
+  const [searchValue, setSearchValue] = useState("");
 
-      <Paper sx={{ flex: 1, overflow: "hidden" }}>
-        <DataGrid
-          density="compact"
-          rows={types}
-          columns={columns}
-          loading={loading}
-          hideFooterSelectedRowCount
-          rowHeight={50}
-          sx={{
-            ...sharedDataGridSx,
-            border: 0,
-          }}
-        />
+  const filteredTypes = types.filter(type =>
+    !searchValue ||
+    type.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
+    type.code?.toLowerCase().includes(searchValue.toLowerCase())
+  );
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, height: "100%", overflow: "hidden" }}>
+      <Paper
+        elevation={0}
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          borderRadius: "16px",
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "white",
+          p: "16px 20px",
+          gap: "8px"
+        }}
+      >
+        <Box sx={{ pb: 1 }}>
+          <SettingsHeader 
+            primaryAction={{
+              label: "Thêm Loại Mới",
+              icon: <AddOutlinedIcon />,
+              onClick: () => handleOpenDialog(),
+              variant: "contained"
+            }}
+            searchValue={searchValue}
+            onSearchChange={(e) => setSearchValue(e.target.value)}
+            searchPlaceholder="Tìm kiếm loại template..."
+            rowCountText={`${filteredTypes.length} loại template`}
+          />
+        </Box>
+
+        <Box sx={{ flex: 1, overflow: "hidden" }}>
+          <DataGrid
+            density="compact"
+            rows={filteredTypes}
+            columns={columns}
+            loading={loading}
+            hideFooterSelectedRowCount
+            rowHeight={50}
+            sx={{
+              ...sharedDataGridSx,
+              border: 0,
+              bgcolor: 'white',
+              '& .MuiDataGrid-columnHeaders': {
+                bgcolor: 'action.hover',
+              }
+            }}
+          />
+        </Box>
       </Paper>
 
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>

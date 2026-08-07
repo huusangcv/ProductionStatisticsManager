@@ -16,6 +16,7 @@ export const navigationItems = [
   {
     label: "Danh mục",
     icon: "Employees",
+    adminOnly: true,
     children: [
       { label: "Nhân viên", path: "/employees" },
       { label: "Vai trò", path: "/roles" },
@@ -24,13 +25,6 @@ export const navigationItems = [
       { label: "Đơn giá gia công", path: "/prices" },
     ],
   },
-  { label: "Lịch sử Import", path: "/import-history", icon: "History" },
-  // {
-  //   label: "Báo cáo",
-  //   icon: "Reports",
-  //   children: [
-  //     { label: "Tổng hợp", path: "/reports" },
-  //   ]
-  // },
-  { label: "Cài đặt", path: "/settings", icon: "Settings" },
+  { label: "Lịch sử Import", path: "/import-history", icon: "History", adminOnly: true },
+  { label: "Cài đặt", path: "/settings", icon: "Settings", adminOnly: true },
 ];

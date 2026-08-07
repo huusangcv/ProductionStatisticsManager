@@ -1,26 +1,27 @@
 import { useState } from "react";
-import { Box, Typography, Tabs, Tab, Paper } from "@mui/material";
+import { Box, Tabs, Tab } from "@mui/material";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
+import UpdateOutlinedIcon from "@mui/icons-material/UpdateOutlined";
+import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import SystemTab from "./components/SystemTab";
-import PrinterTab from "./components/PrinterTab";
 import TemplateTab from "./components/TemplateTab";
 import TemplateTypeTab from "./components/TemplateTypeTab";
 import UpdateTab from "./components/UpdateTab";
-import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
-import UpdateOutlinedIcon from "@mui/icons-material/UpdateOutlined";
+import AccountTab from "./components/AccountTab";
+import { useAuth } from "../../context/AuthContext";
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState(0);
+  const { isAdmin } = useAuth();
 
-  const tabs = [
+  const allTabs = [
     {
       label: "Hệ thống",
       icon: <SettingsOutlinedIcon />,
       component: <SystemTab />,
     },
-    // { label: "Máy in", icon: <PrintOutlinedIcon />, component: <PrinterTab /> },
     {
       label: "Excel Templates",
       icon: <DescriptionOutlinedIcon />,
@@ -35,8 +36,17 @@ const SettingsPage = () => {
       label: "Cập nhật",
       icon: <UpdateOutlinedIcon />,
       component: <UpdateTab />,
-    }
+    },
+    // ADMIN only
+    ...(isAdmin ? [{
+      label: "Tài khoản",
+      icon: <ManageAccountsOutlinedIcon />,
+      component: <AccountTab />,
+    }] : []),
   ];
+
+  // Reset to first tab if activeTab is out of range (e.g., after role change)
+  const safeActiveTab = Math.min(activeTab, allTabs.length - 1);
 
   return (
     <Box
@@ -48,7 +58,7 @@ const SettingsPage = () => {
       }}
     >
       <Tabs
-        value={activeTab}
+        value={safeActiveTab}
         onChange={(_, newValue) => setActiveTab(newValue)}
         sx={{
           px: 4,
@@ -58,10 +68,15 @@ const SettingsPage = () => {
             textTransform: "none",
             fontWeight: 500,
             minHeight: 56,
+            color: "#64748b",
+          },
+          "& .Mui-selected": {
+            fontWeight: 600,
+            color: "#2f6fed",
           },
         }}
       >
-        {tabs.map((tab, idx) => (
+        {allTabs.map((tab, idx) => (
           <Tab
             key={idx}
             label={tab.label}
@@ -72,7 +87,7 @@ const SettingsPage = () => {
       </Tabs>
 
       <Box sx={{ flex: 1, overflow: "hidden" }}>
-        {tabs[activeTab].component}
+        {allTabs[safeActiveTab].component}
       </Box>
     </Box>
   );

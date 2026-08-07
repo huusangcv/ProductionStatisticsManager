@@ -1,0 +1,170 @@
+###############################################################################
+# ProductionStatisticsManager - GitNexus Ignore
+# Only index source code.
+###############################################################################
+
+#########################################
+# Node / Package Manager
+#########################################
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+.yarn-cache/
+
+#########################################
+# Build
+#########################################
+dist/
+build/
+release/
+out/
+coverage/
+.vite/
+.cache/
+
+#########################################
+# Electron
+#########################################
+electron-builder-cache/
+*.blockmap
+*.exe
+*.msi
+*.dmg
+*.AppImage
+*.deb
+
+#########################################
+# Git
+#########################################
+.git/
+.gitmodules/
+.gitignore
+
+#########################################
+# IDE
+#########################################
+.vscode/
+.idea/
+.history/
+
+#########################################
+# Logs
+#########################################
+logs/
+log/
+*.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+#########################################
+# Runtime Temp
+#########################################
+temp/
+tmp/
+cache/
+runtime/
+sessions/
+
+#########################################
+# SQLite
+#########################################
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+database/
+backup/
+backups/
+
+#########################################
+# Excel
+#########################################
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+
+exports/
+imports/
+templates/generated/
+
+#########################################
+# Documents
+#########################################
+*.pdf
+*.doc
+*.docx
+*.ppt
+*.pptx
+*.zip
+*.rar
+*.7z
+
+#########################################
+# Images (Generated)
+#########################################
+screenshots/
+captures/
+preview/
+generated/
+
+#########################################
+# Electron Resources
+#########################################
+resources/build/
+resources/generated/
+resources/cache/
+
+#########################################
+# Update
+#########################################
+latest.yml
+*.blockmap
+
+#########################################
+# Environment
+#########################################
+.env
+.env.*
+!.env.example
+
+#########################################
+# UniversJS Cache
+#########################################
+.univer/
+univer-cache/
+
+#########################################
+# Production Output
+#########################################
+ProductionStatisticsManager.exe
+ProductionStatisticsManager-Portable.exe
+
+#########################################
+# Ignore very large assets
+#########################################
+*.mp4
+*.avi
+*.mov
+*.iso
+*.bak
+
+###############################################################################
+# KEEP THESE (DO NOT IGNORE)
+###############################################################################
+!src/**
+!public/**
+!resources/icon.png
+!package.json
+!package-lock.json
+!vite.config.js
+!electron-builder.yml
+!README.md
+!AGENTS.md
+!skills/**
+!docs/**
+!CLAUDE.md

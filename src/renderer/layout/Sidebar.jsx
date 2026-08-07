@@ -20,6 +20,7 @@ import ExpandMoreRoundedIcon         from "@mui/icons-material/ExpandMoreRounded
 import ReportProblemRoundedIcon      from "@mui/icons-material/ReportProblemRounded";
 
 import { navigationItems } from "../constants/navigation";
+import { useAuth } from "../context/AuthContext";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const SIDEBAR_EXPANDED  = 240;
@@ -273,6 +274,10 @@ function Sidebar({ desktopOpen }) {
   const collapsed = !desktopOpen;
   const theme     = useTheme();
   const sb        = theme.palette.sidebar;
+  const { isAdmin } = useAuth();
+
+  // Filter navigation items based on role
+  const visibleItems = navigationItems.filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <Box
@@ -356,7 +361,7 @@ function Sidebar({ desktopOpen }) {
           gap:           "8px",
         }}
       >
-        {navigationItems.map((item) => {
+        {visibleItems.map((item) => {
           if (item.children) {
             return <NavGroup key={item.label} item={item} collapsed={collapsed} />;
           }
