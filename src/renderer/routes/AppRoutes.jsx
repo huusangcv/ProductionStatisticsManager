@@ -17,6 +17,7 @@ import PricesPage from "../pages/Prices/PricesPage";
 import OvertimePage from "../pages/Overtime/OvertimePage";
 import PersonalProductionPage from "../pages/PersonalProduction/PersonalProductionPage";
 import AttendancePage from "../pages/Attendance/AttendancePage";
+import ProductionProgressPage from "../pages/ProductionProgress/ProductionProgressPage";
 import { useAuth } from "../context/AuthContext";
 
 function PrivateRoute({ children }) {
@@ -80,6 +81,7 @@ function AppRoutes() {
         <Route path="heat-treatment" element={<HeatTreatmentPage />} />
         <Route path="casting-defect" element={<CastingDefectPage />} />
         <Route path="attendance" element={<AttendancePage />} />
+        <Route path="production-progress" element={<ProductionProgressPage />} />
 
         {/* ADMIN-only routes */}
         <Route path="import-history" element={<AdminRoute><ImportHistoryPage /></AdminRoute>} />

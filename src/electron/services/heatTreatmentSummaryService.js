@@ -29,10 +29,10 @@ function saveExportSummary(summary) {
   let totalWeight =
     summary.totalWeight !== undefined && summary.totalWeight !== null
       ? Number(summary.totalWeight)
-      : Number((wcbWeight + otherWeight).toFixed(2));
+      : wcbWeight + otherWeight;
 
   if (isNaN(totalWeight)) {
-    totalWeight = Number((wcbWeight + otherWeight).toFixed(2));
+    totalWeight = wcbWeight + otherWeight;
   }
 
   const now = new Date();
@@ -40,9 +40,9 @@ function saveExportSummary(summary) {
     reportDate: String(summary.reportDate),
     periodYear: Number(summary.periodYear) || now.getFullYear(),
     periodMonth: Number(summary.periodMonth) || now.getMonth() + 1,
-    wcbWeight: Number(wcbWeight.toFixed(2)),
-    otherWeight: Number(otherWeight.toFixed(2)),
-    totalWeight: Number(totalWeight.toFixed(2)),
+    wcbWeight: wcbWeight,
+    otherWeight: otherWeight,
+    totalWeight: totalWeight,
     exportedFile: String(summary.exportedFile),
   };
 
@@ -96,17 +96,17 @@ function upsertByPeriod(summary) {
   let totalWeight =
     summary.totalWeight !== undefined && summary.totalWeight !== null
       ? Number(summary.totalWeight)
-      : Number((wcbWeight + otherWeight).toFixed(2));
-  if (isNaN(totalWeight)) totalWeight = Number((wcbWeight + otherWeight).toFixed(2));
+      : wcbWeight + otherWeight;
+  if (isNaN(totalWeight)) totalWeight = wcbWeight + otherWeight;
 
   const now = new Date();
   const validatedSummary = {
     reportDate: String(summary.reportDate),
     periodYear: Number(summary.periodYear) || now.getFullYear(),
     periodMonth: Number(summary.periodMonth) || now.getMonth() + 1,
-    wcbWeight: Number(wcbWeight.toFixed(2)),
-    otherWeight: Number(otherWeight.toFixed(2)),
-    totalWeight: Number(totalWeight.toFixed(2)),
+    wcbWeight: wcbWeight,
+    otherWeight: otherWeight,
+    totalWeight: totalWeight,
     exportedFile: String(summary.exportedFile),
   };
 

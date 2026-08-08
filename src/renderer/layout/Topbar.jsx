@@ -21,6 +21,10 @@ const PAGE_META = {
     title: "Sản lượng Cắt",
     subtitle: "Quản lý và thống kê sản lượng cắt từ file Excel",
   },
+  "/production-progress": {
+    title: "Tiến độ sản xuất",
+    subtitle: "Giám sát quá trình hoàn thành Lò → Cắt → Mài",
+  },
   "/heat-treatment": {
     title: "Xử lý nhiệt",
     subtitle: "Xuất báo cáo xử lý nhiệt từ dữ liệu Mài",

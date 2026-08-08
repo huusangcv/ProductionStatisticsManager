@@ -204,6 +204,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     sync: (payload) => ipcRenderer.invoke("personal-production:sync", payload),
     update: (id, data) => ipcRenderer.invoke("personal-production:update", { id, data }),
   },
+  furnace: {
+    import: (filePath) => ipcRenderer.invoke("furnace:import", filePath),
+    getProgress: () => ipcRenderer.invoke("furnace:getProgress"),
+  },
   db: {
     initialize: () => ipcRenderer.invoke("db:initialize"),
   },

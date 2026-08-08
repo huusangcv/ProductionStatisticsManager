@@ -196,13 +196,19 @@ async function generateSummaryExcel({ templatePath, outputPath, periodYear, peri
       wsRow.getCell(1).numFmt = "dd/mm/yyyy";
 
       // Column B: WCB weight
-      wsRow.getCell(2).value = wcb;
+      const cellB = wsRow.getCell(2);
+      cellB.value = wcb;
+      cellB.numFmt = '#,##0.00';
 
       // Column C: Other weight
-      wsRow.getCell(3).value = other;
+      const cellC = wsRow.getCell(3);
+      cellC.value = other;
+      cellC.numFmt = '#,##0.00';
 
       // Column D: Total weight
-      wsRow.getCell(4).value = total;
+      const cellD = wsRow.getCell(4);
+      cellD.value = total;
+      cellD.numFmt = '#,##0.00';
 
       wsRow.commit();
     }
@@ -216,9 +222,19 @@ async function generateSummaryExcel({ templatePath, outputPath, periodYear, peri
     }
 
     wsTotalRow.getCell(1).value = "Tổng tháng";
-    wsTotalRow.getCell(2).value = Number(totalWcb.toFixed(2));
-    wsTotalRow.getCell(3).value = Number(totalOther.toFixed(2));
-    wsTotalRow.getCell(4).value = Number(totalAll.toFixed(2));
+    
+    const cellT2 = wsTotalRow.getCell(2);
+    cellT2.value = totalWcb;
+    cellT2.numFmt = '#,##0.00';
+    
+    const cellT3 = wsTotalRow.getCell(3);
+    cellT3.value = totalOther;
+    cellT3.numFmt = '#,##0.00';
+    
+    const cellT4 = wsTotalRow.getCell(4);
+    cellT4.value = totalAll;
+    cellT4.numFmt = '#,##0.00';
+    
     wsTotalRow.commit();
 
     // ── Cleanup trailing ghost rows ───────────────────────────────────────────

@@ -29,9 +29,10 @@ const dataGridSx = {
 };
 
 export default function AttendanceGrid({ records, onStatusChange, onNoteChange, loading, readOnly, roleMap = {} }) {
-  
+
   const columns = [
-    { field: "stt", headerName: "STT", width: 60, align: "center", headerAlign: "center",
+    {
+      field: "stt", headerName: "STT", width: 60, align: "center", headerAlign: "center",
       renderCell: (params) => params.api.getAllRowIds().indexOf(params.id) + 1
     },
     { field: "employee_code", headerName: "Mã NV", width: 100 },
@@ -54,7 +55,7 @@ export default function AttendanceGrid({ records, onStatusChange, onNoteChange, 
         if (readOnly) {
           return <AttendanceStatusBadge status={params.value} />;
         }
-        
+
         return (
           <Select
             size="small"

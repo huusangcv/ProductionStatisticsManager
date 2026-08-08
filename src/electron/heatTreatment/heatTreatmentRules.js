@@ -200,9 +200,9 @@ function calculateSummaryWeights(rows) {
       otherWeightRaw += w;
     }
   }
-  const wcbWeight = Number(wcbWeightRaw.toFixed(2));
-  const otherWeight = Number(otherWeightRaw.toFixed(2));
-  const totalWeight = Number((wcbWeight + otherWeight).toFixed(2));
+  const wcbWeight = wcbWeightRaw;
+  const otherWeight = otherWeightRaw;
+  const totalWeight = wcbWeight + otherWeight;
   return { wcbWeight, otherWeight, totalWeight };
 }
 

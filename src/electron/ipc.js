@@ -71,6 +71,7 @@ const {
   deleteCuttingDataByDate,
   getLatestCuttingDate,
 } = require("./sqlite/cutting");
+const { importFurnaceData, getProductionProgress } = require("./sqlite/furnace");
 const {
   getDashboardKPIs,
   getTopEmployees,
@@ -1864,6 +1865,14 @@ function registerIpcHandlers() {
     const missingCount = checkMissingAttendance(date);
     return { ok: true, missingCount };
   });
+
+  // ── Furnace (Lò) & Production Progress ─────────────────────────────────────
+  ipcMain.handle("furnace:import", (_event, filePath) =>
+    importFurnaceData(filePath),
+  );
+  ipcMain.handle("furnace:getProgress", () =>
+    getProductionProgress(),
+  );
 }
 
 module.exports = { registerIpcHandlers };
