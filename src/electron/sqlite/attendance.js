@@ -96,7 +96,7 @@ function getAttendanceByDate(date) {
         AND e.id = (
           SELECT MIN(e2.id)
           FROM employees e2
-          WHERE (e.representative_code != '' AND LOWER(TRIM(e2.representative_code)) = LOWER(TRIM(e.representative_code))) OR (e.representative_code = '' AND e2.id = e.id)
+          WHERE (e.employee_code != '' AND LOWER(TRIM(e2.employee_code)) = LOWER(TRIM(e.employee_code))) OR (e.employee_code = '' AND e2.id = e.id)
             AND e2.status = 'Đang làm việc'
         )
       ORDER BY e.representative_code ASC, e.employee_code ASC
@@ -156,7 +156,7 @@ function checkMissingAttendance(date) {
         AND e.id = (
           SELECT MIN(e2.id)
           FROM employees e2
-          WHERE (e.representative_code != '' AND LOWER(TRIM(e2.representative_code)) = LOWER(TRIM(e.representative_code))) OR (e.representative_code = '' AND e2.id = e.id)
+          WHERE (e.employee_code != '' AND LOWER(TRIM(e2.employee_code)) = LOWER(TRIM(e.employee_code))) OR (e.employee_code = '' AND e2.id = e.id)
             AND e2.status = 'Đang làm việc'
         )
     `);
