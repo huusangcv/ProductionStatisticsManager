@@ -192,23 +192,23 @@ async function generateSummaryExcel({ templatePath, outputPath, periodYear, peri
 
       // Column A: Date (as a Date object for proper Excel date formatting)
       const [y, m, d] = dateStr.split("-").map(Number);
-      wsRow.getCell(1).value = new Date(y, m - 1, d);
+      wsRow.getCell(1).value = new Date(Date.UTC(y, m - 1, d));
       wsRow.getCell(1).numFmt = "dd/mm/yyyy";
 
       // Column B: WCB weight
       const cellB = wsRow.getCell(2);
       cellB.value = wcb;
-      cellB.numFmt = '#,##0.00';
+      cellB.numFmt = '#,##0.###';
 
       // Column C: Other weight
       const cellC = wsRow.getCell(3);
       cellC.value = other;
-      cellC.numFmt = '#,##0.00';
+      cellC.numFmt = '#,##0.###';
 
       // Column D: Total weight
       const cellD = wsRow.getCell(4);
       cellD.value = total;
-      cellD.numFmt = '#,##0.00';
+      cellD.numFmt = '#,##0.###';
 
       wsRow.commit();
     }
@@ -225,15 +225,15 @@ async function generateSummaryExcel({ templatePath, outputPath, periodYear, peri
     
     const cellT2 = wsTotalRow.getCell(2);
     cellT2.value = totalWcb;
-    cellT2.numFmt = '#,##0.00';
+    cellT2.numFmt = '#,##0.###';
     
     const cellT3 = wsTotalRow.getCell(3);
     cellT3.value = totalOther;
-    cellT3.numFmt = '#,##0.00';
+    cellT3.numFmt = '#,##0.###';
     
     const cellT4 = wsTotalRow.getCell(4);
     cellT4.value = totalAll;
-    cellT4.numFmt = '#,##0.00';
+    cellT4.numFmt = '#,##0.###';
     
     wsTotalRow.commit();
 

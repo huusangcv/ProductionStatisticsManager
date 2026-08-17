@@ -7,10 +7,10 @@ import attendanceService from "../../services/attendanceService";
 import { useAuth } from "../../context/AuthContext";
 
 export default function AttendancePage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, currentAccount } = useAuth();
 
-  // Only ADMIN can edit attendance
-  const isReadOnly = !isAdmin;
+  // Allow ADMIN and STATISTIC roles to edit attendance
+  const isReadOnly = !(isAdmin || currentAccount?.role === "STATISTIC");
 
   const [roles, setRoles] = useState([]);
   const [roleMap, setRoleMap] = useState({});

@@ -254,7 +254,37 @@ function getHeatTreatmentPeriod(dateStr) {
   const periodStr = String(periodMonth).padStart(2, "0");
   const fullPeriodStr = `${periodYear}-${periodStr}`;
 
-  return { periodYear, periodMonth, periodStr, fullPeriodStr };
+  // Calculate startDate (26th of previous month) and endDate (25th of current period month)
+  let startYear = periodYear;
+  let startMonth = periodMonth - 1;
+  if (startMonth === 0) {
+    startMonth = 12;
+    startYear -= 1;
+  }
+  const startDate = `${startYear}-${String(startMonth).padStart(2, "0")}-26`;
+  const endDate = `${periodYear}-${periodStr}-25`;
+
+  return { periodYear, periodMonth, periodStr, fullPeriodStr, startDate, endDate };
+}
+
+/**
+ * Given a periodYear and periodMonth, returns the date range for that period.
+ * Useful when the caller already knows the period (e.g. from UI selection).
+ * @param {number} periodYear
+ * @param {number} periodMonth 1-based
+ * @returns {{ startDate: string, endDate: string, fullPeriodStr: string }}
+ */
+function getPeriodDateRange(periodYear, periodMonth) {
+  let startYear = periodYear;
+  let startMonth = periodMonth - 1;
+  if (startMonth === 0) {
+    startMonth = 12;
+    startYear -= 1;
+  }
+  const mm = String(periodMonth).padStart(2, "0");
+  const startDate = `${startYear}-${String(startMonth).padStart(2, "0")}-26`;
+  const endDate = `${periodYear}-${mm}-25`;
+  return { startDate, endDate, fullPeriodStr: `${periodYear}-${mm}` };
 }
 
 module.exports = {
@@ -265,4 +295,5 @@ module.exports = {
   getMaterialType,
   calculateSummaryWeights,
   getHeatTreatmentPeriod,
+  getPeriodDateRange,
 };
