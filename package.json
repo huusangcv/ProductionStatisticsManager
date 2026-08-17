@@ -44,7 +44,7 @@
   },
   "build": {
     "appId": "com.productionstatisticsmanager.app",
-    "productName": "ProductionStatisticsManager",
+    "productName": "Phần Mềm Quản Lý Sản Xuất",
     "icon": "resources/icon.png",
     "files": [
       "dist/**",
@@ -65,7 +65,6 @@
       "output": "release"
     },
     "win": {
-      "signAndEditExecutable": false,
       "target": [
         {
           "target": "nsis",
