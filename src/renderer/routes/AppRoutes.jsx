@@ -71,47 +71,47 @@ function AppLockGate({ children }) {
 
 function AppRoutes() {
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <LoginPage />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/"
-        element={
-          <PrivateRoute>
-            <AppLockGate>
+    <AppLockGate>
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
               <AppLayout />
-            </AppLockGate>
-          </PrivateRoute>
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="grinding" element={<GrindingPage />} />
-        <Route path="cutting" element={<CuttingPage />} />
-        <Route path="overtime" element={<OvertimePage />} />
-        <Route path="personal-production" element={<PersonalProductionPage />} />
-        <Route path="reports" element={<ReportsPage />} />
-        <Route path="heat-treatment" element={<HeatTreatmentPage />} />
-        <Route path="casting-defect" element={<CastingDefectPage />} />
-        <Route path="attendance" element={<AttendancePage />} />
-        <Route path="production-progress" element={<ProductionProgressPage />} />
+            </PrivateRoute>
+          }
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="grinding" element={<GrindingPage />} />
+          <Route path="cutting" element={<CuttingPage />} />
+          <Route path="overtime" element={<OvertimePage />} />
+          <Route path="personal-production" element={<PersonalProductionPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="heat-treatment" element={<HeatTreatmentPage />} />
+          <Route path="casting-defect" element={<CastingDefectPage />} />
+          <Route path="attendance" element={<AttendancePage />} />
+          <Route path="production-progress" element={<ProductionProgressPage />} />
 
-        {/* ADMIN-only routes */}
-        <Route path="import-history" element={<AdminRoute><ImportHistoryPage /></AdminRoute>} />
-        <Route path="employees" element={<AdminRoute><EmployeesPage /></AdminRoute>} />
-        <Route path="roles" element={<AdminRoute><RolesPage /></AdminRoute>} />
-        <Route path="positions" element={<AdminRoute><PositionsPage /></AdminRoute>} />
-        <Route path="detail-joint" element={<AdminRoute><DetailJointPage /></AdminRoute>} />
-        <Route path="prices" element={<AdminRoute><PricesPage /></AdminRoute>} />
-        <Route path="settings" element={<AdminRoute><SettingsPage /></AdminRoute>} />
-      </Route>
-    </Routes>
+          {/* ADMIN-only routes */}
+          <Route path="import-history" element={<AdminRoute><ImportHistoryPage /></AdminRoute>} />
+          <Route path="employees" element={<AdminRoute><EmployeesPage /></AdminRoute>} />
+          <Route path="roles" element={<AdminRoute><RolesPage /></AdminRoute>} />
+          <Route path="positions" element={<AdminRoute><PositionsPage /></AdminRoute>} />
+          <Route path="detail-joint" element={<AdminRoute><DetailJointPage /></AdminRoute>} />
+          <Route path="prices" element={<AdminRoute><PricesPage /></AdminRoute>} />
+          <Route path="settings" element={<AdminRoute><SettingsPage /></AdminRoute>} />
+        </Route>
+      </Routes>
+    </AppLockGate>
   );
 }
 

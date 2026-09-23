@@ -689,6 +689,10 @@ function registerIpcHandlers() {
     return await remoteLockService.check();
   });
 
+  ipcMain.handle("remote-lock:getStatus", () => {
+    return remoteLockService.getStatus();
+  });
+
   ipcMain.handle("db:initialize", () => {
     initializeDatabase();
     return { ok: true };

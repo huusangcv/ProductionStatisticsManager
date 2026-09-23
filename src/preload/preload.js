@@ -261,5 +261,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   remoteLock: {
     check: () => ipcRenderer.invoke("remote-lock:check"),
+    getStatus: () => ipcRenderer.invoke("remote-lock:getStatus"),
   },
 });
