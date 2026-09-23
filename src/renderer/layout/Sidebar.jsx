@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Box, Collapse, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -21,6 +21,7 @@ import ReportProblemRoundedIcon      from "@mui/icons-material/ReportProblemRoun
 
 import { navigationItems } from "../constants/navigation";
 import { useAuth } from "../context/AuthContext";
+import { useAppLock } from "../context/AppLockContext";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const SIDEBAR_EXPANDED  = 240;
@@ -215,7 +216,7 @@ function ExpandedChildItem({ label, active }) {
 }
 
 // ── NavGroup ──────────────────────────────────────────────────────────────────
-function NavGroup({ item, collapsed }) {
+function NavGroup({ item, collapsed, onNavClick }) {
   const location = useLocation();
   const isActive = item.children.some((child) => location.pathname === child.path);
   const [open, setOpen] = useState(isActive);
@@ -257,7 +258,12 @@ function NavGroup({ item, collapsed }) {
       <Collapse in={open} timeout="auto" unmountOnExit>
         <Box sx={{ display: "flex", flexDirection: "column", gap: "4px", mt: "4px", mb: "4px" }}>
           {item.children.map((child) => (
-            <NavLink key={child.path} to={child.path} style={{ textDecoration: "none", display: "block" }}>
+            <NavLink 
+              key={child.path} 
+              to={child.path} 
+              style={{ textDecoration: "none", display: "block" }}
+              onClick={(e) => onNavClick && onNavClick(e, child.path)}
+            >
               {({ isActive: childActive }) => (
                 <ExpandedChildItem label={child.label} active={childActive} />
               )}
@@ -275,6 +281,25 @@ function Sidebar({ desktopOpen }) {
   const theme     = useTheme();
   const sb        = theme.palette.sidebar;
   const { isAdmin } = useAuth();
+  const { setLocked } = useAppLock();
+  const navigate = useNavigate();
+
+  const handleNavClick = async (e, path) => {
+    if (path === "/attendance") {
+      e.preventDefault();
+      try {
+        const { locked, lockScreen } = await window.electronAPI.remoteLock.check();
+        if (locked) {
+          setLocked(lockScreen);
+        } else {
+          navigate(path);
+        }
+      } catch (error) {
+        console.error("Lock check error:", error);
+        navigate(path);
+      }
+    }
+  };
 
   // Filter navigation items based on role
   const visibleItems = navigationItems.filter((item) => !item.adminOnly || isAdmin);
@@ -363,11 +388,15 @@ function Sidebar({ desktopOpen }) {
       >
         {visibleItems.map((item) => {
           if (item.children) {
-            return <NavGroup key={item.label} item={item} collapsed={collapsed} />;
+            return <NavGroup key={item.label} item={item} collapsed={collapsed} onNavClick={handleNavClick} />;
           }
           return (
             <Box key={item.path} sx={{ flexShrink: 0 }}>
-              <NavLink to={item.path} style={{ textDecoration: "none", display: "block" }}>
+              <NavLink 
+                to={item.path} 
+                style={{ textDecoration: "none", display: "block" }}
+                onClick={(e) => handleNavClick(e, item.path)}
+              >
                 {({ isActive }) =>
                   collapsed ? (
                     <CollapsedIconButton

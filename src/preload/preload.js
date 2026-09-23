@@ -259,4 +259,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     upsertBatch: (date, records) => ipcRenderer.invoke("attendance:upsertBatch", date, records),
     checkMissing: (date) => ipcRenderer.invoke("attendance:checkMissing", date),
   },
+  remoteLock: {
+    check: () => ipcRenderer.invoke("remote-lock:check"),
+  },
 });

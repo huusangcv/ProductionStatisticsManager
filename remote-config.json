@@ -1,0 +1,11 @@
+{
+  "appLocked": false,
+  "lockScreen": {
+    "title": "Ứng dụng đã hết hạn sử dụng",
+    "message": "Vui lòng gia hạn để tiếp tục sử dụng.",
+    "price": 800000,
+    "currency": "VNĐ",
+    "period": "6 tháng",
+    "contactMessage": ""
+  }
+}

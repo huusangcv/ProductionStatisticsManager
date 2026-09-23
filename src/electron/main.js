@@ -5,6 +5,7 @@ const { initializeDatabase } = require("./sqlite/init");
 const { applyLoginMode, LOGIN_MODE } = require("./windowModes");
 const logger = require("./logger");
 const { initializeUpdateService } = require("./services/update/updateService");
+const remoteLockService         = require("./services/remoteLock/remoteLockService");
 
 // ── isDev ─────────────────────────────────────────────────────────────────────
 
@@ -74,6 +75,7 @@ app.whenReady().then(() => {
   try {
     Menu.setApplicationMenu(null);
     registerIpcHandlers();
+    remoteLockService.initialize();
     initializeDatabase();
     logger.info("Application started", { version: app.getVersion(), isDev });
     createWindow();

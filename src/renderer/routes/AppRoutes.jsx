@@ -19,6 +19,8 @@ import PersonalProductionPage from "../pages/PersonalProduction/PersonalProducti
 import AttendancePage from "../pages/Attendance/AttendancePage";
 import ProductionProgressPage from "../pages/ProductionProgress/ProductionProgressPage";
 import { useAuth } from "../context/AuthContext";
+import { useAppLock } from "../context/AppLockContext";
+import ApplicationLockedView from "../pages/AppLocked/ApplicationLockedView";
 
 function PrivateRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -52,6 +54,21 @@ function AdminRoute({ children }) {
   return children;
 }
 
+/**
+ * AppLockGate
+ * If isLocked=true, renders ApplicationLockedView over the entire app.
+ * No route, no sidebar, no dashboard is accessible while locked.
+ */
+function AppLockGate({ children }) {
+  const { isLocked, lockScreen } = useAppLock();
+
+  if (isLocked) {
+    return <ApplicationLockedView lockScreen={lockScreen} />;
+  }
+
+  return children;
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -67,7 +84,9 @@ function AppRoutes() {
         path="/"
         element={
           <PrivateRoute>
-            <AppLayout />
+            <AppLockGate>
+              <AppLayout />
+            </AppLockGate>
           </PrivateRoute>
         }
       >

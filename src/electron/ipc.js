@@ -177,6 +177,7 @@ const {
   upsertAttendanceBatch,
   checkMissingAttendance,
 } = require("./sqlite/attendance");
+const remoteLockService = require("./services/remoteLock/remoteLockService");
 
 // ============================================================================
 // Shared Excel Parse Engine
@@ -664,12 +665,29 @@ const CUTTING_SPEC = [
 ];
 
 // ============================================================================
+// Remote Lock Guard
+// Add assertApplicationUnlocked() at the top of any IPC handler that must not
+// execute when the application has been remotely locked.
+// ============================================================================
+
+function assertApplicationUnlocked() {
+  if (remoteLockService.isLocked()) {
+    throw new Error("APPLICATION_LOCKED");
+  }
+}
+
+// ============================================================================
 // IPC Registration
 // ============================================================================
 
 function registerIpcHandlers() {
   ipcMain.handle("app:ping", () => ({ ok: true }));
   ipcMain.handle("app:getVersion", () => ({ version: app.getVersion() }));
+
+  // ── Remote Lock ─────────────────────────────────────────────────────────────
+  ipcMain.handle("remote-lock:check", async () => {
+    return await remoteLockService.check();
+  });
 
   ipcMain.handle("db:initialize", () => {
     initializeDatabase();
@@ -726,11 +744,9 @@ function registerIpcHandlers() {
       getEmployeeByRepresentativeCodeAndRole(repCode, roleCode),
   );
   ipcMain.handle("employee:getById", (_event, id) => getEmployeeById(id));
-  ipcMain.handle("employee:create", (_event, data) => createEmployee(data));
-  ipcMain.handle("employee:update", (_event, { id, data }) =>
-    updateEmployee(id, data),
-  );
-  ipcMain.handle("employee:delete", (_event, id) => deleteEmployee(id));
+  ipcMain.handle("employee:create", (_event, data) => { assertApplicationUnlocked(); return createEmployee(data); });
+  ipcMain.handle("employee:update", (_event, { id, data }) => { assertApplicationUnlocked(); return updateEmployee(id, data); });
+  ipcMain.handle("employee:delete", (_event, id) => { assertApplicationUnlocked(); return deleteEmployee(id); });
 
 
   ipcMain.handle("employee:importExcel", async (event) => {
@@ -929,13 +945,8 @@ function registerIpcHandlers() {
   );
   ipcMain.handle("position:delete", (_event, id) => deletePosition(id));
 
-  // --- Grinding handlers ---
   ipcMain.handle("grinding:getAll", () => getAllGrindingData());
   ipcMain.handle("grinding:getById", (_event, id) => getGrindingDataById(id));
-  ipcMain.handle("grinding:update", (_event, id, data) =>
-    updateGrindingData(id, data),
-  );
-  ipcMain.handle("grinding:delete", (_event, id) => deleteGrindingDataById(id));
   ipcMain.handle("grinding:getDefectsByDate", (_event, date) =>
     getDefectsByDate(date),
   );
@@ -954,23 +965,27 @@ function registerIpcHandlers() {
 
   ipcMain.handle(
     "grinding:save",
-    makeSaveHandler(
-      "Sản lượng Mài",
-      "grinding_production",
-      checkGrindingDataExistsByDate,
-      deleteGrindingDataByDate,
-      importGrindingData,
-      "GRIND",
-    ),
+    async (event, payload) => {
+      assertApplicationUnlocked();
+      return makeSaveHandler(
+        "Sản lượng Mài",
+        "grinding_production",
+        checkGrindingDataExistsByDate,
+        deleteGrindingDataByDate,
+        importGrindingData,
+        "GRIND",
+      )(event, payload);
+    },
   );
+
+  ipcMain.handle("grinding:delete", (_event, id) => { assertApplicationUnlocked(); return deleteGrindingDataById(id); });
+  ipcMain.handle("grinding:update", (_event, id, data) => { assertApplicationUnlocked(); return updateGrindingData(id, data); });
 
   // --- Cutting handlers ---
   ipcMain.handle("cutting:getAll", () => getAllCuttingData());
   ipcMain.handle("cutting:getById", (_event, id) => getCuttingDataById(id));
-  ipcMain.handle("cutting:update", (_event, id, data) =>
-    updateCuttingData(id, data),
-  );
-  ipcMain.handle("cutting:delete", (_event, id) => deleteCuttingDataById(id));
+  ipcMain.handle("cutting:update", (_event, id, data) => { assertApplicationUnlocked(); return updateCuttingData(id, data); });
+  ipcMain.handle("cutting:delete", (_event, id) => { assertApplicationUnlocked(); return deleteCuttingDataById(id); });
 
   ipcMain.handle("cutting:selectFile", (event) =>
     selectProductionFile(event, "Chọn file Excel sản lượng Cắt"),
@@ -998,14 +1013,17 @@ function registerIpcHandlers() {
 
   ipcMain.handle(
     "cutting:save",
-    makeSaveHandler(
-      "Sản lượng Cắt",
-      "cutting_production",
-      checkCuttingDataExistsByDate,
-      deleteCuttingDataByDate,
-      importCuttingData,
-      "CUT",
-    ),
+    async (event, payload) => {
+      assertApplicationUnlocked();
+      return makeSaveHandler(
+        "Sản lượng Cắt",
+        "cutting_production",
+        checkCuttingDataExistsByDate,
+        deleteCuttingDataByDate,
+        importCuttingData,
+        "CUT",
+      )(event, payload);
+    },
   );
 
   // --- Import Session handlers ---
@@ -1109,6 +1127,7 @@ function registerIpcHandlers() {
   );
 
   ipcMain.handle("heatTreatment:generate", async (_event, { reportDate }) => {
+    assertApplicationUnlocked();
     const heatTreatmentExportService = require("./services/heatTreatmentExportService");
     return heatTreatmentExportService.generateExport({ reportDate });
   });
@@ -1116,6 +1135,7 @@ function registerIpcHandlers() {
   ipcMain.handle(
     "heatTreatment:generatePeriodSummary",
     async (_event, { periodYear, periodMonth }) => {
+      assertApplicationUnlocked();
       const heatTreatmentSummaryExportService = require("./services/heatTreatmentSummaryExportService");
       return heatTreatmentSummaryExportService.generatePeriodSummaryExport({
         periodYear,
@@ -1197,6 +1217,7 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle("castingDefect:generate", async (_event, { reportDate }) => {
+    assertApplicationUnlocked();
     const startTime = Date.now();
     try {
       // 1. Load template metadata
@@ -1313,6 +1334,7 @@ function registerIpcHandlers() {
 
   // Lưu toàn bộ dữ liệu phế từ grid
   ipcMain.handle("bao-phe:saveAllRows", (_event, date, gridRows) => {
+    assertApplicationUnlocked();
     try {
       const { saveAllRows } = require("./sqlite/baoPhe");
       saveAllRows(date, gridRows);
@@ -1326,6 +1348,7 @@ function registerIpcHandlers() {
   ipcMain.handle(
     "bao-phe:export",
     async (_event, { candidates, dateLabel, isDraft }) => {
+      assertApplicationUnlocked();
       try {
         // Lấy template
         const tmpl = getTemplate("casting-defect-return");
@@ -1444,6 +1467,7 @@ function registerIpcHandlers() {
 
   // ── Personal Production (Sản lượng Cá nhân) ─────────────────────────────
   ipcMain.handle("personal-production:generate", async (event, params) => {
+    assertApplicationUnlocked();
     return await personalProductionService.generate(
       params.startDate,
       params.endDate,
@@ -1465,6 +1489,7 @@ function registerIpcHandlers() {
     },
   );
   ipcMain.handle("personal-production:sync", async (event, payload) => {
+    assertApplicationUnlocked();
     return await personalProductionService.syncData(payload);
   });
   ipcMain.handle("personal-production:update", async (event, { id, data }) => {
@@ -1503,11 +1528,13 @@ function registerIpcHandlers() {
   ipcMain.handle(
     "printer:printExcel",
     async (_event, { filePath, module: moduleKey }) => {
+      assertApplicationUnlocked();
       return await printerService.printExcel(filePath, null, moduleKey || null);
     },
   );
 
   ipcMain.handle("printer:printPdf", async (_event, filePath) => {
+    assertApplicationUnlocked();
     return await printerService.printPdf(filePath);
   });
 
@@ -1760,10 +1787,12 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle("backup:create", async () => {
+    assertApplicationUnlocked();
     return backupDAO.createBackup();
   });
 
   ipcMain.handle("backup:restore", async (_event, backupPath) => {
+    assertApplicationUnlocked();
     return backupDAO.restoreBackup(backupPath);
   });
 
@@ -1857,6 +1886,7 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle("attendance:upsertBatch", (_event, date, records) => {
+    assertApplicationUnlocked();
     upsertAttendanceBatch(date, records);
     return { ok: true };
   });
