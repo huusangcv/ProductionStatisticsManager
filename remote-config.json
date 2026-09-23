@@ -1,5 +1,5 @@
 {
-  "appLocked": false,
+  "appLocked": true,
   "lockScreen": {
     "title": "Ứng dụng đã hết hạn sử dụng",
     "message": "Vui lòng gia hạn để tiếp tục sử dụng.",
