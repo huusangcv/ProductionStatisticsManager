@@ -5,6 +5,10 @@ const { initializeDatabase } = require("./sqlite/init");
 const { applyLoginMode, LOGIN_MODE } = require("./windowModes");
 const logger = require("./logger");
 const { initializeUpdateService } = require("./services/update/updateService");
+const {
+  checkRemoteLockStatus,
+  startRemoteLockPolling,
+} = require("./services/remoteLock/remoteLockService");
 
 // ── isDev ─────────────────────────────────────────────────────────────────────
 
@@ -70,13 +74,48 @@ function createWindow() {
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   try {
     Menu.setApplicationMenu(null);
     registerIpcHandlers();
     initializeDatabase();
     logger.info("Application started", { version: app.getVersion(), isDev });
+
+    // ── Remote Lock Check ───────────────────────────────────────────────
+    // Check if the application is remotely locked before creating the window.
+    // If locked, show a dialog and exit immediately.
+    const lockStatus = await checkRemoteLockStatus();
+    if (lockStatus.isLocked) {
+      logger.warn("Application is remotely locked", {
+        reason: lockStatus.lockReason,
+        message: lockStatus.lockMessage,
+      });
+
+      const { dialog } = require("electron");
+      await dialog.showMessageBox({
+        type: "error",
+        title: "Ứng dụng bị khóa",
+        message: "Ứng dụng đã bị khóa do hết hạn sử dụng",
+        detail: lockStatus.lockMessage || "Vui lòng liên hệ quản trị viên để gia hạn sử dụng.",
+        buttons: ["Đóng"],
+        defaultId: 0,
+      });
+
+      app.quit();
+      return;
+    }
+
+    if (lockStatus.error) {
+      logger.warn("Remote lock check encountered an error (allowing app)", {
+        error: lockStatus.error,
+      });
+    }
+
     createWindow();
+
+    // Bắt đầu quá trình kiểm tra ngầm (polling) định kỳ mỗi 1 phút (60000ms)
+    // Nếu app bị khóa trong lúc đang sử dụng, nó sẽ ép đóng ngay lập tức.
+    startRemoteLockPolling(60000);
   } catch (err) {
     logger.error("Fatal error during startup", err);
     app.quit();

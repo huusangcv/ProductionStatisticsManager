@@ -14,18 +14,13 @@ const {
 const { printExcelFile } = require("./print/excelPrinter");
 
 async function getAllWindowsPrinters() {
-  console.log("[getAllWindowsPrinters] Starting printer detection...");
   try {
     // 1. Try PowerShell Get-Printer first
     try {
-      console.log("[getAllWindowsPrinters] Trying PowerShell Get-Printer...");
       const { stdout } = await execAsync(
         `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Get-Printer | Select-Object Name, DriverName, PortName, PrinterStatus, Default | ConvertTo-Json -Depth 10"`,
       );
-      console.log(
-        "[getAllWindowsPrinters] PowerShell Get-Printer stdout:",
-        stdout,
-      );
+
       const printers = JSON.parse(stdout);
       const result = printers.map((p) => ({
         name: p.Name,
@@ -34,10 +29,6 @@ async function getAllWindowsPrinters() {
         status: mapPrinterStatus(p.PrinterStatus),
         isDefault: p.Default || false,
       }));
-      console.log(
-        "[getAllWindowsPrinters] Found printers (PowerShell):",
-        result,
-      );
       return result;
     } catch (psError) {
       console.error(
@@ -257,7 +248,7 @@ async function printExcel(filePath, printerNameOverride = null, moduleKey = null
 // logAndReturnError and logSuccess have been moved to printerLogger.js (v2.0.0).
 // Kept as no-ops here to avoid breaking any future callers that may reference them.
 function logAndReturnError(result) { return result; }
-function logSuccess(_result) {}
+function logSuccess(_result) { }
 
 async function printPdf(filePath, printerNameOverride = null) {
   // PDF printing would be similar, using appropriate PDF viewer COM object
