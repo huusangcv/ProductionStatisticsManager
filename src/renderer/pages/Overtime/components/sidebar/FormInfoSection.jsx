@@ -11,6 +11,7 @@ import Chip from '@mui/material/Chip';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import { OT_TYPES, MAX_ROWS } from '../../constants';
+import DatePickerWithNav from '../../../../components/shared/DatePickerWithNav';
 
 /**
  * FormInfoSection – Phiếu info card in sidebar
@@ -37,10 +38,9 @@ const FormInfoSection = memo(function FormInfoSection({
             Ngày tăng ca
           </Typography>
         </Box>
-        <TextField
-          type="date"
+        <DatePickerWithNav
           value={otDate}
-          onChange={e => setOtDate(e.target.value)}
+          onChange={setOtDate}
           size="small"
           fullWidth
           slotProps={{ input: { 'aria-label': 'Ngày tăng ca' } }}

@@ -1,11 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Box, Fade } from "@mui/material";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import styles from "./AppLayout.module.css";
 import { NotificationProvider } from "../context/NotificationContext";
 import NotificationDrawer from "../components/notifications/NotificationDrawer";
+import { ShortcutProvider, useShortcutTrigger } from "../context/ShortcutContext";
+import { useAuth } from "../context/AuthContext";
+
+// F1–F9 → route map (real routes from AppRoutes.jsx)
+const F_KEY_ROUTES = {
+  F1: "/cutting",
+  F2: "/grinding",
+  F3: "/attendance",
+  F4: "/heat-treatment",
+  F5: "/casting-defect",
+  F6: "/personal-production",
+  F7: "/overtime",
+  F8: "/dashboard",
+  F9: "/reports",
+};
 
 function StartupTasks() {
   const startupChecked = useRef(false);
@@ -20,7 +35,6 @@ function StartupTasks() {
         const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         const res = await window.electronAPI.attendance?.checkMissing(today);
         if (res && res.ok && res.missingCount > 0) {
-          // If there are missing check-ins, create a notification via IPC
           await window.electronAPI.notifications?.create({
             title: "Cảnh báo điểm danh",
             message: `Hôm nay (${today}) còn ${res.missingCount} nhân viên chưa được điểm danh. Vui lòng cập nhật điểm danh.`,
@@ -39,16 +53,18 @@ function StartupTasks() {
   return null;
 }
 
-function AppLayout() {
-  const [desktopOpen, setDesktopOpen] = useState(true);
+/**
+ * Inner layout component — needs access to ShortcutContext trigger hooks,
+ * so it must be a child of ShortcutProvider.
+ */
+function AppLayoutInner({ desktopOpen, onToggleSidebar }) {
   const [contentVisible, setContentVisible] = useState(false);
   const [dashboardReady, setDashboardReady] = useState(false);
   const transitionStartedRef = useRef(false);
   const location = useLocation();
-
-  const handleToggleSidebar = () => {
-    setDesktopOpen((prev) => !prev);
-  };
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const { triggerPrint, triggerExport } = useShortcutTrigger();
 
   const handleDashboardReady = useCallback(() => {
     setDashboardReady(true);
@@ -67,6 +83,50 @@ function AppLayout() {
 
     runTransition();
   }, [location.pathname, dashboardReady]);
+
+  // ── Global keyboard shortcuts ─────────────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only act when the app is authenticated (not on lock/login screen)
+      if (!isAuthenticated) return;
+
+      // ── Ctrl+B: toggle sidebar ──────────────────────────────────────────
+      if (e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey && e.key === 'b') {
+        e.preventDefault();
+        onToggleSidebar();
+        return;
+      }
+
+      // ── Ctrl+P: print ───────────────────────────────────────────────────
+      if (e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey && e.key === 'p') {
+        // Only intercept if a page has registered a print handler
+        // triggerPrint is a no-op if nothing registered, but we still preventDefault
+        // to avoid the system/browser print dialog opening unexpectedly.
+        // Pages that don't have print simply won't do anything.
+        e.preventDefault();
+        triggerPrint();
+        return;
+      }
+
+      // ── Ctrl+E: export ──────────────────────────────────────────────────
+      if (e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey && e.key === 'e') {
+        e.preventDefault();
+        triggerExport();
+        return;
+      }
+
+      // ── F1–F9: navigate views ───────────────────────────────────────────
+      const route = F_KEY_ROUTES[e.key];
+      if (route && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        navigate(route);
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true); // capture phase
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [isAuthenticated, onToggleSidebar, navigate, triggerPrint, triggerExport]);
 
   return (
     <NotificationProvider>
@@ -93,7 +153,7 @@ function AppLayout() {
               overflow: "hidden",
             }}
           >
-            <Topbar onMenuClick={handleToggleSidebar} />
+            <Topbar onMenuClick={onToggleSidebar} />
             <Box className={styles.pageContainer}>
               <Outlet context={{ onDashboardReady: handleDashboardReady }} />
             </Box>
@@ -102,6 +162,23 @@ function AppLayout() {
       </Fade>
       <NotificationDrawer />
     </NotificationProvider>
+  );
+}
+
+function AppLayout() {
+  const [desktopOpen, setDesktopOpen] = useState(true);
+
+  const handleToggleSidebar = useCallback(() => {
+    setDesktopOpen((prev) => !prev);
+  }, []);
+
+  return (
+    <ShortcutProvider>
+      <AppLayoutInner
+        desktopOpen={desktopOpen}
+        onToggleSidebar={handleToggleSidebar}
+      />
+    </ShortcutProvider>
   );
 }
 

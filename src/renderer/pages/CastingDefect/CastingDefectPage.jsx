@@ -23,6 +23,8 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import DatePickerWithNav from "../../components/shared/DatePickerWithNav";
+import { useShortcut } from "../../context/ShortcutContext";
 
 import DefectInputGrid, { DEFECT_COLS, calcTongCong } from "./DefectInputGrid";
 import VerificationBanner from "./VerificationBanner";
@@ -94,6 +96,8 @@ export default function CastingDefectPage() {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const showSnackbar = (message, severity = "success") =>
     setSnackbar({ open: true, message, severity });
+
+  const { registerPrint, registerExport } = useShortcut();
 
   // ── Khởi tạo ngày gần nhất ──
   useEffect(() => {
@@ -294,6 +298,17 @@ export default function CastingDefectPage() {
     }
   };
 
+  // ── Keyboard shortcuts: Ctrl+P = in nháp, Ctrl+E = xuất báo phế ────────────
+  useEffect(() => {
+    registerPrint(!exporting && gridRows.length > 0 ? handlePrintDraft : null);
+    return () => registerPrint(null);
+  }, [registerPrint, exporting, gridRows.length]);
+
+  useEffect(() => {
+    registerExport(!exporting && gridRows.length > 0 ? handlePrintBaoPhe : null);
+    return () => registerExport(null);
+  }, [registerExport, exporting, gridRows.length]);
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -337,11 +352,10 @@ export default function CastingDefectPage() {
           <Box sx={{ flex: 1 }} />
 
           {/* Date picker */}
-          <TextField
-            type="date"
-            size="small"
+          <DatePickerWithNav
             value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
+            onChange={setFilterDate}
+            size="small"
             sx={{
               width: 145,
               "& .MuiInputBase-input": { fontSize: "12px", py: "6px", height: "22px" },

@@ -18,6 +18,7 @@ import {
   useGridApiContext,
 } from "@mui/x-data-grid";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import DatePickerWithNav from "../DatePickerWithNav";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
@@ -128,12 +129,11 @@ export default function ProductionToolbar({
         </Box>
 
         {onFilterDateChange && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <TextField
-              type="date"
-              size="small"
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <DatePickerWithNav
               value={filterDate || ""}
-              onChange={(e) => onFilterDateChange(e.target.value)}
+              onChange={onFilterDateChange}
+              size="small"
               sx={{
                 width: 140,
                 m: "0 !important",
@@ -157,6 +157,7 @@ export default function ProductionToolbar({
             )}
           </Box>
         )}
+
       </Box>
 
       {/* ── Right Section ────────────────────────────────────────────────── */}

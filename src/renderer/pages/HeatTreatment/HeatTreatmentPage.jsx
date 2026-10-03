@@ -17,6 +17,8 @@ import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SummarizeIcon from "@mui/icons-material/Summarize";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+import DatePickerWithNav from "../../components/shared/DatePickerWithNav";
+import { useShortcut } from "../../context/ShortcutContext";
 
 import ExportDialogs from "./components/ExportDialogs";
 import PeriodSummaryDialog from "./components/PeriodSummaryDialog";
@@ -48,6 +50,7 @@ export default function HeatTreatmentPage() {
   const [showPeriodSummaryDialog, setShowPeriodSummaryDialog] = useState(false);
 
   const { printExcel, printing } = usePrinters();
+  const { registerPrint, registerExport } = useShortcut();
 
   const showSnackbar = (message, severity = "success") =>
     setSnackbar({ open: true, message, severity });
@@ -223,16 +226,30 @@ export default function HeatTreatmentPage() {
     setSelectedDate(newDate);
   };
 
+  // Register Ctrl+P / Ctrl+E shortcuts
+  useEffect(() => {
+    // Ctrl+P: print last generated file (only if available)
+    registerPrint(lastResult?.filePath && !generating && !printing
+      ? () => handlePrint(lastResult.filePath)
+      : null);
+    return () => registerPrint(null);
+  }, [registerPrint, lastResult, generating, printing]);
+
+  useEffect(() => {
+    // Ctrl+E: generate Excel
+    registerExport(!generating && template ? handleGenerate : null);
+    return () => registerExport(null);
+  }, [registerExport, generating, template]);
+
   const heatTreatmentToolbar = () => (
     <ReportToolbar
       leftCustomControls={
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <TextField
-            type="date"
-            size="small"
+          <DatePickerWithNav
             value={selectedDate}
-            onChange={(e) => handleDateChange(e.target.value)}
-            inputProps={{ max: today }}
+            onChange={handleDateChange}
+            max={today}
+            size="small"
             sx={{
               width: 150,
               "& .MuiInputBase-root": {

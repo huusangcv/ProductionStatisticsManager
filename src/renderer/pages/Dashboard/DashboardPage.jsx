@@ -16,6 +16,7 @@ import LeaderboardPanel from "../../components/dashboard/LeaderboardPanel";
 import ProductionDataGrid from "../../components/shared/ProductionDataGrid";
 import DataGridToolbarActions from "../../components/shared/DataGridToolbarActions";
 import styles from "./DashboardPage.module.css";
+import DatePickerWithNav from "../../components/shared/DatePickerWithNav";
 
 import { getGrindingDataGridColumns } from "../../../constants/grindingColumns";
 import { getCuttingDataGridColumns } from "../../../constants/cuttingColumns";
@@ -206,21 +207,19 @@ function DashboardPage() {
 
           {dateRange === "Tùy chọn" && (
             <>
-              <TextField
-                type="date"
-                label="Từ ngày"
-                InputLabelProps={{ shrink: true }}
-                size="small"
+            <DatePickerWithNav
                 value={customFromDate}
-                onChange={(e) => setCustomFromDate(e.target.value)}
-              />
-              <TextField
-                type="date"
-                label="Đến ngày"
-                InputLabelProps={{ shrink: true }}
+                onChange={setCustomFromDate}
+                label="Từ ngày"
+                slotProps={{ inputLabel: { shrink: true } }}
                 size="small"
+              />
+              <DatePickerWithNav
                 value={customToDate}
-                onChange={(e) => setCustomToDate(e.target.value)}
+                onChange={setCustomToDate}
+                label="Đến ngày"
+                slotProps={{ inputLabel: { shrink: true } }}
+                size="small"
               />
             </>
           )}

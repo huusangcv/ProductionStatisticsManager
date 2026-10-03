@@ -3,9 +3,10 @@
 // Nhận departmentId, departmentName, initialEmployeeList từ props.
 // Toàn bộ logic (sidebar, preview, dialogs, snackbar) nằm ở đây.
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
+import { useShortcut } from '../../context/ShortcutContext';
 
 import './overtime.css';
 import { useEmployeeManager } from './hooks/useEmployeeManager';
@@ -62,6 +63,13 @@ function OvertimePage() {
   const [previewRecord, setPreviewRecord] = React.useState(null);
 
   const dateStr = getDateStr();
+
+  // Register Ctrl+P shortcut → doPrint (only when employees are selected)
+  const { registerPrint } = useShortcut();
+  useEffect(() => {
+    registerPrint(selArr.length > 0 ? doPrint : null);
+    return () => registerPrint(null);
+  }, [registerPrint, doPrint, selArr.length]);
 
   // Tên nhân viên đang bị xóa (dùng cho dialog xác nhận)
   const deletingEmployee = deletingId ? employees.find(e => e.id === deletingId) : null;

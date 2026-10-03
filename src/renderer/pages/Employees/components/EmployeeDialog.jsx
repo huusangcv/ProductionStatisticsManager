@@ -16,6 +16,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import DatePickerWithNav from "../../../components/shared/DatePickerWithNav";
 
 const schema = z.object({
   employee_code: z.string().min(1, "Mã NV là bắt buộc"),
@@ -255,9 +256,9 @@ function EmployeeDialog({ open, employee, roles = [], positions = [], onClose, o
                   name="hire_date"
                   control={control}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      type="date"
+                    <DatePickerWithNav
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
                       fullWidth
                       label="Ngày vào làm"
                       slotProps={{ inputLabel: { shrink: true } }}

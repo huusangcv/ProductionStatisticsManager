@@ -1,4 +1,5 @@
 import { Box, Button, TextField, Stack, InputAdornment, IconButton, Tooltip } from "@mui/material";
+import DatePickerWithNav from "../../../components/shared/DatePickerWithNav";
 import SearchIcon from "@mui/icons-material/Search";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SaveIcon from "@mui/icons-material/Save";
@@ -28,13 +29,11 @@ export default function AttendanceToolbar({
       }}
     >
       <Stack direction="row" spacing={2} alignItems="center">
-        <TextField
-          type="date"
-          size="small"
+        <DatePickerWithNav
           value={filterDate}
-          onChange={(e) => onFilterDateChange(e.target.value)}
+          onChange={onFilterDateChange}
+          size="small"
           sx={{ width: 160 }}
-          InputLabelProps={{ shrink: true }}
         />
 
         <TextField

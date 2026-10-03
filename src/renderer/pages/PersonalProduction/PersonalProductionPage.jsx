@@ -10,6 +10,7 @@ import SyncPersonalProductionDialog from "./components/SyncPersonalProductionDia
 import PersonalProductionDrawer from "./components/PersonalProductionDrawer";
 import { viVNGridLocaleText } from "../../constants/dataGridLocale";
 import ProductionGridFooter from "../../components/shared/ProductionGridFooter";
+import { useShortcut } from "../../context/ShortcutContext";
 
 const productionDataGridSx = {
   border: "none",
@@ -80,6 +81,16 @@ export default function PersonalProductionPage() {
   const showSnackbar = useCallback((message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
   }, []);
+
+  const { registerExport } = useShortcut();
+
+  // Register Ctrl+E shortcut for export
+  useEffect(() => {
+    registerExport(!exporting ? handleExport : null);
+    return () => registerExport(null);
+  // handleExport changes when filterDate changes — that's fine
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registerExport, exporting, filterDate]);
 
   const loadData = useCallback(async () => {
     if (!filterDate) return;

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import styles from './EmployeeDialog.module.css';
+import { DateInputWithNav } from '../../../../components/shared/DatePickerWithNav';
 
 function EmployeeDialog({ open, employee, onClose, onSave }) {
   const [formData, setFormData] = useState({
@@ -129,7 +130,7 @@ function EmployeeDialog({ open, employee, onClose, onSave }) {
               </div>
               <div className={styles.field}>
                 <label className={styles.label}>Ngày vào làm</label>
-                <input className={styles.input} type="date" value={formData.joinDate} onChange={handleChange('joinDate')} />
+                <DateInputWithNav className={styles.input} value={formData.joinDate} onChange={handleChange('joinDate')} />
               </div>
               <div className={styles.field}>
                 <label className={styles.label}>Trạng thái</label>

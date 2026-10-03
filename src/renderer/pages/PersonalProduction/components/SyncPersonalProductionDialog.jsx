@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import SyncRoundedIcon from "@mui/icons-material/SyncRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+import DatePickerWithNav from "../../../components/shared/DatePickerWithNav";
 
 export default function SyncPersonalProductionDialog({
   open,
@@ -123,14 +124,13 @@ export default function SyncPersonalProductionDialog({
               <Typography variant="body2" color="text.secondary">
                 Dữ liệu sẽ được tổng hợp từ bảng Cắt và Mài theo ngày bạn chọn.
               </Typography>
-              <TextField
+              <DatePickerWithNav
                 label="Ngày đồng bộ"
-                type="date"
                 fullWidth
                 size="small"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
-                InputLabelProps={{ shrink: true }}
+                onChange={setDate}
+                slotProps={{ inputLabel: { shrink: true } }}
               />
               <Box>
                 <Typography variant="caption" sx={{ fontWeight: 600, color: "#64748B", display: "block", mb: 0.5 }}>

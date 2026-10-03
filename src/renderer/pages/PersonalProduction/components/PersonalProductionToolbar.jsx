@@ -19,6 +19,7 @@ import SyncRoundedIcon from "@mui/icons-material/SyncRounded";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import DatePickerWithNav from "../../../components/shared/DatePickerWithNav";
 
 const iconOnlyButtonSx = {
   minWidth: "36px !important",
@@ -146,12 +147,11 @@ export default function PersonalProductionToolbar({
         </Box>
 
         {onFilterDateChange && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <TextField
-              type="date"
-              size="small"
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <DatePickerWithNav
               value={filterDate || ""}
-              onChange={(e) => onFilterDateChange(e.target.value)}
+              onChange={onFilterDateChange}
+              size="small"
               sx={{
                 width: 140,
                 m: "0 !important",
