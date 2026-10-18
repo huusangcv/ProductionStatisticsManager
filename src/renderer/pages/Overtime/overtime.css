@@ -343,7 +343,7 @@
   }
 
   /* ── 1. Hide ALL screen UI ─────────────────────────────────── */
-  body > *:not(#overtime-print-portal) {
+  body>*:not(#overtime-print-portal) {
     display: none !important;
   }
 
@@ -363,7 +363,7 @@
   }
 
   /* ── 3. Each page in portal ────────────────────────────────── */
-  #overtime-print-portal > div > div {
+  #overtime-print-portal>div>div {
     display: block !important;
     width: 794px !important;
     height: 1123px !important;
@@ -403,7 +403,13 @@
     border-color: #000 !important;
   }
 
-  .d-stt, .d-id, .d-name, .d-role, .d-time, .d-sign, .d-note {
+  .d-stt,
+  .d-id,
+  .d-name,
+  .d-role,
+  .d-time,
+  .d-sign,
+  .d-note {
     border-color: #000 !important;
   }
 
@@ -434,11 +440,11 @@
   height: 100%;
   border: none;
   background: transparent;
-  text-align: center;
-  text-align-last: center;
+  text-align: left;
+  text-align-last: left;
   font-family: inherit;
   font-size: inherit;
-  padding: 0;
+  padding: 0 4px;
   outline: none;
   cursor: pointer;
 }

@@ -85,6 +85,7 @@ export default function DatePickerWithNav({
   min,
   max,
   sx,
+  showNav = true,
   ...rest
 }) {
   const handleStep = useCallback(
@@ -126,16 +127,18 @@ export default function DatePickerWithNav({
 
   return (
     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25 }}>
-      <IconButton
-        size="small"
-        onClick={() => handleStep(-1)}
-        disabled={!value || atMin}
-        tabIndex={-1}
-        sx={NAV_BTN_SX}
-        aria-label="Lùi 1 ngày"
-      >
-        <ChevronLeftRoundedIcon />
-      </IconButton>
+      {showNav && (
+        <IconButton
+          size="small"
+          onClick={() => handleStep(-1)}
+          disabled={!value || atMin}
+          tabIndex={-1}
+          sx={NAV_BTN_SX}
+          aria-label="Lùi 1 ngày"
+        >
+          <ChevronLeftRoundedIcon />
+        </IconButton>
+      )}
 
       <TextField
         type={type}
@@ -145,16 +148,18 @@ export default function DatePickerWithNav({
         {...rest}
       />
 
-      <IconButton
-        size="small"
-        onClick={() => handleStep(1)}
-        disabled={!value || atMax}
-        tabIndex={-1}
-        sx={NAV_BTN_SX}
-        aria-label="Tiến 1 ngày"
-      >
-        <ChevronRightRoundedIcon />
-      </IconButton>
+      {showNav && (
+        <IconButton
+          size="small"
+          onClick={() => handleStep(1)}
+          disabled={!value || atMax}
+          tabIndex={-1}
+          sx={NAV_BTN_SX}
+          aria-label="Tiến 1 ngày"
+        >
+          <ChevronRightRoundedIcon />
+        </IconButton>
+      )}
     </Box>
   );
 }

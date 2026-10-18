@@ -4,6 +4,12 @@ import { MAX_ROWS } from '../constants';
 
 const ROLE_PRIORITY = { TT: 1, CT: 2, NV: 3, CN: 4 };
 
+// Giờ mặc định điền sẵn theo loại tăng ca (theo pattern OvertimeDays)
+const OT_DEFAULT_TIMES = {
+  'TCA THƯỜNG': '16h30 - ',    // khớp với <option value="16h30 - ">
+  'CHỦ NHẬT':   '7h30 - 16h30', // khớp với <option value="7h30 - 16h30">
+};
+
 export function useEmployeeManager({ departmentId = 'default', departmentName = '' } = {}) {
   const [employees, setEmployees] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -43,17 +49,17 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
         console.error("window.electronAPI.employees.getAll is not available");
         return;
       }
-      
+
       const [allEmployees, attendanceRes] = await Promise.all([
         window.electronAPI.employees.getAll(),
         window.electronAPI.attendance?.getByDate(otDate)
       ]);
-      
+
       const attendanceRecords = attendanceRes?.records || [];
       const presentEmployeeIds = new Set(
         attendanceRecords.filter(r => r.status === 'PRESENT').map(r => String(r.employee_id))
       );
-      
+
       const mapToRole = (emp) => {
         const posCode = String(emp.position_code || '').toUpperCase();
         const posName = String(emp.position_name || '').toLowerCase();
@@ -66,7 +72,7 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
         return 'CN';
       };
 
-      const activeEmployees = (allEmployees || []).filter(emp => 
+      const activeEmployees = (allEmployees || []).filter(emp =>
         emp.status !== 'Nghỉ việc' && presentEmployeeIds.has(String(emp.id))
       );
 
@@ -75,10 +81,10 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
       const seenEmpCodes = new Map();
       for (const emp of activeEmployees) {
         // Use employee_code for deduplication
-        const empCode = (emp.employee_code && String(emp.employee_code).trim() !== '') 
-          ? String(emp.employee_code).trim().toLowerCase() 
+        const empCode = (emp.employee_code && String(emp.employee_code).trim() !== '')
+          ? String(emp.employee_code).trim().toLowerCase()
           : `id_${emp.id}`;
-        
+
         const existing = seenEmpCodes.get(empCode);
         if (!existing || emp.id < existing.id) {
           seenEmpCodes.set(empCode, emp);
@@ -188,22 +194,22 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
     return selected.sort((a, b) => {
       const pA = ROLE_PRIORITY[a.role] || 5;
       const pB = ROLE_PRIORITY[b.role] || 5;
-      
+
       if (pA !== pB) {
         return pA - pB;
       }
-      
+
       // Nếu cùng chức vụ là Công Nhân (CN) thì sắp xếp theo thời gian tăng ca
       const isAWorker = !a.role || a.role.toUpperCase() === 'CN';
       const isBWorker = !b.role || b.role.toUpperCase() === 'CN';
-      
+
       if (isAWorker && isBWorker) {
         const timeA = otTimes[a.id] || '';
         const timeB = otTimes[b.id] || '';
         if (timeA !== timeB) {
           return timeA.localeCompare(timeB);
         }
-        
+
         // Thêm sắp xếp theo ghi chú nếu thời gian giống nhau
         const noteA = notes[`emp-${a.id}`] !== undefined ? notes[`emp-${a.id}`] : (a.note || '');
         const noteB = notes[`emp-${b.id}`] !== undefined ? notes[`emp-${b.id}`] : (b.note || '');
@@ -211,7 +217,7 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
           return noteA.localeCompare(noteB);
         }
       }
-      
+
       const numA = parseInt(a.id, 10);
       const numB = parseInt(b.id, 10);
       if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
@@ -222,6 +228,22 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
   }, [employees, selectedIds, otTimes, notes]);
 
   // Handlers
+
+  // Thay đổi loại tăng ca và cập nhật giờ cho tất cả NV đang chọn (giống handleShiftChange OvertimeDays)
+  const handleOtTypeChange = useCallback((newType) => {
+    setOtType(newType);
+    const defaultTime = OT_DEFAULT_TIMES[newType];
+    if (defaultTime) {
+      setOtTimes(times => {
+        const next = { ...times };
+        for (const id of selectedIds) {
+          next[id] = defaultTime; // ghi đè khi người dùng chủ động đổi loại
+        }
+        return next;
+      });
+    }
+  }, [selectedIds]);
+
   // Không giới hạn số lượng NV — phân trang tự động xử lý khi vượt MAX_ROWS
   const toggleEmp = useCallback((id) => {
     setSelectedIds(prev => {
@@ -230,10 +252,18 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
         next.delete(id);
       } else {
         next.add(id);
+        // Điền sẵn giờ mặc định khi chọn NV mới (chỉ ghi đè nếu ô đang trống)
+        const defaultTime = OT_DEFAULT_TIMES[otType];
+        if (defaultTime) {
+          setOtTimes(times => {
+            if (!times[id]) return { ...times, [id]: defaultTime };
+            return times;
+          });
+        }
       }
       return next;
     });
-  }, []);
+  }, [otType]);
 
   const toggleAll = useCallback((checked) => {
     setSelectedIds(prev => {
@@ -243,6 +273,17 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
         for (const emp of filteredEmployees) {
           next.add(emp.id);
         }
+        // Điền sẵn giờ mặc định cho NV mới được chọn (chỉ ghi đè nếu ô đang trống)
+        const defaultTime = OT_DEFAULT_TIMES[otType];
+        if (defaultTime) {
+          setOtTimes(times => {
+            const newTimes = { ...times };
+            for (const emp of filteredEmployees) {
+              if (!newTimes[emp.id]) newTimes[emp.id] = defaultTime;
+            }
+            return newTimes;
+          });
+        }
       } else {
         for (const emp of filteredEmployees) {
           next.delete(emp.id);
@@ -250,7 +291,7 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
       }
       return next;
     });
-  }, [filteredEmployees]);
+  }, [filteredEmployees, otType]);
 
   const requestDelete = useCallback((id) => {
     setDeletingId(id);
@@ -451,9 +492,9 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
 
     const res = await window.electronAPI.overtime.saveHistory(snapshotData);
     if (res.ok) {
-       await refreshHistory();
+      await refreshHistory();
     } else {
-       showToast('Lỗi lưu lịch sử: ' + res.message, 'error');
+      showToast('Lỗi lưu lịch sử: ' + res.message, 'error');
     }
 
     // 2. Gọi lệnh in
@@ -504,7 +545,7 @@ export function useEmployeeManager({ departmentId = 'default', departmentName = 
     // state
     employees, selectedIds, activeTab, setActiveTab,
     searchQuery, setSearchQuery,
-    otDate, setOtDate, otType, setOtType,
+    otDate, setOtDate, otType, setOtType: handleOtTypeChange,
     otTimes, setEmployeeTime, notes, setNote, otHistory, loadHistory, deleteHistoryRecord, clearAllHistory,
     modalOpen, editingId, modalData, setModalData,
     confirmOpen, deletingId,

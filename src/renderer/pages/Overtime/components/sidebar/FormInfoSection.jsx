@@ -43,6 +43,7 @@ const FormInfoSection = memo(function FormInfoSection({
           onChange={setOtDate}
           size="small"
           fullWidth
+          showNav={false}
           slotProps={{ input: { 'aria-label': 'Ngày tăng ca' } }}
           sx={{
             '& .MuiOutlinedInput-root': {
