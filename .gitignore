@@ -36,3 +36,7 @@ Thumbs.db
 # Misc
 coverage/
 .gitnexus
+
+# Build artifacts
+bin/
+obj/
